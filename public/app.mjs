@@ -1,4 +1,4 @@
-import { compareBasket, nearbyStores, normalizeList, lowestPrice, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, normalizeRadius } from './core.mjs';
+import { compareBasket, nearbyStores, normalizeList, lowestPrice, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, normalizeRadius } from './core.mjs';
 import { createDemoData, demoLocation, sampleList } from './demo.mjs';
 import { icon, productArt, heroArt } from './art.mjs';
 
@@ -69,7 +69,8 @@ function locationFields(modal=false) {
   return `<form id="${modal?'location-modal-form':'location-form'}" class="location-form">
     <label class="field-label" for="${modal?'modal-address':'address'}">Da dove partiamo?</label>
     <div class="address-field">${icon('pin')}<input id="${modal?'modal-address':'address'}" name="address" autocomplete="street-address" maxlength="200" minlength="3" placeholder="Città, CAP o indirizzo" value="${esc(state.mode==='live' ? state.location?.label || saved?.mode==='live' && saved?.location?.label || 'Cagliari':'')}" required></div>
-    <button class="text-button geolocation" type="button" data-action="geolocate">${icon('target')} Usa la mia posizione</button>
+    <div class="location-alternatives"><button class="text-button geolocation" type="button" data-action="geolocate">${icon('target')} Usa la mia posizione</button><button class="text-button geolocation" type="button" data-action="cagliari-centre">${icon('pin')} Parti dal centro di Cagliari</button></div>
+    <p class="centre-hint">Il centro città è un punto di partenza indicativo, non il tuo indirizzo.</p>
     ${radiusControl(modal?'modal-radius':'radius')}
     <p class="field-hint">Da 500 m a 6 km, a passi di 500 m. Distanza in linea d’aria.</p>
     <button class="button primary full" type="submit" ${state.busy?'disabled':''}>${state.busy?'<span class="spinner"></span> Ricerca in corso…':`Cerca supermercati ${icon('arrow')}`}</button>
@@ -223,6 +224,14 @@ function geolocate() {
   },()=>{if(id!==requestId)return;state.busy=false;feedback.textContent='Posizione non disponibile o permesso negato. Puoi inserire un indirizzo.';},{enableHighAccuracy:false,timeout:12_000,maximumAge:300_000});
 }
 
+function useCagliariCentre() {
+  if(state.busy)return;
+  const form=$('#location-modal-form') || $('#location-form');
+  const feedback=$('.form-feedback',form);
+  if(!state.live){feedback.textContent='Per cercare i negozi reali serve il server dell’app attivo.';return;}
+  return loadLocation({...DEFAULT_LOCATION},Number(new FormData(form).get('radius')),feedback);
+}
+
 async function showComparison() {
   if(!state.list.length || state.busy)return;
   if(state.mode==='live') {
@@ -296,7 +305,7 @@ document.addEventListener('click',event=> {
     state.page=button.dataset.step;render();announcePage();return;
   }
   const actions={
-    demo:()=>startDemo(false),'exit-demo':exitDemo,help:showHelp,privacy,stores:showStores,'edit-location':editLocation,geolocate,compare:showComparison,
+    demo:()=>startDemo(false),'exit-demo':exitDemo,help:showHelp,privacy,stores:showStores,'edit-location':editLocation,geolocate,'cagliari-centre':useCagliariCentre,compare:showComparison,
     catalog:()=>{state.page='catalog';state.results=null;render();announcePage();},
     'sample-list':()=>{state.list=structuredClone(sampleList);refreshListUI();toast('Una lista d’esempio, pronta da modificare.');},
     'clear-search':()=>{state.search='';state.category='all';render();},

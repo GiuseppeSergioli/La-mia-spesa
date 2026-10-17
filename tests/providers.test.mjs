@@ -60,5 +60,21 @@ test('live discovery includes independent shops and convenience stores, but no i
 test('geocoding is biased to Cagliari and keeps the explicit address selection',async()=>{
   const original=globalThis.fetch;let requested;
   globalThis.fetch=async url=>{requested=new URL(url);return Response.json({features:[{geometry:{coordinates:[9.1217,39.2238]},properties:{name:'Via di test',city:'Cagliari',countrycode:'IT'}}]});};
-  try{const results=await geocode('indirizzo-test-cagliari');assert.equal(requested.searchParams.get('lat'),'39.2238');assert.equal(requested.searchParams.get('lon'),'9.1217');assert.match(results[0].label,/Cagliari/);assert.equal(results.length,1);}finally{globalThis.fetch=original;}
+  try{const results=await geocode('indirizzo-test-cagliari');assert.equal(requested.searchParams.get('lat'),'39.2238');assert.equal(requested.searchParams.get('lon'),'9.1217');assert.equal(requested.searchParams.has('lang'),false);assert.match(results[0].label,/Cagliari/);assert.equal(results.length,1);}finally{globalThis.fetch=original;}
+});
+test('geocoding HTTP errors provide a usable alternative and are not cached',async()=>{
+  const original=globalThis.fetch,oldWarn=console.warn;let calls=0;const logs=[];
+  globalThis.fetch=async()=>{calls++;return new Response('Unsupported language',{status:400});};console.warn=(...args)=>logs.push(args);
+  try{
+    for(let i=0;i<2;i++)await assert.rejects(geocode('private-address-http-error'),error=>error.status===400 && error.message.includes('centro di Cagliari'));
+    assert.equal(calls,2);assert.equal(logs[0][1].status,400);assert.equal(JSON.stringify(logs).includes('private-address'),false);
+  }finally{globalThis.fetch=original;console.warn=oldWarn;}
+});
+test('geocoding network failure does not fabricate coordinates or return the city centre',async()=>{
+  const original=globalThis.fetch,oldWarn=console.warn;globalThis.fetch=async()=>{throw new TypeError('fetch failed');};console.warn=()=>{};
+  try{await assert.rejects(geocode('private-address-network-error'),/Puoi usare la tua posizione/);}finally{globalThis.fetch=original;console.warn=oldWarn;}
+});
+test('geocoding malformed success responses are caught as service errors',async()=>{
+  const original=globalThis.fetch,oldWarn=console.warn;globalThis.fetch=async()=>Response.json({error:'bad payload'});console.warn=()=>{};
+  try{await assert.rejects(geocode('private-address-malformed'),/ricerca degli indirizzi/);}finally{globalThis.fetch=original;console.warn=oldWarn;}
 });

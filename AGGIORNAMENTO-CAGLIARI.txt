@@ -1,4 +1,4 @@
-LA MIA SPESA — AGGIORNAMENTO 1.1 CAGLIARI
+LA MIA SPESA — AGGIORNAMENTO 1.1.1 CAGLIARI
 
 NOVITÀ
 - Cagliari è la città iniziale della ricerca; il tuo indirizzo resta modificabile.
@@ -17,6 +17,9 @@ COME AGGIORNARE IL SITO GIÀ PUBBLICATO
 3. Add file > Upload files: trascina i file e le cartelle CONTENUTI in spesina, mantenendo le sottocartelle. package.json deve rimanere nella radice del repository. Carica i file estratti, non il file ZIP e non un ulteriore livello spesina/.
 4. Conferma il commit. Attendi il nuovo deploy automatico di quel servizio Render; se è disabilitato usa Manual Deploy > Deploy latest commit.
 5. Verifica nell’app Cagliari precompilata e raggio massimo 6 km. I browser che hanno una demo salvata possono usare Passa alla ricerca reale per tornare alla pagina iniziale.
-6. Per un controllo tecnico, /api/status deve mostrare versione 1.1.0 e radius.max uguale a 6. Il numero configuredStores può rimanere 0: non sono stati attivati feed reali.
+6. Per un controllo tecnico, /api/status deve mostrare versione 1.1.1 e radius.max uguale a 6. Il numero configuredStores può rimanere 0: non sono stati attivati feed reali.
 
 Questo aggiornamento non richiede di cambiare autorizzazioni GitHub, workspace Render o configurazioni delle altre applicazioni. Non usare New Web Service: aggiorna quello già creato.
+
+CORREZIONE 1.1.1
+Rimosso il parametro lingua dalla chiamata Photon. Errori del servizio geografico gestiti con indicazione delle alternative. Aggiunto Parti dal centro di Cagliari: non sostituisce silenziosamente il tuo indirizzo e non dipende dalla ricerca indirizzi. Anche Usa la mia posizione evita quella ricerca, ma richiede il permesso del browser. La ricerca dei negozi dipende comunque da Overpass. La correzione è stata verificata con test locali simulati; per verificare l’hosting occorre aprire il sito dopo il deploy.

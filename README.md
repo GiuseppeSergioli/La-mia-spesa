@@ -2,7 +2,7 @@
 
 Un’app in italiano per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
 
-**Versione 1.1 — Cagliari:** indirizzo iniziale Cagliari, raggio da 0,5 a 6 km ogni 500 metri, ricerca di supermercati/discount/alimentari senza filtro di insegna e directory di collegamenti verificati per 10 insegne. Il sito iniziale è stato pubblicato dall’utente; questo aggiornamento non è ancora applicato al repository GitHub o a Render da questa chat. Nessuna catena è attualmente collegata a un feed di prezzi. La demo usa cinque negozi fittizi, 24 prodotti illustrati e prezzi inventati. Vedi `AGGIORNAMENTO-CAGLIARI.txt` e `docs/CAGLIARI.md` per lo stato esatto delle integrazioni.
+**Versione 1.1.1 — Cagliari:** indirizzo iniziale Cagliari, raggio da 0,5 a 6 km ogni 500 metri, ricerca di supermercati/discount/alimentari senza filtro di insegna e directory di collegamenti verificati per 10 insegne. Il sito iniziale è stato pubblicato dall’utente; questo aggiornamento non è ancora applicato al repository GitHub o a Render da questa chat. Nessuna catena è attualmente collegata a un feed di prezzi. La demo usa cinque negozi fittizi, 24 prodotti illustrati e prezzi inventati. Vedi `AGGIORNAMENTO-CAGLIARI.txt` e `docs/CAGLIARI.md` per lo stato esatto delle integrazioni.
 
 ## Avvio
 
@@ -116,3 +116,11 @@ node scripts/ui-check.mjs
 - [Render — Blueprint YAML](https://render.com/docs/blueprint-spec)
 
 I nomi dei prodotti dimostrativi identificano esempi di selezione, non partnership. Le immagini sono illustrazioni SVG indicative create per questa app; non riproducono fotografie delle confezioni. I negozi della demo sono immaginari.
+
+## Ricerca indirizzi: correzione 1.1.1
+
+Photon viene interrogato senza forzare una lingua: il nome locale può essere restituito senza quel parametro. Eventuali errori non diventano una posizione inventata e non vengono conservati in cache. Il pulsante “Parti dal centro di Cagliari” è un’alternativa esplicita: non usa il servizio di geocodifica e cerca negozi dal punto indicativo del centro; “Usa la mia posizione” usa invece le coordinate consentite dal browser. Entrambi continuano a richiedere la ricerca dei negozi tramite Overpass.
+
+Per usare una propria istanza Photon compatibile, imposta PHOTON_SEARCH_URL sull’endpoint HTTPS di ricerca nella configurazione del server. Non è una URL ricevuta dal browser. I log della ricerca fallita riportano solo tipo di errore e stato HTTP, senza indirizzo o URL completa.
+
+Documentazione: https://github.com/komoot/photon/blob/master/docs/api-v1.md

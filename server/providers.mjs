@@ -23,10 +23,12 @@ export async function cached(key, ttl, work) {
   return structuredClone(await job);
 }
 
-export class UpstreamError extends Error {}
+export class UpstreamError extends Error {
+  constructor(message, status=null) {super(message);this.name='UpstreamError';this.status=status;}
+}
 
 async function readJson(response) {
-  if (!response.ok) throw new UpstreamError('Servizio esterno temporaneamente non disponibile. Riprova tra poco.');
+  if (!response.ok) throw new UpstreamError('Servizio esterno temporaneamente non disponibile. Riprova tra poco.',response.status);
   let bytes = 0, chunks = [];
   for await (const chunk of response.body) {
     bytes += chunk.length;
@@ -39,9 +41,20 @@ async function readJson(response) {
 
 export async function geocode(query) {
   return cached(`geo:${query.toLowerCase()}`, 3_600_000, async () => {
-    const url = new URL('https://photon.komoot.io/api/');
-    url.search = new URLSearchParams({q:query,limit:'6',lang:'it',lat:String(DEFAULT_LOCATION.lat),lon:String(DEFAULT_LOCATION.lon)}).toString();
-    const data = await readJson(await fetch(url, {headers:{'User-Agent':UA},signal:AbortSignal.timeout(12_000)}));
+    let data;
+    try {
+      const url = new URL(process.env.PHOTON_SEARCH_URL || 'https://photon.komoot.io/api/');
+      if(url.protocol!=='https:' || url.username || url.password) throw new Error('Invalid geocoder endpoint');
+      // Do not force a language: the provider returns the local name and public
+      // instances can have different supported language sets.
+      url.search = new URLSearchParams({q:query,limit:'6',lat:String(DEFAULT_LOCATION.lat),lon:String(DEFAULT_LOCATION.lon)}).toString();
+      data = await readJson(await fetch(url, {headers:{'User-Agent':UA},signal:AbortSignal.timeout(12_000)}));
+      if(!Array.isArray(data.features)) throw new UpstreamError('Risposta geografica non valida.');
+    } catch(error) {
+      // Log only a status/type, never the address or the full request URL.
+      console.warn('Address lookup unavailable', {status:error.status || null,reason:error.name});
+      throw new UpstreamError('La ricerca degli indirizzi non è disponibile. Puoi usare la tua posizione oppure il pulsante “Parti dal centro di Cagliari”.',error.status || null);
+    }
     const seen = new Set();
     return (data.features ?? []).flatMap(f => {
       const [lon,lat] = f.geometry?.coordinates ?? [], p = f.properties ?? {};
