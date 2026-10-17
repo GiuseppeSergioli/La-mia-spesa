@@ -1,0 +1,17 @@
+[
+  {
+    "id": "negozio-centro",
+    "url": "https://feed.example.com/catalogo/negozio-centro.json",
+    "allowedHosts": ["feed.example.com", "shop.example.com"],
+    "headersEnv": "RETAILER_HEADERS",
+    "sourceLabel": "Catalogo autorizzato del negozio",
+    "maxAgeMinutes": 120,
+    "store": {
+      "name": "Nome esatto del punto vendita",
+      "chain": "Nome catena",
+      "address": "Indirizzo effettivo del negozio, Milano",
+      "lat": 45.4642,
+      "lon": 9.19
+    }
+  }
+]

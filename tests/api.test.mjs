@@ -1,0 +1,16 @@
+import test,{before,after} from 'node:test';
+import assert from 'node:assert/strict';
+import { createApp } from '../server/index.mjs';
+let server,base;
+before(async()=>{server=createApp();await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;});
+after(async()=>{await new Promise(r=>server.close(r));});
+test('health and live capability are explicit',async()=>{const res=await fetch(`${base}/api/health`);assert.equal(res.status,200);assert.equal((await res.json()).ok,true);const s=await (await fetch(`${base}/api/status`)).json();assert.equal(s.live,true);assert.equal(typeof s.configuredStores,'number');});
+test('root page serves Italian application with security headers',async()=>{const res=await fetch(base);assert.match(res.headers.get('content-type'),/text\/html/);assert.match(res.headers.get('content-security-policy'),/script-src 'self'/);assert.equal(res.headers.get('x-content-type-options'),'nosniff');assert.match(await res.text(),/<html lang="it">/);});
+test('ES modules use JavaScript content type',async()=>{const res=await fetch(`${base}/core.mjs`);assert.match(res.headers.get('content-type'),/javascript/);});
+test('invalid radius and coordinates fail before external calls',async()=>{for(const path of ['/api/catalog?lat=45&lon=9&radius=999','/api/catalog?lat=nan&lon=9&radius=5','/api/catalog?lat=&lon=&radius=5','/api/catalog?lat=45&lon=9&radius=0']){const r=await fetch(base+path);assert.equal(r.status,400,path);}});
+test('short geocoding input is rejected without an external request',async()=>{const r=await fetch(`${base}/api/geocode?q=a`);assert.equal(r.status,400);});
+test('server sources and config cannot be read as static files',async()=>{for(const path of ['/server/index.mjs','/config/feeds.example.json','/%2e%2e%2fpackage.json'])assert.equal((await fetch(base+path)).status,404);});
+test('invalid shopping lists are rejected by compare API',async()=>{for(const list of [[],[{productId:'p',quantity:0}],[{productId:'p',quantity:1.5}],[{productId:'p',quantity:1},{productId:'p',quantity:1}]]){const r=await fetch(`${base}/api/compare`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:45,lon:9,radius:5,list})});assert.equal(r.status,400);}});
+test('cross-site compare calls are refused',async()=>{const r=await fetch(`${base}/api/compare`,{method:'POST',headers:{Origin:'https://evil.example','Content-Type':'application/json'},body:'{}'});assert.equal(r.status,403);});
+test('malformed JSON produces a clean error',async()=>{const r=await fetch(`${base}/api/compare`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});assert.equal(r.status,400);assert.equal((await r.json()).error,'JSON non valido.');});
+test('unsupported method and nonexistent API return errors',async()=>{assert.equal((await fetch(`${base}/api/status`,{method:'DELETE'})).status,405);assert.equal((await fetch(`${base}/api/nope`)).status,404);});

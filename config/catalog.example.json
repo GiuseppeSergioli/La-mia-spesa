@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "storeId": "negozio-centro",
+  "currency": "EUR",
+  "products": [
+    {
+      "id": "catalogo:esempio-spaghetti-500g",
+      "name": "Spaghetti n. 5",
+      "brand": "Marca esempio",
+      "size": "500 g",
+      "category": "Pasta e riso",
+      "priceCents": 119,
+      "availability": "in_stock",
+      "quantityAvailable": 10,
+      "observedAt": "2026-10-17T10:00:00Z",
+      "sourceUrl": "https://shop.example.com/negozio-centro/spaghetti",
+      "conditions": "none"
+    }
+  ]
+}

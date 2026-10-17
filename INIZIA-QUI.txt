@@ -1,0 +1,10 @@
+SPESINA — PRIMA VERSIONE
+
+Per provare subito: apri dist/index.html e usa la lista di esempio.
+
+Per avviare il server: installa Node.js 24, apri un terminale in questa cartella, esegui npm ci --ignore-scripts e npm start. Apri http://localhost:3000.
+
+Leggi README.md per GitHub, URL pubblica e cataloghi dei supermercati.
+Leggi VALIDAZIONE.md per i controlli effettuati e quelli ancora da eseguire.
+
+I prezzi della demo sono fittizi. Nessun feed reale è collegato e nessun sito pubblico è stato creato.
