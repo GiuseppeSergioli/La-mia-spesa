@@ -2,13 +2,14 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 const read = path => readFile(new URL(`../${path}`,import.meta.url),'utf8');
 const modules=[
   ['Core','public/core.mjs','MAX_QUANTITY, MAX_PRICE_CENTS, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, validRadius, normalizeRadius, haversine, validCoordinates, nearbyStores, normalizeList, offerStatus, referencePrice, priceForProduct, compareBasket, comparisonSummary, savingsBetweenComplete, money, distance, lowestPrice'],
-  ['Demo','public/demo.mjs','categories, products, demoLocation, sampleList, sampleLists, createDemoData'],
+  ['Catalog','public/catalog.mjs','REFERENCE_CHECKED_ON, CATALOG_CATEGORY_COUNT, CATALOG_PRODUCTS_PER_CATEGORY, CATALOG_PRODUCT_COUNT, catalogCategories, catalogProducts, catalogCounts'],
+  ['Demo','public/demo.mjs','categories, products, demoLocation, sampleList, sampleLists, createDemoData, migrateDemoList, legacyDemoAliases'],
   ['Art','public/art.mjs','icon, productArt, heroArt'],
   ['Location','public/location.mjs','GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError']
 ];
 let script='window.SPESINA_STATIC=true;\n';
 for(const [name,file,exports] of modules) {
-  const source=(await read(file)).replace(/\bexport\s+(?=(?:async\s+)?(?:const|function|class))/g,'').replace(/^import \{([^}]+)\} from '\.\/core\.mjs';/m,'const {$1}=Core;');
+  const source=(await read(file)).replace(/\bexport\s+(?=(?:async\s+)?(?:const|function|class))/g,'').replace(/^import \{([^}]+)\} from '\.\/core\.mjs';/m,'const {$1}=Core;').replace(/^import \{([^}]+)\} from '\.\/catalog\.mjs';/m,'const {$1}=Catalog;');
   script+=`const ${name}=(()=>{\n${source}\nreturn {${exports}};\n})();\n`;
 }
 let app=await read('public/app.mjs');

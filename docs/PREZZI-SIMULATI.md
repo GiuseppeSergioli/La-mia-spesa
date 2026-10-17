@@ -1,16 +1,16 @@
 # Prezzi simulati e prodotti di riferimento
 
-Versione 1.3.0 · Fonti consultate il 17 ottobre 2026.
+Versione 1.4.0 · Fonti consultate il 17 ottobre 2026.
 
-Il catalogo iniziale comprende 30 prodotti generici in 8 categorie. Consente di scegliere prodotti e quantità e calcolare i totali anche se il negozio non fornisce un listino. Non è una copia dell’assortimento locale: la presenza di un articolo non significa che Eurospin, Lidl o un altro negozio lo venda.
+Il catalogo condiviso fra carrello e demo comprende 384 prodotti generici in 24 categorie, con 16 scelte per categoria. Le 30 voci elencate nella tabella mantengono i precedenti riferimenti pubblici; le altre 354 hanno stime indicative definite nel catalogo. Consente di scegliere prodotti e quantità e calcolare i totali anche se il negozio non fornisce un listino. Non è una copia dell’assortimento locale: la presenza di un articolo non significa che Eurospin, Lidl o un altro negozio lo venda.
 
 ## Significato di “Prezzo simulato”
 
-Sono riferimenti indicativi ricavati da prezzi pubblici online di prodotti comparabili Conad. Non sono una media statistica del mercato, un’indagine rappresentativa di Cagliari o una quotazione attuale del negozio selezionato. Fonte e data sono disponibili in ogni scheda e nel confronto. Non c’è un aggiornamento automatico: la data di consultazione resta quella effettiva, anche dopo un riavvio. Non sono stati acquisiti i listini dei punti vendita locali.
+Le 30 voci iniziali usano riferimenti indicativi ricavati da prezzi pubblici online di prodotti comparabili Conad. Per le nuove 354 voci si tratta invece di valori indicativi di simulazione, definiti per prodotto e formato senza una rilevazione del prezzo: la finestra indica Stima definita il e il metodo, senza inventare una fonte esterna. Non sono una media statistica del mercato, un’indagine rappresentativa di Cagliari o una quotazione attuale del negozio selezionato. Fonte e data sono disponibili in ogni scheda e nel confronto. Non c’è un aggiornamento automatico: la data di consultazione resta quella effettiva, anche dopo un riavvio. Non sono stati acquisiti i listini dei punti vendita locali.
 
 Per prodotti o formati diversi dal riferimento, il valore è una stima per analogia o proporzione. Un multipacco reale potrebbe avere un prezzo diverso dalla somma dei singoli pezzi. Un riferimento da 500 ml moltiplicato per due non è un prezzo rilevato per la confezione da 1 litro. Le categorie e i nomi sono generici; non vengono spacciati per prodotti a marchio presenti in altre catene.
 
-## Valori inclusi
+## Voci con riferimenti pubblici
 
 | Prodotto generico | Formato | Prezzo simulato | Prodotto comparabile e fonte | Metodo |
 | --- | --- | --- | --- | --- |
@@ -56,4 +56,9 @@ Alcuni prezzi sono visibili anche nelle sezioni di prodotti correlati del catalo
 - Esaurimenti e quantità insufficienti espliciti restano mancanti e non vengono sostituiti da prezzi simulati. La presenza di un prezzo stimato non viene convertita in disponibilità confermata.
 - Per un prodotto specifico di un feed, un riferimento può derivare dal valore centrale dei prezzi verificati disponibili dello stesso ID. Non si abbina automaticamente un generico a una marca o a un formato diverso. Se non esiste alcun riferimento per l’articolo specifico, la riga resta senza prezzo, anziché ricevere un importo arbitrario.
 
-Il codice è in server/reference-catalog.mjs e server/shopping.mjs. I test verificano le somme in centesimi, le quantità, l’assenza di offerte inventate nei negozi, le parità, le scorte e la separazione dei totali. La demo preesistente rimane distinta, con negozi, prezzi e scorte fittizi.
+Il catalogo comune e i metodi sono in public/catalog.mjs; il server lo riesporta da server/reference-catalog.mjs e lo integra con server/shopping.mjs. Le stime indicative hanno origine editorial, data di definizione, sourceUrl null e un metodo che esplicita che il valore non è un prezzo rilevato. Le voci con riferimenti pubblici hanno origine public; i riferimenti derivati da un feed hanno origine feed. I test verificano le somme in centesimi, le quantità, l’assenza di offerte inventate nei negozi, le parità, le scorte e la separazione dei totali. La demo preesistente rimane distinta, con negozi, prezzi e scorte fittizi.
+
+
+## Catalogo uniforme 1.4.0
+
+L’elenco completo è in `CATALOGO.md`. Il simulatore e il carrello usano gli stessi ID, nomi, formati e categorie. Nel simulatore i prezzi per negozio e le disponibilità sono fittizi e possono differire per mostrare il confronto; queste offerte non vengono importate fra quelle dei negozi reali. Nel carrello reale senza listini, lo stesso riferimento viene applicato a tutti i negozi e conduce a parità. L’aggiunta di scelte non costituisce un ampliamento dell’assortimento verificato dei supermercati o una nuova indagine dei prezzi.

@@ -53,6 +53,7 @@ export function offerStatus(offer, quantity = 1, now = Date.now()) {
 export function referencePrice(product) {
   const ref=product?.reference;
   if(!ref || !Number.isSafeInteger(ref.priceCents) || ref.priceCents<=0 || ref.priceCents>MAX_PRICE_CENTS || !/^\d{4}-\d{2}-\d{2}$/.test(ref.checkedOn || '') || !Number.isFinite(Date.parse(ref.checkedOn))) return null;
+  if(ref.origin==='editorial')return ref.sourceUrl==null && ref.definedOn===ref.checkedOn && typeof ref.method==='string' && ref.method.length>0 && ref.sourceLabel==='Stima indicativa del catalogo'?ref:null;
   try {if(new URL(ref.sourceUrl).protocol!=='https:')return null;} catch {return null;}
   return ref;
 }

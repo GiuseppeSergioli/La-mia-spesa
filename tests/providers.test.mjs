@@ -54,7 +54,7 @@ test('live discovery includes independent shops and convenience stores, but no i
     assert.match(query,/convenience/);assert.match(query,/around:2500/);assert.equal(data.stores.filter(s=>s.discoverySource!=='verified_directory').length,2);
     assert.equal(data.stores.some(s=>s.name==='Alimentari del quartiere'),true);
     assert.equal(data.stores[0].onlineUrl,'https://www.cosicomodo.it/pan/cagliari-plaia');
-    assert.equal(data.coverage.priceConnectedStores,0);assert.equal(data.coverage.exhaustive,false);assert.equal(data.referenceCatalog.enabled,true);assert.equal(data.products.length,30);assert.ok(data.products.every(p=>p.reference));assert.ok(data.stores.every(s=>Object.keys(s.offers).length===0));assert.ok(data.retailerSources.some(s=>s.id==='pan'));
+    assert.equal(data.coverage.priceConnectedStores,0);assert.equal(data.coverage.exhaustive,false);assert.equal(data.referenceCatalog.enabled,true);assert.equal(data.products.length,384);assert.ok(data.products.every(p=>p.reference));assert.ok(data.stores.every(s=>Object.keys(s.offers).length===0));assert.ok(data.retailerSources.some(s=>s.id==='pan'));
   }finally{globalThis.fetch=original;}
 });
 test('geocoding is biased to Cagliari and keeps the explicit address selection',async()=>{
@@ -86,7 +86,7 @@ test('a map outage returns a dated local directory without claiming live prices'
   globalThis.fetch=async()=>{calls++;return new Response('Unavailable',{status:503});};console.warn=()=>{};
   try{
     const data=await buildLiveCatalog({lat:39.2238,lon:9.1217},3,[]);
-    assert.equal(data.storeDiscovery.status,'local_directory');assert.equal(data.storeDiscovery.mapAvailable,false);assert.ok(data.stores.length>0);assert.ok(data.stores.every(s=>s.discoverySource==='verified_directory'));assert.equal(data.coverage.priceConnectedStores,0);assert.equal(data.referenceCatalog.enabled,true);assert.equal(data.products.length,30);assert.ok(data.products.every(p=>p.reference));assert.ok(data.stores.every(s=>Object.keys(s.offers).length===0));
+    assert.equal(data.storeDiscovery.status,'local_directory');assert.equal(data.storeDiscovery.mapAvailable,false);assert.ok(data.stores.length>0);assert.ok(data.stores.every(s=>s.discoverySource==='verified_directory'));assert.equal(data.coverage.priceConnectedStores,0);assert.equal(data.referenceCatalog.enabled,true);assert.equal(data.products.length,384);assert.ok(data.products.every(p=>p.reference));assert.ok(data.stores.every(s=>Object.keys(s.offers).length===0));
     await buildLiveCatalog({lat:39.2238,lon:9.1217},3,[]);assert.equal(calls,1,'cooldown prevents hammering a failing server');
   }finally{globalThis.fetch=original;console.warn=oldWarn;if(oldEndpoint===undefined)delete process.env.OVERPASS_SEARCH_URL;else process.env.OVERPASS_SEARCH_URL=oldEndpoint;}
 });

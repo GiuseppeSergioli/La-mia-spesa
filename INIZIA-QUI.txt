@@ -1,11 +1,10 @@
-LA MIA SPESA — VERSIONE 1.3.0 CAGLIARI
+LA MIA SPESA — VERSIONE 1.4.0
 
-Per aggiornare il tuo sito Render: AGGIORNAMENTO-CAGLIARI.txt.
+Per aggiornare Render: AGGIORNAMENTO-CAGLIARI.txt.
+Carrello e simulatore: stesso catalogo di 384 prodotti in 24 categorie, 16 scelte per categoria.
 Percorso: zona > negozi > Componi il carrello > prodotti e quantità > Confronta la spesa.
-Catalogo di riferimento: 30 prodotti, 8 categorie. Prezzi simulati con fonte e data; scorte locali non confermate. A parità di prezzi simulati il risultato è una parità.
-Demo separata: dist/index.html, 96 prodotti, 14 categorie, 8 negozi e prezzi fittizi, 4 liste pronte.
-Server: Node.js 24, npm ci --ignore-scripts, npm start; poi http://localhost:3000.
-Raggio: 500 m–6 km a passi di 500 m, in linea d’aria.
-GPS: controlla la precisione e conferma il punto, oppure inserisci l’indirizzo.
-Fonti e limiti delle stime: docs/PREZZI-SIMULATI.md.
-Negozi reali: docs/CAGLIARI.md. Verifiche: VALIDAZIONE.md.
+Sfoglia dal menu categorie o con i pulsanti; Mostra altri prodotti ne carica 24 per volta.
+I prezzi simulati distinguono riferimenti pubblici e stime indicative. Scorte locali non confermate. Nessun feed prezzi locale collegato.
+Demo autonoma: apri dist/index.html. Stessi prodotti, con negozi, prezzi e scorte fittizi e 4 liste pronte.
+Server: Node.js 24, npm ci --ignore-scripts, npm start; http://localhost:3000.
+Categorie: docs/CATALOGO.md. Stime e fonti: docs/PREZZI-SIMULATI.md. Verifiche: VALIDAZIONE.md.

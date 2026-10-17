@@ -2,11 +2,13 @@
 
 Un’app in italiano per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
 
-**Versione 1.3.0 — Cagliari:** il flusso reale continua dai negozi al pulsante **Componi il carrello**, poi al confronto dei totali. Anche senza feed sono disponibili **30 prodotti generici in 8 categorie**, con prezzi indicati come **Prezzo simulato** e fonte/data consultabili. La demo separata conserva 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte. Raggio da 0,5 a 6 km ogni 500 metri; ritorno alla home senza cancellare la lista.
+**Versione 1.4.0 — catalogo uniforme:** carrello e simulatore condividono **384 prodotti in 24 categorie, con 16 scelte per categoria**. Il selettore mostra i conteggi e la prima pagina propone un articolo di ciascuna categoria. Sono presenti, fra le altre, frutta, verdura, carne, salumi, pesce, surgelati, pane, snack, igiene, bucato, infanzia e animali. Il percorso resta zona → supermercati → Componi il carrello → confronto. Le vecchie liste demo vengono migrate ai nuovi esempi generici conservando le quantità; gli ID dei 30 riferimenti già disponibili nella versione precedente restano invariati.
 
-**Nessun feed prezzi locale è collegato.** I negozi fisici vengono ricercati sulla mappa e integrati con un elenco locale parziale di 8 punti Eurospin/Lidl. Il carrello e il confronto sono utilizzabili con riferimenti indicativi: se tutti i prezzi sono simulati, i negozi avranno lo stesso totale e l’app mostrerà la parità. Non viene inventato un supermercato più conveniente. I riferimenti non confermano assortimento e scorte e non sono una media statistica del mercato. Vedi `docs/PREZZI-SIMULATI.md`.
+I prezzi senza listino locale sono indicati come **Prezzo simulato**. Le 30 voci fondate sui riferimenti pubblici precedenti mantengono fonte e data di consultazione; le altre 354 hanno una **stima indicativa definita nel catalogo**, con data e metodo, senza attribuire a un sito prezzi che non sono stati rilevati. Le stime non sono una media di mercato e non confermano assortimento o disponibilità. Il simulatore usa gli stessi prodotti e categorie, con 8 negozi, prezzi e scorte fittizi per esercitare il confronto.
 
-La localizzazione richiede una misura aggiornata e precisa, ne mostra l’incertezza e chiede la conferma del punto prima di cercare i negozi. Si può correggere con un indirizzo. Il sito iniziale è già pubblicato dall’utente; questo aggiornamento deve ancora essere caricato su GitHub e distribuito su Render.
+**Nessun feed prezzi locale è collegato.** La ricerca dei negozi e l’elenco parziale di 8 punti reali Eurospin/Lidl restano disponibili. Dove tutti i prezzi sono simulati si usa lo stesso riferimento per lo stesso prodotto nei diversi negozi e il risultato è una parità. Raggio 0,5–6 km, GPS con conferma e ritorno alla home restano presenti. Vedi `docs/CATALOGO.md` e `docs/PREZZI-SIMULATI.md`.
+
+Il sito esistente deve ancora essere aggiornato con questi file su GitHub e Render; questa chat non ha distribuito la versione 1.4.0.
 
 ## Avvio
 
@@ -32,14 +34,14 @@ L’ultimo comando genera `dist/index.html`: una demo autonoma, apribile anche c
 - Indirizzo con scelta esplicita del risultato geografico, oppure geolocalizzazione su consenso.
 - Raggio da 0,5 a 6 km, con incrementi di 0,5 km e pulsanti +/− per aggiustamenti di 500 metri, espresso in **linea d’aria**. Non è una distanza stradale e non stima il tempo di viaggio.
 - Ricerca reale di supermercati, discount e piccoli alimentari presenti in OpenStreetMap, compresi i negozi indipendenti. La copertura può essere incompleta; il fatto che un negozio esista sulla mappa non implica che il suo catalogo sia accessibile.
-- Demo con 96 prodotti in 14 categorie, caricamento di altri 24 prodotti per volta e quattro liste: veloce, settimanale, casa e colazione. Gli 8 negozi fittizi sono visibili solo se compresi nel raggio.
+- Catalogo condiviso fra carrello e demo: 384 prodotti, 24 categorie, 16 prodotti per categoria. Il caricamento procede a gruppi di 24, con selettore e conteggi per categoria. Gli 8 negozi demo sono fittizi e filtrati per raggio; quattro liste pronte: veloce, settimana, casa e colazione.
 - Categorie cliccabili, ricerca per prodotto e marca, selezione di confezioni e quantità da 1 a 99.
 - Pulsante **Torna alla home** nelle pagine di lista e confronto; anche il logo e il passo 1 portano alla home. Il ritorno conserva la lista. Dalla home si può riprendere la demo o la lista già caricata.
 - Lista salvata nel browser; pulsante per eliminare lista e zona.
 - Elenco locale datato 17/10/2026 di 8 punti vendita reali di due catene, con link alla scheda ufficiale e coordinate tratte dai link di indicazioni delle catene. Copertura parziale, nessun prezzo o scorta incluso.
 - Errore del servizio mappa distinto da zero risultati: elenco locale quando presente, altrimenti numero di negozi non verificabile e pulsante per riprovare.
 - Passaggio esplicito negozi → composizione del carrello → confronto. Se non ci sono negozi si può preparare la lista; il confronto richiede almeno un punto nel raggio.
-- 30 prodotti generici di riferimento in 8 categorie sempre selezionabili. Non sono presentati come assortimento delle catene.
+- 384 prodotti generici sempre selezionabili. I 30 precedenti riferimenti pubblici restano distinguibili dalle 354 nuove stime indicative. Il catalogo non è presentato come assortimento delle catene.
 - Prezzi simulati distinti da prezzi verificati in schede prodotto, carrello, totali, dettaglio, esportazione e stampa. Fonte e data consultabili.
 - Confronto della lista e quantità per singolo negozio; riferimenti uguali fra negozi per lo stesso prodotto senza prezzi verificati.
 - Totali calcolabili, verificati o stimati, ordinati dal più basso al più alto. Parità esplicita quando i valori sono uguali; ordinamento per distanza a parità di totale. Subtotali incompleti separati per copertura e importo. Il risparmio verificato non viene calcolato sulle stime.
@@ -84,7 +86,7 @@ Per ogni catena da attivare occorrono un’API o un flusso dati utilizzabile, il
 7. `sourceUrl` deve puntare alla fonte reale del prezzo nel punto vendita specificato. Ogni prezzo ha la propria data; il timeout di validità `maxAgeMinutes` è al massimo 1440 minuti. La cache di download dura 5 minuti e non rinnova la data del prezzo.
 8. Le offerte con `conditions` diverso da `none` vengono escluse: tessere, coupon, multiacquisto e sconti personali devono essere normalizzati a un prezzo base non condizionato dal connettore. Il sistema non simula promozioni complesse.
 
-Riavvia il server dopo le modifiche alla configurazione. Un catalogo invalido o irraggiungibile non viene sostituito da offerte inventate del negozio. Il catalogo generico e le stime restano distinti dalle offerte reali. Se un fornitore fallisce, gli altri possono continuare a essere confrontati, mostrando il problema al cliente.
+Riavvia il server dopo le modifiche alla configurazione. Un catalogo invalido o irraggiungibile non viene sostituito da offerte inventate del negozio. Il catalogo generico e le stime restano distinti dalle offerte reali. Riferimenti pubblici e stime indicative sono distinti anche fra loro. Se un fornitore fallisce, gli altri possono continuare a essere confrontati, mostrando il problema al cliente.
 
 ## API
 
@@ -149,7 +151,7 @@ Per un’istanza dedicata, configura `OVERPASS_SEARCH_URL` con un endpoint HTTPS
 
 ## Prezzi simulati: comportamento 1.3.0
 
-Il catalogo generico è in `server/reference-catalog.mjs`: 30 articoli di riferimento e 16 osservazioni di prezzo pubbliche Conad, consultate il 17/10/2026. I valori si riferiscono a prodotti comparabili online, non ai negozi Eurospin/Lidl trovati sulla mappa. Per formati diversi viene indicata la proporzione usata; non si assume che il prezzo reale di un multipacco sia la somma dei pezzi. Nessun aggiornamento automatico delle osservazioni è attivo e la data non viene rinnovata da una visita o da un riavvio.
+Il catalogo condiviso è in `public/catalog.mjs`, riesportato dal server: 384 articoli. Le 30 voci iniziali si basano sulle 16 osservazioni pubbliche Conad consultate il 17/10/2026; le 354 nuove voci hanno stime indicative definite nel catalogo, con origine `editorial`, data di definizione e nessuna URL di prezzo inventata. I valori si riferiscono a prodotti comparabili online, non ai negozi Eurospin/Lidl trovati sulla mappa. Per formati diversi viene indicata la proporzione usata; non si assume che il prezzo reale di un multipacco sia la somma dei pezzi. Nessun aggiornamento automatico delle osservazioni è attivo e la data non viene rinnovata da una visita o da un riavvio.
 
 Per prodotti esatti provenienti da feed, `server/shopping.mjs` può ricavare un riferimento dal valore centrale dei prezzi validi disponibili per lo stesso ID. Se non esiste un riferimento attendibile per un prodotto specifico, il prezzo resta non calcolabile; non si assegna un prezzo arbitrario a un articolo non riconosciuto.
 
@@ -158,3 +160,10 @@ In `compareBasket`, `complete` continua a significare disponibilità e prezzi tu
 ## Localizzazione 1.3.0
 
 Il browser riceve `enableHighAccuracy: true`, `maximumAge: 0` e timeout di 20 secondi. Prima della ricerca dei negozi vengono mostrati coordinate, precisione dichiarata e collegamento per controllare il punto sulla mappa. La conferma non rende il punto infallibile: su alcuni dispositivi la posizione può essere molto approssimativa. L’app lo segnala rispetto al raggio scelto e permette di rilevare di nuovo o scrivere via, numero e città. Errori di permesso, disponibilità e timeout hanno messaggi distinti. Non viene attribuito un indirizzo fittizio alle coordinate GPS.
+
+
+## Catalogo condiviso 1.4.0
+
+`public/catalog.mjs` è la fonte comune di categorie, ID, descrizioni, formati e riferimenti. `public/demo.mjs` aggiunge soltanto i negozi e le loro offerte fittizie; `server/shopping.mjs` integra eventuali prodotti e offerte dei feed. Senza feed, nomi, formati, categorie e ID dei 384 prodotti coincidono esattamente nelle due modalità, mentre i prezzi del simulatore restano esempi.
+
+La prima pagina contiene un prodotto per ciascuna delle 24 categorie e “Mostra altri prodotti” amplia la selezione. Il menu categorie permette di raggiungerle tutte anche da mobile. Le vecchie 96 selezioni demo hanno un percorso di migrazione agli esempi generici nuovi: le quantità rimangono, eventuali righe confluenti si sommano fino a 99. Questa migrazione riguarda solo dati demo; non sostituisce articoli di marca provenienti da feed reali. La lista del confronto accetta fino a 500 prodotti distinti, così comprende l’intero catalogo di 384 articoli.

@@ -23,7 +23,7 @@ function coordinates(q) {
 async function jsonBody(req) {
   let bytes=0,chunks=[];
   if (!(req.headers['content-type'] || '').startsWith('application/json')) throw new RangeError('Content-Type application/json richiesto.');
-  for await (const c of req) { bytes+=c.length;if (bytes>32_768) throw new RangeError('Lista troppo grande.');chunks.push(c); }
+  for await (const c of req) { bytes+=c.length;if (bytes>65_536) throw new RangeError('Lista troppo grande.');chunks.push(c); }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));} catch {throw new RangeError('JSON non valido.');}
 }
 function rateLimited(req) {
@@ -49,7 +49,7 @@ export function createApp() {
       if (req.method==='GET' && url.pathname==='/api/health') return send(res,200,{ok:true,service:'spesina'});
       if (api) {
         if (rateLimited(req)) {res.setHeader('Retry-After','60');return send(res,429,{error:'Troppe richieste. Attendi un minuto e riprova.'});}
-        if (req.method==='GET' && url.pathname==='/api/status') return send(res,200,{live:true,configuredStores:feedConfig.length,version:'1.3.0',estimatedShopping:true,region:'Cagliari',radius:{min:0.5,max:6,step:0.5}});
+        if (req.method==='GET' && url.pathname==='/api/status') return send(res,200,{live:true,configuredStores:feedConfig.length,version:'1.4.0',estimatedShopping:true,region:'Cagliari',radius:{min:0.5,max:6,step:0.5}});
         if (!['GET','POST'].includes(req.method)) return send(res,405,{error:'Metodo non supportato.'});
         if (active>=8) return send(res,503,{error:'Il servizio è occupato. Riprova tra poco.'});
         active++;acquired=true;
@@ -67,7 +67,7 @@ export function createApp() {
           if (origin && new URL(origin).host!==req.headers.host) return send(res,403,{error:'Origine non consentita.'});
           const body=await jsonBody(req);
           const {location,radius}=coordinates(new URLSearchParams({lat:body.lat,lon:body.lon,radius:body.radius}));
-          if (!Array.isArray(body.list) || !body.list.length || body.list.length>200 || body.list.some(x=>!x || typeof x.productId!=='string' || !Number.isInteger(x.quantity) || x.quantity<1 || x.quantity>99) || new Set(body.list.map(x=>x.productId)).size!==body.list.length) throw new RangeError('Lista non valida: usa quantità intere da 1 a 99 e prodotti distinti.');
+          if (!Array.isArray(body.list) || !body.list.length || body.list.length>500 || body.list.some(x=>!x || typeof x.productId!=='string' || !Number.isInteger(x.quantity) || x.quantity<1 || x.quantity>99) || new Set(body.list.map(x=>x.productId)).size!==body.list.length) throw new RangeError('Lista non valida: usa quantità intere da 1 a 99 e prodotti distinti.');
           const catalog=await buildLiveCatalog(location,radius,feedConfig);
           const ids=new Set(catalog.products.map(p=>p.id));
           if (body.list.some(x=>!ids.has(x.productId))) return send(res,409,{error:'Il catalogo è cambiato. Aggiorna i prodotti prima del confronto.'});

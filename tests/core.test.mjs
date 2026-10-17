@@ -92,8 +92,8 @@ test('Cagliari demo stores move together with the demo centre',()=>{
 
 
 test('extended demo has distinct products, valid categories and complete sample lists',()=>{
-  assert.equal(demoProducts.length,96);assert.equal(new Set(demoProducts.map(p=>p.id)).size,96);
-  assert.equal(demoCategories.length-1,14);assert.equal(sampleLists.length,4);
+  assert.equal(demoProducts.length,384);assert.equal(new Set(demoProducts.map(p=>p.id)).size,384);
+  assert.equal(demoCategories.length-1,24);assert.equal(sampleLists.length,4);
   for(const p of demoProducts)assert.ok(demoCategories.some(c=>c.id===p.category));
   for(const list of sampleLists){assert.equal(normalizeList(list.items,demoProducts).length,list.items.length);assert.ok(compareBasket(list.items,demoProducts,nearbyStores(createDemoData().stores,demoLocation,3)).some(r=>r.complete));}
 });

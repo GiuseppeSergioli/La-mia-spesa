@@ -49,6 +49,11 @@
 @media(max-width:900px){.shopping-next{flex-direction:column;align-items:flex-start;gap:18px}.shopping-next>.button{width:100%}}
 @media(max-width:700px){.shopping-next{padding:19px 16px}.shopping-next h2{font-size:19px}.shopping-next p{font-size:12px}.estimate-notice{padding:14px 12px;gap:8px}.estimate-notice strong{font-size:12px}.estimate-notice p{font-size:11px}.price-source-button{font-size:10px;min-height:32px}.cart-price{font-size:10px}.simulation-preview{padding:10px 14px;font-size:10px}.store-coverage>span{font-size:9px}.store-coverage>span>span{font-size:8px}.detail-price-split{flex-direction:column;gap:7px}.detail-table td>.simulated-price-label{font-size:8px}.gps-warning{font-size:12px}.gps-summary>span{font-size:11px}.gps-alternatives>.text-button{font-size:12px;min-height:40px}}
 @media print{.shopping-next,.directory-continue,.price-source-button{display:none!important}.estimate-notice,.simulation-preview{print-color-adjust:exact}}
+
+/* The same 24-category selection is available in shopping and demo mode. */
+.category-picker{margin-top:18px;padding:13px 15px;background:#eff3e9;border:1px solid #dee6d5;border-radius:9px;display:flex;align-items:center;justify-content:space-between;gap:18px}.category-picker>label{font-size:12px;font-weight:600}.category-picker>label>span{display:block;font-size:10px;font-weight:400;color:#75846a;margin-top:3px}.category-picker select{max-width:100%;min-width:0;width:280px;border:1px solid #cdd9c1;background:var(--white);color:var(--green);border-radius:6px;min-height:41px;padding:9px 30px 9px 11px;font-size:12px;cursor:pointer}.categories{flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:0 0 8px;scrollbar-width:thin;scrollbar-color:#c7d5ba transparent}.category{flex-shrink:0}.category-count{min-width:20px;border-radius:4px;background:#eaf0e2;padding:1px 4px;font-size:9px;color:#6d805b}.category.selected .category-count{background:#dbe7cd;color:var(--green)}
+@media(max-width:700px){.category-picker{flex-direction:column;align-items:stretch;gap:10px;padding:13px 12px}.category-picker select{width:100%;min-height:45px;font-size:13px}.category-picker>label{font-size:13px}.category-picker>label>span{font-size:11px}.categories{padding:0 20px 8px;scrollbar-width:none}.category-count{font-size:10px}.catalog-heading{flex-wrap:wrap}.catalog-heading>span{font-size:11px}}
+@media print{.category-picker{display:none!important}}
 </style>
   
 </head>
@@ -126,6 +131,7 @@ function offerStatus(offer, quantity = 1, now = Date.now()) {
 function referencePrice(product) {
   const ref=product?.reference;
   if(!ref || !Number.isSafeInteger(ref.priceCents) || ref.priceCents<=0 || ref.priceCents>MAX_PRICE_CENTS || !/^\d{4}-\d{2}-\d{2}$/.test(ref.checkedOn || '') || !Number.isFinite(Date.parse(ref.checkedOn))) return null;
+  if(ref.origin==='editorial')return ref.sourceUrl==null && ref.definedOn===ref.checkedOn && typeof ref.method==='string' && ref.method.length>0 && ref.sourceLabel==='Stima indicativa del catalogo'?ref:null;
   try {if(new URL(ref.sourceUrl).protocol!=='https:')return null;} catch {return null;}
   return ref;
 }
@@ -182,142 +188,642 @@ function lowestPrice(productId, stores, quantity = 1, now = Date.now()) {
 
 return {MAX_QUANTITY, MAX_PRICE_CENTS, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, validRadius, normalizeRadius, haversine, validCoordinates, nearbyStores, normalizeList, offerStatus, referencePrice, priceForProduct, compareBasket, comparisonSummary, savingsBetweenComplete, money, distance, lowestPrice};
 })();
+const Catalog=(()=>{
+// Shared selection for real-store shopping and the simulator.
+// Public references and editorial simulations have separate provenance.
+const REFERENCE_CHECKED_ON='2026-10-17';
+const CATALOG_CATEGORY_COUNT=24;
+const CATALOG_PRODUCTS_PER_CATEGORY=16;
+const CATALOG_PRODUCT_COUNT=384;
+const base='https://spesaonline.conad.it/p/';
+const anchors={
+  pasta:[59,500,'g','conad-pasta-di-semola-di-grano-duro-n-5-spaghetti-500-g--300948','Spaghetti Conad 500 g'],
+  riso:[249,1000,'g','conad-originario-1-kg--203737','Riso Originario Conad 1 kg'],
+  integrale:[219,1000,'g','conad-parboiled-integrale-1-kg--360282','Riso integrale Conad 1 kg'],
+  panna:[209,800,'g','conad-frollini-con-panna-800-g--401440','Frollini con panna Conad 800 g'],
+  zucchero:[209,800,'g','conad-frollini-con-granelli-di-zucchero-800-g--401449','Frollini con zucchero Conad 800 g'],
+  uova:[209,800,'g','conad-frollini-con-uova-800-g--401438','Frollini con uova Conad 800 g'],
+  risoLatte:[139,400,'g','conad-frollini-con-riso-e-latte-400-g--401442','Frollini riso e latte Conad 400 g'],
+  latte:[65,500,'ml','conad-buono-dal-gusto-leggero-latte-uht-parzialmente-scremato-500-ml--401287','Latte parzialmente scremato Conad 500 ml'],
+  intero:[79,500,'ml','conad-buono-e-gustoso-latte-uht-intero-500-ml--402773','Latte intero Conad 500 ml'],
+  acqua:[30,1500,'ml','conad-naturale-acqua-minerale-naturale-oligominerale-15-l--279757','Acqua naturale Conad 1,5 l'],
+  frizzante:[30,1500,'ml','conad-frizzante-acqua-minerale-naturale-oligominerale-levia-15-l--357294','Acqua frizzante Conad 1,5 l'],
+  piatti:[119,1000,'ml','conad-piatti-limone-1-l--364798','Detersivo piatti Conad 1 l'],
+  banana:[179,250,'g','conad-baby-banana-biologico-omogeneizzato-2-x-125-g--401805','Omogeneizzato banana Conad 2 × 125 g'],
+  caffe:[359,250,'g','conad-qualita-espresso-bar-250-g--100117','Caffè espresso Conad 250 g'],
+  caffeDoppio:[695,500,'g','conad-qualita-espresso-bar-2-x-250-g--203751','Caffè espresso Conad 2 × 250 g'],
+  piselli:[295,1200,'g','conad-piselli-medi-3-x-400-g--145156','Piselli in conserva Conad 3 × 400 g']
+};
+const catalogCategories=[
+  {"id": "all", "name": "Tutti", "icon": "grid"},
+  {"id": "pasta", "name": "Pasta e riso", "icon": "pasta"},
+  {"id": "biscotti", "name": "Biscotti", "icon": "cookie"},
+  {"id": "colazione", "name": "Cereali e colazione", "icon": "cookie"},
+  {"id": "latte", "name": "Latte e bevande vegetali", "icon": "milk"},
+  {"id": "yogurt", "name": "Yogurt e dessert", "icon": "milk"},
+  {"id": "latticini", "name": "Formaggi e uova", "icon": "milk"},
+  {"id": "pane", "name": "Pane e prodotti da forno", "icon": "bag"},
+  {"id": "snack", "name": "Snack e aperitivi", "icon": "bag"},
+  {"id": "dispensa", "name": "Conserve e legumi", "icon": "jar"},
+  {"id": "condimenti", "name": "Sughi e condimenti", "icon": "jar"},
+  {"id": "ingredienti", "name": "Farine e ingredienti", "icon": "jar"},
+  {"id": "frutta", "name": "Frutta fresca", "icon": "leaf"},
+  {"id": "verdura", "name": "Verdura fresca", "icon": "leaf"},
+  {"id": "carne", "name": "Carne", "icon": "bag"},
+  {"id": "salumi", "name": "Salumi e affettati", "icon": "bag"},
+  {"id": "pesce", "name": "Pesce", "icon": "drop"},
+  {"id": "surgelati", "name": "Surgelati e gelati", "icon": "spark"},
+  {"id": "bevande", "name": "Acqua e bevande", "icon": "drop"},
+  {"id": "caffe", "name": "Caffè e tisane", "icon": "jar"},
+  {"id": "casa", "name": "Pulizia della casa", "icon": "home"},
+  {"id": "bucato", "name": "Bucato e carta", "icon": "home"},
+  {"id": "persona", "name": "Cura della persona", "icon": "leaf"},
+  {"id": "infanzia", "name": "Prima infanzia", "icon": "milk"},
+  {"id": "animali", "name": "Alimenti e cura animali", "icon": "home"},
+];
+const observedRows=[
+ ['spaghetti-500','Spaghetti','500 g','pasta','pasta',500],
+ ['penne-500','Penne rigate','500 g','pasta','pasta',500],
+ ['rigatoni-500','Rigatoni','500 g','pasta','pasta',500],
+ ['tortiglioni-500','Tortiglioni','500 g','pasta','pasta',500],
+ ['spaghetti-1000','Spaghetti','1 kg','pasta','pasta',1000],
+ ['penne-1000','Penne rigate','1 kg','pasta','pasta',1000],
+ ['riso-originario','Riso originario','1 kg','pasta','riso',1000],
+ ['riso-integrale','Riso integrale parboiled','1 kg','pasta','integrale',1000],
+ ['frollini-panna-800','Frollini alla panna','800 g','biscotti','panna',800],
+ ['frollini-panna-400','Frollini alla panna','400 g','biscotti','panna',400],
+ ['frollini-zucchero','Frollini con zucchero','800 g','biscotti','zucchero',800],
+ ['frollini-uova','Frollini con uova','800 g','biscotti','uova',800],
+ ['frollini-riso-400','Frollini riso e latte','400 g','biscotti','risoLatte',400],
+ ['frollini-riso-800','Frollini riso e latte','800 g','biscotti','risoLatte',800],
+ ['latte-ps-500','Latte UHT parzialmente scremato','500 ml','latticini','latte',500],
+ ['latte-ps-1000','Latte UHT parzialmente scremato','1 l','latticini','latte',1000],
+ ['latte-intero-500','Latte UHT intero','500 ml','latticini','intero',500],
+ ['latte-intero-1000','Latte UHT intero','1 l','latticini','intero',1000],
+ ['acqua-naturale','Acqua naturale','1,5 l','bevande','acqua',1500],
+ ['acqua-naturale-6','Acqua naturale','6 × 1,5 l','bevande','acqua',9000],
+ ['acqua-frizzante','Acqua frizzante','1,5 l','bevande','frizzante',1500],
+ ['acqua-frizzante-6','Acqua frizzante','6 × 1,5 l','bevande','frizzante',9000],
+ ['piatti-1000','Detersivo piatti al limone','1 l','casa','piatti',1000],
+ ['piatti-500','Detersivo piatti al limone','500 ml','casa','piatti',500],
+ ['omogeneizzato-250','Omogeneizzato banana','2 × 125 g','infanzia','banana',250],
+ ['omogeneizzato-500','Omogeneizzato banana','4 × 125 g','infanzia','banana',500],
+ ['caffe-250','Caffè macinato espresso','250 g','caffe','caffe',250],
+ ['caffe-500','Caffè macinato espresso','2 × 250 g','caffe','caffeDoppio',500],
+ ['piselli-1200','Piselli in conserva','3 × 400 g','dispensa','piselli',1200],
+ ['piselli-400','Piselli in conserva','400 g','dispensa','piselli',400]
+];
+const additionalRows={
+  pasta: [
+    ["fusilli-500", "Fusilli", "500 g", 99],
+    ["risoni-500", "Risoni", "500 g", 109],
+    ["linguine-500", "Linguine", "500 g", 139],
+    ["integrale-500", "Pasta integrale", "500 g", 129],
+    ["casarecce-500", "Casarecce", "500 g", 149],
+    ["couscous-500", "Cous cous", "500 g", 199],
+    ["riso-basmati", "Riso Basmati", "1 kg", 299],
+    ["riso-carnaroli", "Riso Carnaroli", "1 kg", 329],
+  ],
+  biscotti: [
+    ["frollini-gocce", "Frollini con gocce di cioccolato", "500 g", 249],
+    ["biscotti-integrali", "Biscotti integrali", "400 g", 199],
+    ["biscotti-miele", "Biscotti al miele", "400 g", 219],
+    ["biscotti-senza-zuccheri", "Biscotti senza zuccheri aggiunti", "350 g", 239],
+    ["biscotti-secchi", "Biscotti secchi", "500 g", 169],
+    ["savoiardi", "Savoiardi", "400 g", 199],
+    ["amaretti", "Amaretti", "200 g", 229],
+    ["wafer-nocciola", "Wafer alla nocciola", "175 g", 119],
+    ["wafer-cacao", "Wafer al cacao", "175 g", 119],
+    ["biscotti-cacao", "Frollini al cacao", "500 g", 229],
+  ],
+  colazione: [
+    ["cornflakes", "Corn flakes", "375 g", 249],
+    ["muesli-frutta", "Muesli con frutta", "500 g", 279],
+    ["muesli-cioccolato", "Muesli al cioccolato", "500 g", 299],
+    ["fiocchi-avena", "Fiocchi di avena", "500 g", 179],
+    ["cereali-cacao", "Cereali al cacao", "375 g", 259],
+    ["cereali-integrali", "Cereali integrali", "375 g", 249],
+    ["granola", "Granola croccante", "350 g", 299],
+    ["fette-biscottate", "Fette biscottate classiche", "315 g", 149],
+    ["fette-integrali", "Fette biscottate integrali", "315 g", 159],
+    ["confettura-albicocche", "Confettura di albicocche", "250 g", 199],
+    ["confettura-fragole", "Confettura di fragole", "250 g", 199],
+    ["confettura-frutti-bosco", "Confettura ai frutti di bosco", "250 g", 219],
+    ["miele", "Miele millefiori", "250 g", 349],
+    ["crema-nocciole", "Crema alle nocciole", "450 g", 349],
+    ["croissant", "Croissant confezionati", "6 pezzi", 229],
+    ["plumcake", "Plumcake allo yogurt", "6 pezzi", 219],
+  ],
+  latte: [
+    ["latte-fresco-ps", "Latte fresco parzialmente scremato", "1 l", 169],
+    ["latte-alta-qualita", "Latte fresco alta qualità", "1 l", 189],
+    ["latte-uht-scremato", "Latte UHT scremato", "1 l", 129],
+    ["latte-senza-lattosio", "Latte senza lattosio", "1 l", 169],
+    ["latte-bio", "Latte UHT biologico", "1 l", 179],
+    ["latte-capra", "Latte di capra", "1 l", 299],
+    ["bevanda-avena", "Bevanda di avena", "1 l", 189],
+    ["bevanda-soia", "Bevanda di soia", "1 l", 159],
+    ["bevanda-mandorla", "Bevanda di mandorla", "1 l", 229],
+    ["bevanda-riso", "Bevanda di riso", "1 l", 179],
+    ["bevanda-cocco", "Bevanda di cocco", "1 l", 229],
+    ["latte-cacao", "Latte al cacao", "3 × 200 ml", 189],
+  ],
+  yogurt: [
+    ["yogurt-bianco", "Yogurt bianco intero", "2 × 125 g", 99],
+    ["yogurt-magro", "Yogurt bianco magro", "2 × 125 g", 99],
+    ["yogurt-fragola", "Yogurt alla fragola", "2 × 125 g", 109],
+    ["yogurt-banana", "Yogurt alla banana", "2 × 125 g", 109],
+    ["yogurt-albicocca", "Yogurt all’albicocca", "2 × 125 g", 109],
+    ["yogurt-frutti-bosco", "Yogurt ai frutti di bosco", "2 × 125 g", 119],
+    ["yogurt-greco", "Yogurt greco bianco", "170 g", 139],
+    ["yogurt-greco-zero", "Yogurt greco 0%", "170 g", 139],
+    ["skyr", "Skyr bianco", "150 g", 139],
+    ["kefir", "Kefir da bere", "500 ml", 179],
+    ["yogurt-soia", "Yogurt vegetale di soia", "2 × 125 g", 169],
+    ["yogurt-senza-lattosio", "Yogurt senza lattosio", "2 × 125 g", 149],
+    ["budino-cioccolato", "Budino al cioccolato", "2 × 125 g", 139],
+    ["budino-vaniglia", "Budino alla vaniglia", "2 × 125 g", 139],
+    ["dessert-proteico", "Dessert proteico", "200 g", 189],
+    ["panna-cotta", "Panna cotta", "2 × 100 g", 169],
+  ],
+  latticini: [
+    ["mozzarella-375", "Mozzarella", "3 × 125 g", 299],
+    ["mozzarella-bufala", "Mozzarella di bufala", "250 g", 299],
+    ["ricotta", "Ricotta fresca", "250 g", 149],
+    ["stracchino", "Stracchino", "200 g", 199],
+    ["formaggio-spalmabile", "Formaggio spalmabile", "200 g", 189],
+    ["parmigiano", "Parmigiano Reggiano", "200 g", 399],
+    ["grana", "Grana Padano", "200 g", 299],
+    ["pecorino", "Pecorino sardo", "250 g", 449],
+    ["gorgonzola", "Gorgonzola dolce", "200 g", 249],
+    ["scamorza", "Scamorza affumicata", "250 g", 279],
+    ["feta", "Feta", "200 g", 239],
+    ["sottilette", "Formaggio fuso a fette", "200 g", 169],
+    ["burro", "Burro classico", "250 g", 239],
+    ["panna-cucina", "Panna da cucina", "200 ml", 119],
+    ["uova-6", "Uova da allevamento a terra", "6 uova", 199],
+    ["uova-10", "Uova da allevamento a terra", "10 uova", 299],
+  ],
+  pane: [
+    ["pane-fresco", "Pane fresco", "500 g", 179],
+    ["pane-integrale", "Pane integrale", "500 g", 199],
+    ["pane-toast", "Pane per toast", "400 g", 159],
+    ["pane-cereali", "Pane ai cereali", "400 g", 189],
+    ["panini-latte", "Panini al latte", "4 pezzi", 169],
+    ["panini-hamburger", "Panini per hamburger", "4 pezzi", 159],
+    ["pane-carasau", "Pane carasau", "250 g", 229],
+    ["pane-guttiau", "Pane guttiau", "250 g", 249],
+    ["piadine", "Piadine classiche", "3 pezzi", 199],
+    ["piadine-integrali", "Piadine integrali", "3 pezzi", 219],
+    ["focaccia", "Focaccia", "250 g", 199],
+    ["baguette", "Baguette da cuocere", "2 × 150 g", 139],
+    ["grissini", "Grissini classici", "125 g", 99],
+    ["crostini", "Crostini dorati", "150 g", 119],
+    ["pangrattato", "Pangrattato", "500 g", 129],
+    ["friselle", "Friselle", "300 g", 169],
+  ],
+  snack: [
+    ["crackers", "Crackers salati", "500 g", 189],
+    ["crackers-integrali", "Crackers integrali", "500 g", 199],
+    ["patatine-classiche", "Patatine classiche", "150 g", 129],
+    ["patatine-paprika", "Patatine alla paprika", "150 g", 139],
+    ["tortilla-chips", "Tortilla chips", "200 g", 149],
+    ["popcorn", "Popcorn", "100 g", 99],
+    ["arachidi", "Arachidi tostate", "250 g", 149],
+    ["pistacchi", "Pistacchi tostati", "150 g", 349],
+    ["mandorle", "Mandorle sgusciate", "200 g", 299],
+    ["anacardi", "Anacardi tostati", "150 g", 249],
+    ["taralli", "Taralli classici", "250 g", 149],
+    ["salatini", "Salatini misti", "200 g", 149],
+    ["olive-snack", "Olive per aperitivo", "200 g", 169],
+    ["barrette-cereali", "Barrette ai cereali", "6 pezzi", 179],
+    ["barrette-frutta", "Barrette alla frutta", "4 pezzi", 199],
+    ["snack-mais", "Snack di mais", "100 g", 99],
+  ],
+  dispensa: [
+    ["ceci", "Ceci cotti al vapore", "360 g", 109],
+    ["fagioli-borlotti", "Fagioli borlotti", "400 g", 109],
+    ["fagioli-cannellini", "Fagioli cannellini", "400 g", 109],
+    ["lenticchie", "Lenticchie cotte", "400 g", 109],
+    ["fagioli-rossi", "Fagioli rossi", "400 g", 119],
+    ["mais", "Mais dolce", "3 × 160 g", 249],
+    ["peperoni-conserva", "Peperoni in conserva", "280 g", 199],
+    ["funghi-conserva", "Funghi in conserva", "280 g", 199],
+    ["olive-verdi", "Olive verdi", "300 g", 169],
+    ["olive-nere", "Olive nere", "300 g", 179],
+    ["carciofini", "Carciofini sott’olio", "280 g", 249],
+    ["capperi", "Capperi", "100 g", 149],
+    ["cetriolini", "Cetriolini sott’aceto", "300 g", 149],
+    ["giardiniera", "Giardiniera", "300 g", 159],
+  ],
+  condimenti: [
+    ["passata-700", "Passata di pomodoro", "700 g", 129],
+    ["polpa-400", "Polpa di pomodoro", "400 g", 99],
+    ["pelati", "Pomodori pelati", "400 g", 89],
+    ["concentrato", "Concentrato di pomodoro", "130 g", 129],
+    ["sugo-basilico", "Sugo al basilico", "350 g", 149],
+    ["sugo-arrabbiata", "Sugo all’arrabbiata", "350 g", 159],
+    ["ragu", "Ragù di carne", "2 × 180 g", 249],
+    ["pesto", "Pesto alla genovese", "190 g", 199],
+    ["pesto-rosso", "Pesto rosso", "190 g", 199],
+    ["olio-evo", "Olio extravergine di oliva", "1 l", 799],
+    ["olio-semi", "Olio di semi di girasole", "1 l", 199],
+    ["aceto-vino", "Aceto di vino bianco", "1 l", 99],
+    ["aceto-balsamico", "Aceto balsamico", "500 ml", 249],
+    ["maionese", "Maionese", "250 ml", 129],
+    ["ketchup", "Ketchup", "250 ml", 119],
+    ["senape", "Senape", "200 g", 119],
+  ],
+  ingredienti: [
+    ["farina-00", "Farina tipo 00", "1 kg", 99],
+    ["farina-0", "Farina tipo 0", "1 kg", 109],
+    ["farina-integrale", "Farina integrale", "1 kg", 149],
+    ["semola", "Semola rimacinata", "1 kg", 149],
+    ["zucchero-bianco", "Zucchero bianco", "1 kg", 129],
+    ["zucchero-canna", "Zucchero di canna", "500 g", 149],
+    ["zucchero-velo", "Zucchero a velo", "125 g", 79],
+    ["sale-fino", "Sale fino", "1 kg", 59],
+    ["sale-grosso", "Sale grosso", "1 kg", 59],
+    ["lievito-dolci", "Lievito per dolci", "3 × 16 g", 119],
+    ["lievito-birra", "Lievito di birra secco", "3 × 7 g", 129],
+    ["cacao-amaro", "Cacao amaro", "250 g", 229],
+    ["cioccolato-fondente", "Cioccolato fondente", "100 g", 129],
+    ["fecola", "Fecola di patate", "250 g", 109],
+    ["amido-mais", "Amido di mais", "250 g", 129],
+    ["gelatina", "Gelatina in fogli", "12 g", 99],
+  ],
+  frutta: [
+    ["banane-1000", "Banane", "1 kg", 179],
+    ["mele-golden", "Mele Golden", "1 kg", 199],
+    ["mele-gala", "Mele Gala", "1 kg", 219],
+    ["pere", "Pere", "1 kg", 249],
+    ["arance", "Arance da tavola", "1 kg", 199],
+    ["limoni", "Limoni", "500 g", 139],
+    ["mandarini", "Mandarini", "1 kg", 229],
+    ["kiwi", "Kiwi", "500 g", 199],
+    ["uva", "Uva da tavola", "500 g", 199],
+    ["fragole", "Fragole", "500 g", 349],
+    ["pesche", "Pesche", "1 kg", 299],
+    ["albicocche", "Albicocche", "500 g", 229],
+    ["prugne", "Prugne", "500 g", 199],
+    ["ananas", "Ananas", "1 frutto, circa 1 kg", 249],
+    ["avocado", "Avocado", "2 frutti, circa 400 g", 279],
+    ["mirtilli", "Mirtilli", "125 g", 199],
+  ],
+  verdura: [
+    ["patate", "Patate a pasta gialla", "1,5 kg", 219],
+    ["pomodori-ciliegino", "Pomodori ciliegino", "500 g", 199],
+    ["zucchine", "Zucchine", "1 kg", 199],
+    ["carote", "Carote", "1 kg", 119],
+    ["cipolle", "Cipolle dorate", "1 kg", 129],
+    ["aglio", "Aglio", "150 g", 99],
+    ["insalata-mista", "Insalata mista", "200 g", 139],
+    ["lattuga", "Lattuga", "1 cespo, circa 300 g", 119],
+    ["spinaci-freschi", "Spinaci freschi", "250 g", 179],
+    ["broccoli", "Broccoli", "500 g", 169],
+    ["cavolfiore", "Cavolfiore", "1 pezzo, circa 1 kg", 249],
+    ["peperoni", "Peperoni misti", "500 g", 199],
+    ["melanzane", "Melanzane", "1 kg", 229],
+    ["cetrioli", "Cetrioli", "500 g", 129],
+    ["finocchi", "Finocchi", "1 kg", 199],
+    ["funghi-freschi", "Funghi champignon", "300 g", 169],
+  ],
+  carne: [
+    ["petto-pollo", "Petto di pollo", "400 g", 449],
+    ["cosce-pollo", "Cosce di pollo", "600 g", 349],
+    ["sovracosce-pollo", "Sovracosce di pollo", "600 g", 379],
+    ["pollo-intero", "Pollo intero", "circa 1 kg", 599],
+    ["fesa-tacchino", "Fesa di tacchino", "400 g", 479],
+    ["macinato-bovino", "Macinato bovino", "400 g", 479],
+    ["hamburger-bovino", "Hamburger bovini", "2 × 100 g", 299],
+    ["bistecche-bovine", "Bistecche bovine", "400 g", 699],
+    ["spezzatino-bovino", "Spezzatino bovino", "500 g", 649],
+    ["fettine-vitello", "Fettine di vitello", "300 g", 599],
+    ["lonza-maiale", "Lonza di maiale", "400 g", 349],
+    ["braciole-maiale", "Braciole di maiale", "500 g", 399],
+    ["salsiccia-fresca", "Salsiccia fresca", "400 g", 399],
+    ["salsiccia-sarda", "Salsiccia sarda", "400 g", 449],
+    ["pancetta-fresca", "Pancetta fresca", "300 g", 299],
+    ["coniglio", "Coniglio a pezzi", "500 g", 599],
+  ],
+  salumi: [
+    ["prosciutto-cotto", "Prosciutto cotto", "100 g", 199],
+    ["prosciutto-crudo", "Prosciutto crudo", "100 g", 299],
+    ["bresaola", "Bresaola", "80 g", 349],
+    ["speck", "Speck affettato", "100 g", 249],
+    ["mortadella", "Mortadella", "120 g", 149],
+    ["salame-milano", "Salame Milano", "100 g", 199],
+    ["salame-ungherese", "Salame ungherese", "100 g", 199],
+    ["salame-sardo", "Salame sardo", "200 g", 349],
+    ["pancetta-cubetti", "Pancetta a cubetti", "2 × 100 g", 229],
+    ["guanciale", "Guanciale", "150 g", 279],
+    ["fesa-arrosto", "Fesa di tacchino arrosto", "100 g", 199],
+    ["petto-pollo-arrosto", "Petto di pollo arrosto", "100 g", 199],
+    ["wurstel", "Würstel di pollo", "250 g", 149],
+    ["coppa", "Coppa affettata", "100 g", 249],
+    ["porchetta", "Porchetta affettata", "100 g", 229],
+    ["salsiccia-stagionata", "Salsiccia stagionata", "200 g", 349],
+  ],
+  pesce: [
+    ["merluzzo", "Filetti di merluzzo", "400 g", 499],
+    ["nasello", "Filetti di nasello", "400 g", 449],
+    ["salmone-fresco", "Filetti di salmone", "250 g", 599],
+    ["orata", "Orate pulite", "600 g", 849],
+    ["branzino", "Branzino pulito", "500 g", 799],
+    ["sardine", "Sardine fresche", "500 g", 299],
+    ["sgombro-fresco", "Sgombro fresco", "500 g", 399],
+    ["gamberi", "Gamberi sgusciati", "250 g", 549],
+    ["calamari", "Calamari puliti", "400 g", 699],
+    ["cozze", "Cozze", "1 kg", 349],
+    ["vongole", "Vongole", "500 g", 549],
+    ["salmone-affumicato", "Salmone affumicato", "100 g", 349],
+    ["tonno-olio", "Tonno all’olio di oliva", "3 × 80 g", 349],
+    ["tonno-naturale", "Tonno al naturale", "3 × 80 g", 299],
+    ["sgombro-filetti", "Filetti di sgombro in conserva", "125 g", 179],
+    ["sardine-olio", "Sardine all’olio di oliva", "120 g", 129],
+  ],
+  surgelati: [
+    ["piselli-surgelati", "Pisellini surgelati", "450 g", 199],
+    ["spinaci-surgelati", "Spinaci in foglia surgelati", "450 g", 179],
+    ["minestrone", "Minestrone surgelato", "600 g", 199],
+    ["fagiolini-surgelati", "Fagiolini surgelati", "450 g", 179],
+    ["patatine-surgelate", "Patatine da forno surgelate", "1 kg", 249],
+    ["verdure-grigliate", "Verdure grigliate surgelate", "450 g", 249],
+    ["pizza-margherita", "Pizza margherita surgelata", "2 × 330 g", 349],
+    ["pizza-verdure", "Pizza alle verdure surgelata", "350 g", 229],
+    ["bastoncini-pesce", "Bastoncini di pesce", "300 g", 349],
+    ["nuggets-pollo", "Nuggets di pollo", "300 g", 279],
+    ["crocchette-patate", "Crocchette di patate", "450 g", 219],
+    ["lasagne-surgelate", "Lasagne surgelate", "500 g", 349],
+    ["gelato-vaniglia", "Gelato alla vaniglia", "500 g", 279],
+    ["gelato-cioccolato", "Gelato al cioccolato", "500 g", 279],
+    ["coni-gelato", "Coni gelato", "6 pezzi", 349],
+    ["ghiaccioli", "Ghiaccioli alla frutta", "10 pezzi", 199],
+  ],
+  bevande: [
+    ["succo-arancia", "Succo di arancia", "1 l", 179],
+    ["succo-mela", "Succo di mela", "1 l", 159],
+    ["succo-ananas", "Succo di ananas", "1 l", 179],
+    ["cola", "Cola classica", "1,5 l", 149],
+    ["cola-zero", "Cola senza zuccheri", "1,5 l", 149],
+    ["te-pesca", "Tè freddo alla pesca", "1,5 l", 149],
+    ["te-limone", "Tè freddo al limone", "1,5 l", 149],
+    ["aranciata", "Aranciata", "1,5 l", 119],
+    ["vino-cannonau", "Cannonau di Sardegna", "75 cl", 599],
+    ["acqua-tonica", "Acqua tonica", "1 l", 129],
+    ["birra", "Birra bionda", "66 cl", 129],
+    ["birra-analcolica", "Birra analcolica", "33 cl", 109],
+  ],
+  caffe: [
+    ["caffe-moka", "Caffè macinato per moka", "250 g", 299],
+    ["caffe-arabica", "Caffè arabica", "250 g", 399],
+    ["caffe-decaffeinato", "Caffè decaffeinato", "250 g", 349],
+    ["caffe-grani", "Caffè in grani", "1 kg", 1099],
+    ["caffe-capsule", "Capsule di caffè compatibili", "10 capsule", 219],
+    ["caffe-cialde", "Cialde di caffè ESE", "18 cialde", 349],
+    ["caffe-solubile", "Caffè solubile", "100 g", 299],
+    ["orzo-solubile", "Orzo solubile", "120 g", 179],
+    ["te-nero", "Tè nero classico", "25 filtri", 139],
+    ["te-verde", "Tè verde", "25 filtri", 169],
+    ["te-deteinato", "Tè deteinato", "25 filtri", 169],
+    ["camomilla", "Camomilla", "20 filtri", 159],
+    ["tisana-finocchio", "Tisana al finocchio", "20 filtri", 179],
+    ["infuso-frutti-rossi", "Infuso ai frutti rossi", "20 filtri", 199],
+  ],
+  casa: [
+    ["sgrassatore", "Sgrassatore universale", "750 ml", 179],
+    ["detergente-pavimenti", "Detergente per pavimenti", "1 l", 149],
+    ["detergente-bagno", "Detergente bagno", "750 ml", 179],
+    ["detergente-vetri", "Detergente per vetri", "750 ml", 149],
+    ["anticalcare", "Anticalcare", "500 ml", 189],
+    ["candeggina", "Candeggina classica", "1 l", 119],
+    ["igienizzante-superfici", "Igienizzante per superfici", "750 ml", 199],
+    ["gel-wc", "Gel WC", "750 ml", 159],
+    ["pastiglie-lavastoviglie", "Pastiglie lavastoviglie", "30 pezzi", 449],
+    ["sale-lavastoviglie", "Sale per lavastoviglie", "1 kg", 99],
+    ["brillantante", "Brillantante lavastoviglie", "500 ml", 149],
+    ["spugne", "Spugne cucina", "3 pezzi", 129],
+    ["panni-microfibra", "Panni in microfibra", "3 pezzi", 199],
+    ["guanti", "Guanti per pulizie", "1 paio", 129],
+  ],
+  bucato: [
+    ["detersivo-lavatrice", "Detersivo per lavatrice", "19 lavaggi", 399],
+    ["detersivo-polvere", "Detersivo in polvere", "1,5 kg", 349],
+    ["capsule-bucato", "Capsule per bucato", "20 capsule", 449],
+    ["ammorbidente", "Ammorbidente concentrato", "1,5 l", 199],
+    ["smacchiatore", "Smacchiatore", "750 ml", 249],
+    ["sapone-marsiglia", "Sapone di Marsiglia", "2 × 300 g", 179],
+    ["fogli-acchiappacolore", "Fogli acchiappacolore", "20 fogli", 199],
+    ["lana-delicati", "Detersivo lana e delicati", "1 l", 219],
+    ["carta-igienica-4", "Carta igienica", "4 rotoli", 199],
+    ["carta-igienica-12", "Carta igienica", "12 rotoli", 449],
+    ["carta-casa", "Carta casa", "2 rotoli", 179],
+    ["tovaglioli", "Tovaglioli di carta", "100 pezzi", 119],
+    ["fazzoletti", "Fazzoletti di carta", "10 pacchetti", 129],
+    ["carta-forno", "Carta forno", "8 m", 149],
+    ["alluminio", "Alluminio per alimenti", "16 m", 179],
+    ["sacchi-rifiuti", "Sacchi per rifiuti", "20 sacchi", 179],
+  ],
+  persona: [
+    ["dentifricio", "Dentifricio protezione completa", "75 ml", 179],
+    ["spazzolini", "Spazzolini da denti", "2 pezzi", 149],
+    ["collutorio", "Collutorio", "500 ml", 229],
+    ["filo-interdentale", "Filo interdentale", "50 m", 149],
+    ["shampoo", "Shampoo delicato", "250 ml", 199],
+    ["balsamo-capelli", "Balsamo per capelli", "200 ml", 199],
+    ["bagnoschiuma", "Bagnoschiuma classico", "500 ml", 169],
+    ["sapone-liquido", "Sapone liquido", "500 ml", 149],
+    ["deodorante", "Deodorante spray", "150 ml", 229],
+    ["crema-mani", "Crema mani", "75 ml", 179],
+    ["crema-corpo", "Crema corpo", "250 ml", 299],
+    ["rasoi", "Rasoi monouso", "5 pezzi", 199],
+    ["schiuma-barba", "Schiuma da barba", "300 ml", 179],
+    ["assorbenti", "Assorbenti", "14 pezzi", 199],
+    ["dischetti-cotone", "Dischetti di cotone", "80 pezzi", 129],
+    ["salviette-struccanti", "Salviette struccanti", "25 pezzi", 179],
+  ],
+  infanzia: [
+    ["pannolini-1", "Pannolini taglia 1", "28 pannolini", 549],
+    ["pannolini-2", "Pannolini taglia 2", "28 pannolini", 549],
+    ["pannolini-3", "Pannolini taglia 3", "24 pannolini", 549],
+    ["pannolini-4", "Pannolini taglia 4", "20 pannolini", 549],
+    ["pannolini-5", "Pannolini taglia 5", "18 pannolini", 549],
+    ["pannolini-6", "Pannolini taglia 6", "16 pannolini", 549],
+    ["salviette-baby", "Salviette per bambini", "72 pezzi", 149],
+    ["salviette-baby-sensitive", "Salviette delicate per bambini", "60 pezzi", 179],
+    ["omogeneizzato-mela", "Omogeneizzato di mela", "2 × 80 g", 139],
+    ["omogeneizzato-pera", "Omogeneizzato di pera", "2 × 80 g", 139],
+    ["omogeneizzato-verdure", "Omogeneizzato di verdure", "2 × 80 g", 159],
+    ["crema-riso-baby", "Crema di riso per bambini", "200 g", 229],
+    ["pastina-baby", "Pastina per bambini", "340 g", 179],
+    ["biscotti-baby", "Biscotti per bambini", "360 g", 249],
+  ],
+  animali: [
+    ["crocchette-gatto", "Croccantini per gatto", "1 kg", 349],
+    ["crocchette-gatto-sterilizzato", "Croccantini per gatto sterilizzato", "800 g", 349],
+    ["crocchette-gattini", "Croccantini per gattini", "400 g", 249],
+    ["umido-gatto-pollo", "Umido per gatto al pollo", "4 × 85 g", 199],
+    ["umido-gatto-tonno", "Umido per gatto al tonno", "4 × 85 g", 219],
+    ["pate-gatto", "Paté per gatto", "400 g", 99],
+    ["lettiera", "Lettiera per gatti", "5 l", 299],
+    ["snack-gatto", "Snack per gatto", "60 g", 129],
+    ["crocchette-cane", "Crocchette per cane", "1,5 kg", 449],
+    ["crocchette-cane-piccolo", "Crocchette per cane di piccola taglia", "800 g", 349],
+    ["crocchette-cuccioli", "Crocchette per cuccioli", "800 g", 379],
+    ["umido-cane-manzo", "Umido per cane al manzo", "400 g", 119],
+    ["umido-cane-pollo", "Umido per cane al pollo", "400 g", 119],
+    ["biscotti-cane", "Biscotti per cane", "500 g", 199],
+    ["snack-dentale-cane", "Snack dentali per cane", "7 pezzi", 179],
+    ["sacchetti-cane", "Sacchetti igienici per cane", "60 pezzi", 149],
+  ],
+};
+
+const styles={pasta:['pasta','#48745e'],biscotti:['cookie','#d7ba7a'],colazione:['cookie','#c8a86d'],latte:['milk','#8aaec8'],yogurt:['yogurt','#8ba78b'],latticini:['butter','#bca76f'],pane:['pasta','#c2a177'],snack:['pasta','#c29b70'],dispensa:['jar','#91a476'],condimenti:['bottle','#b96751'],ingredienti:['pasta','#9da9a5'],frutta:['apple','#a6b45c'],verdura:['greens','#78985f'],carne:['butter','#b58c7e'],salumi:['butter','#b6857d'],pesce:['butter','#89a8b8'],surgelati:['pasta','#8faab9'],bevande:['bottle','#86a9bb'],caffe:['coffee','#96765a'],casa:['detergent','#819e91'],bucato:['detergent','#9b9cb6'],persona:['detergent','#a39db5'],infanzia:['jar','#b3ba94'],animali:['pasta','#b1a078']};
+function product(id,name,size,category,reference) {
+  const [art,color]=styles[category];
+  return {id:`reference:${id}`,name,brand:'Prodotto di riferimento',size,category,art,color,generic:true,reference};
+}
+const observed=observedRows.map(([id,name,size,oldCategory,key,amount])=>{
+  const [cents,baseAmount,unit,path,sourceProduct]=anchors[key];
+  const category=oldCategory==='latticini'?'latte':oldCategory;
+  return product(id,name,size,category,{origin:'public',priceCents:Math.round(cents*amount/baseAmount),sourceUrl:base+path,sourceLabel:'Riferimento pubblico Conad, non prezzo del negozio',sourceProduct,sourcePriceCents:cents,sourceAmount:baseAmount,amount,unit,checkedOn:REFERENCE_CHECKED_ON,method:amount===baseAmount?'Prezzo indicativo di un prodotto comparabile.':'Stima proporzionale al formato; non è un prezzo di confezione rilevato.'});
+});
+const editorial=Object.entries(additionalRows).flatMap(([category,rows])=>rows.map(([id,name,size,priceCents])=>product(id,name,size,category,{origin:'editorial',priceCents,sourceUrl:null,sourceLabel:'Stima indicativa del catalogo',checkedOn:REFERENCE_CHECKED_ON,definedOn:REFERENCE_CHECKED_ON,method:'Valore simulato definito per questo prodotto e formato. Non è un prezzo rilevato o una media di mercato; disponibilità e prezzo del negozio sono da verificare.'})));
+const groups=catalogCategories.filter(c=>c.id!=='all').map(c=>[...observed,...editorial].filter(p=>p.category===c.id));
+// The first page shows one item from each category, then a second item per category.
+const catalogProducts=Array.from({length:CATALOG_PRODUCTS_PER_CATEGORY},(_,i)=>groups.map(group=>group[i])).flat();
+const catalogCounts=Object.fromEntries(catalogCategories.filter(c=>c.id!=='all').map(c=>[c.id,catalogProducts.filter(p=>p.category===c.id).length]));
+
+return {REFERENCE_CHECKED_ON, CATALOG_CATEGORY_COUNT, CATALOG_PRODUCTS_PER_CATEGORY, CATALOG_PRODUCT_COUNT, catalogCategories, catalogProducts, catalogCounts};
+})();
 const Demo=(()=>{
-// Entirely fictional prices and stores. Never mix these records with live data.
-const categories = [
-  { id: 'all', name: 'Tutti', icon: 'grid' },
-  { id: 'pasta', name: 'Pasta e riso', icon: 'pasta' },
-  { id: 'biscotti', name: 'Biscotti e colazione', icon: 'cookie' },
-  { id: 'latticini', name: 'Latte e latticini', icon: 'milk' },
-  { id: 'dispensa', name: 'Dispensa', icon: 'jar' },
-  { id: 'ortofrutta', name: 'Frutta e verdura', icon: 'leaf' },
-  { id: 'bevande', name: 'Bevande', icon: 'drop' },
-  { id: 'casa', name: 'Cura della casa', icon: 'home' },
-  { id: 'pane', name: 'Pane e snack', icon: 'bag' },
-  { id: 'carne', name: 'Carne e salumi', icon: 'jar' },
-  { id: 'pesce', name: 'Pesce', icon: 'drop' },
-  { id: 'surgelati', name: 'Surgelati', icon: 'spark' },
-  { id: 'persona', name: 'Cura della persona', icon: 'leaf' },
-  { id: 'infanzia', name: 'Prima infanzia', icon: 'milk' },
-  { id: 'animali', name: 'Amici animali', icon: 'home' }
-];
+// Same product selection as shopping; store prices and stock here are entirely fictional.
+const {catalogCategories,catalogProducts}=Catalog;
+const {normalizeList,MAX_QUANTITY}=Core;
+const categories=catalogCategories;
+const products=catalogProducts;
+const demoLocation={label:'Cagliari, centro · zona dimostrativa',lat:39.2238,lon:9.1217};
+// Only old DEMO selections are mapped to the new generic examples. Live feed IDs never change.
+const legacyDemoAliases={
+  "demo-pasta-1": "reference:spaghetti-500",
+  "demo-pasta-2": "reference:fusilli-500",
+  "demo-biscotti-1": "reference:frollini-gocce",
+  "demo-latte-1": "reference:latte-intero-1000",
+  "demo-passata-1": "reference:passata-700",
+  "demo-riso-1": "reference:riso-carnaroli",
+  "demo-biscotti-2": "reference:frollini-panna-800",
+  "demo-yogurt-1": "reference:yogurt-bianco",
+  "demo-olio-1": "reference:olio-evo",
+  "demo-banane-1": "reference:banane-1000",
+  "demo-mele-1": "reference:mele-golden",
+  "demo-insalata-1": "reference:insalata-mista",
+  "demo-acqua-1": "reference:acqua-naturale-6",
+  "demo-caffe-1": "reference:caffe-moka",
+  "demo-mozzarella-1": "reference:mozzarella-375",
+  "demo-ceci-1": "reference:ceci",
+  "demo-succo-1": "reference:succo-arancia",
+  "demo-detersivo-1": "reference:detersivo-lavatrice",
+  "demo-carta-1": "reference:carta-casa",
+  "demo-burro-1": "reference:burro",
+  "demo-farina-1": "reference:farina-00",
+  "demo-patate-1": "reference:patate",
+  "demo-te-1": "reference:te-nero",
+  "demo-tonno-1": "reference:tonno-olio",
+  "demo-extra-penne": "reference:penne-500",
+  "demo-extra-linguine": "reference:linguine-500",
+  "demo-extra-casarecce": "reference:casarecce-500",
+  "demo-extra-integrale": "reference:integrale-500",
+  "demo-extra-basmati": "reference:riso-basmati",
+  "demo-extra-risoni": "reference:risoni-500",
+  "demo-extra-crema-nocciole": "reference:crema-nocciole",
+  "demo-extra-biscotti-integrali": "reference:biscotti-integrali",
+  "demo-extra-cornflakes": "reference:cornflakes",
+  "demo-extra-fette-biscottate": "reference:fette-biscottate",
+  "demo-extra-miele": "reference:miele",
+  "demo-extra-confettura": "reference:confettura-albicocche",
+  "demo-extra-latte-parziale": "reference:latte-ps-1000",
+  "demo-extra-avena": "reference:bevanda-avena",
+  "demo-extra-yogurt-greco": "reference:yogurt-greco",
+  "demo-extra-parmigiano": "reference:parmigiano",
+  "demo-extra-pecorino": "reference:pecorino",
+  "demo-extra-ricotta": "reference:ricotta",
+  "demo-extra-uova": "reference:uova-6",
+  "demo-extra-arance": "reference:arance",
+  "demo-extra-pomodori": "reference:pomodori-ciliegino",
+  "demo-extra-zucchine": "reference:zucchine",
+  "demo-extra-carote": "reference:carote",
+  "demo-extra-limoni": "reference:limoni",
+  "demo-extra-cipolle": "reference:cipolle",
+  "demo-extra-spinaci-freschi": "reference:spinaci-freschi",
+  "demo-extra-lenticchie": "reference:lenticchie",
+  "demo-extra-fagioli": "reference:fagioli-borlotti",
+  "demo-extra-mais": "reference:mais",
+  "demo-extra-pesto": "reference:pesto",
+  "demo-extra-sale": "reference:sale-fino",
+  "demo-extra-zucchero": "reference:zucchero-bianco",
+  "demo-extra-polpa": "reference:polpa-400",
+  "demo-extra-crackers": "reference:crackers",
+  "demo-extra-cola": "reference:cola",
+  "demo-extra-te-freddo": "reference:te-pesca",
+  "demo-extra-birra": "reference:birra",
+  "demo-extra-vino": "reference:vino-cannonau",
+  "demo-extra-acqua-frizzante": "reference:acqua-frizzante",
+  "demo-extra-piatti": "reference:piatti-1000",
+  "demo-extra-ammorbidente": "reference:ammorbidente",
+  "demo-extra-spugne": "reference:spugne",
+  "demo-extra-sacchi": "reference:sacchi-rifiuti",
+  "demo-extra-carta-igienica": "reference:carta-igienica-4",
+  "demo-extra-candeggina": "reference:candeggina",
+  "demo-extra-pancarre": "reference:pane-toast",
+  "demo-extra-panini": "reference:panini-latte",
+  "demo-extra-carasau": "reference:pane-carasau",
+  "demo-extra-piadine": "reference:piadine",
+  "demo-extra-crostini": "reference:crostini",
+  "demo-extra-grissini": "reference:grissini",
+  "demo-extra-pollo": "reference:petto-pollo",
+  "demo-extra-macinato": "reference:macinato-bovino",
+  "demo-extra-cotto": "reference:prosciutto-cotto",
+  "demo-extra-salsiccia": "reference:salsiccia-sarda",
+  "demo-extra-tacchino": "reference:fesa-arrosto",
+  "demo-extra-merluzzo": "reference:merluzzo",
+  "demo-extra-orata": "reference:orata",
+  "demo-extra-salmone": "reference:salmone-affumicato",
+  "demo-extra-tonno-naturale": "reference:tonno-naturale",
+  "demo-extra-piselli": "reference:piselli-surgelati",
+  "demo-extra-minestrone": "reference:minestrone",
+  "demo-extra-spinaci-surgelati": "reference:spinaci-surgelati",
+  "demo-extra-pizza": "reference:pizza-margherita",
+  "demo-extra-dentifricio": "reference:dentifricio",
+  "demo-extra-shampoo": "reference:shampoo",
+  "demo-extra-bagnoschiuma": "reference:bagnoschiuma",
+  "demo-extra-sapone": "reference:sapone-liquido",
+  "demo-extra-pannolini": "reference:pannolini-4",
+  "demo-extra-omogeneizzati": "reference:omogeneizzato-mela",
+  "demo-extra-gatto": "reference:crocchette-gatto",
+  "demo-extra-cane": "reference:crocchette-cane"
+};
 
-// Fictional sample prices, including the branded products below. No real offer is implied.
-const extraProducts = [
-  ['penne','Penne rigate','Barilla','500 g','pasta','pasta',129],
-  ['linguine','Linguine','De Cecco','500 g','pasta','pasta',189],
-  ['casarecce','Casarecce','Garofalo','500 g','pasta','pasta',159],
-  ['integrale','Pasta integrale','Rummo','500 g','pasta','pasta',169],
-  ['basmati','Riso Basmati','Riso Scotti','1 kg','pasta','pasta',329],
-  ['risoni','Risoni','Barilla','500 g','pasta','pasta',139],
-  ['crema-nocciole','Crema alle nocciole','Nutella','450 g','biscotti','jar',369],
-  ['biscotti-integrali','Biscotti integrali','Gran Cereale','500 g','biscotti','cookie',259],
-  ['cornflakes','Corn flakes','Kellogg’s','375 g','biscotti','pasta',299],
-  ['fette-biscottate','Fette biscottate','Mulino Bianco','315 g','biscotti','pasta',189],
-  ['miele','Miele millefiori','Ambrosoli','250 g','biscotti','jar',349],
-  ['confettura','Confettura di albicocche','Rigoni','250 g','biscotti','jar',269],
-  ['latte-parziale','Latte parzialmente scremato','Granarolo','1 l','latticini','milk',139],
-  ['avena','Bevanda di avena','Alpro','1 l','latticini','milk',239],
-  ['yogurt-greco','Yogurt greco bianco','Fage','170 g','latticini','yogurt',169],
-  ['parmigiano','Parmigiano Reggiano','Parmareggio','200 g','latticini','butter',449],
-  ['pecorino','Pecorino sardo','Isola dei Sapori','250 g','latticini','butter',499],
-  ['ricotta','Ricotta fresca','Santa Lucia','250 g','latticini','yogurt',179],
-  ['uova','Uova da allevamento a terra','Le Naturelle','6 uova','latticini','butter',219],
-  ['arance','Arance da tavola','Orto di casa','Confezione 1 kg','ortofrutta','apple',199],
-  ['pomodori','Pomodori ciliegino','Orto di casa','500 g','ortofrutta','apple',229],
-  ['zucchine','Zucchine','Orto di casa','Confezione 1 kg','ortofrutta','greens',219],
-  ['carote','Carote','Orto di casa','Confezione 1 kg','ortofrutta','greens',129],
-  ['limoni','Limoni','Orto di casa','500 g','ortofrutta','apple',149],
-  ['cipolle','Cipolle dorate','Orto di casa','Confezione 1 kg','ortofrutta','potato',139],
-  ['spinaci-freschi','Spinaci freschi','Bonduelle','250 g','ortofrutta','greens',219],
-  ['lenticchie','Lenticchie cotte','Valfrutta','400 g','dispensa','jar',119],
-  ['fagioli','Fagioli borlotti','Valfrutta','400 g','dispensa','jar',119],
-  ['mais','Mais dolce','Bonduelle','3 × 160 g','dispensa','jar',279],
-  ['pesto','Pesto alla genovese','Barilla','190 g','dispensa','jar',229],
-  ['sale','Sale fino','Sosalt','1 kg','dispensa','pasta',69],
-  ['zucchero','Zucchero bianco','Eridania','1 kg','dispensa','pasta',139],
-  ['polpa','Polpa di pomodoro','Mutti','400 g','dispensa','jar',119],
-  ['crackers','Crackers salati','Mulino Bianco','500 g','dispensa','pasta',219],
-  ['cola','Cola classica','Coca-Cola','1,5 l','bevande','bottle',199],
-  ['te-freddo','Tè freddo alla pesca','Estathé','1,5 l','bevande','bottle',229],
-  ['birra','Birra bionda','Ichnusa','66 cl','bevande','bottle',149],
-  ['vino','Cannonau di Sardegna','Cantina di casa','75 cl','bevande','bottle',599],
-  ['acqua-frizzante','Acqua frizzante','Sant’Anna','1,5 l','bevande','water',39],
-  ['piatti','Detersivo per piatti','Svelto','1 l','casa','detergent',189],
-  ['ammorbidente','Ammorbidente concentrato','Felce Azzurra','1,5 l','casa','detergent',249],
-  ['spugne','Spugne cucina','Scotch-Brite','3 pezzi','casa','butter',159],
-  ['sacchi','Sacchi per rifiuti','Domopak','20 sacchi','casa','pasta',199],
-  ['carta-igienica','Carta igienica','Scottex','4 rotoli','casa','paper',249],
-  ['candeggina','Candeggina classica','ACE','1 l','casa','detergent',129],
-  ['pancarre','Pane per toast','Mulino Bianco','400 g','pane','pasta',169],
-  ['panini','Panini al latte','Pan di casa','4 panini','pane','cookie',179],
-  ['carasau','Pane carasau','Forno di Sardegna','250 g','pane','pasta',239],
-  ['piadine','Piadine classiche','Mulino Bianco','3 piadine','pane','pasta',219],
-  ['crostini','Crostini dorati','San Carlo','150 g','pane','pasta',129],
-  ['grissini','Grissini classici','Grissin Bon','125 g','pane','pasta',109],
-  ['pollo','Petto di pollo','AIA','Confezione 400 g','carne','butter',469],
-  ['macinato','Macinato bovino','Fattoria di casa','Confezione 400 g','carne','butter',489],
-  ['cotto','Prosciutto cotto','Citterio','100 g','carne','butter',249],
-  ['salsiccia','Salsiccia sarda','Sapori di Sardegna','Confezione 400 g','carne','butter',499],
-  ['tacchino','Fesa di tacchino arrosto','AIA','100 g','carne','butter',219],
-  ['merluzzo','Filetti di merluzzo','Findus','400 g','pesce','butter',549],
-  ['orata','Orate pulite','Mare di casa','Confezione 600 g','pesce','butter',899],
-  ['salmone','Salmone affumicato','Fjord','100 g','pesce','butter',399],
-  ['tonno-naturale','Tonno al naturale','Rio Mare','3 × 80 g','pesce','tuna',359],
-  ['piselli','Pisellini surgelati','Findus','450 g','surgelati','greens',229],
-  ['minestrone','Minestrone surgelato','Orogel','600 g','surgelati','greens',249],
-  ['spinaci-surgelati','Spinaci in foglia surgelati','Findus','450 g','surgelati','greens',239],
-  ['pizza','Pizza margherita surgelata','Buitoni','2 × 330 g','surgelati','pasta',399],
-  ['dentifricio','Dentifricio protezione completa','Mentadent','75 ml','persona','coffee',199],
-  ['shampoo','Shampoo delicato','Garnier','250 ml','persona','detergent',249],
-  ['bagnoschiuma','Bagnoschiuma classico','Felce Azzurra','500 ml','persona','detergent',199],
-  ['sapone','Sapone liquido','Neutro Roberts','500 ml','persona','detergent',179],
-  ['pannolini','Pannolini taglia 4','Pampers','20 pannolini','infanzia','pasta',649],
-  ['omogeneizzati','Omogeneizzato di mela','Mellin','2 × 80 g','infanzia','jar',159],
-  ['gatto','Croccantini per gatto','Purina','1 kg','animali','pasta',399],
-  ['cane','Crocchette per cane','Pedigree','1,5 kg','animali','pasta',499]
+function migrateDemoList(list) {
+  if(!Array.isArray(list))return [];
+  const quantities=new Map();
+  for(const item of list){
+    if(!item || !Number.isInteger(item.quantity) || item.quantity<1 || item.quantity>MAX_QUANTITY)continue;
+    const productId=legacyDemoAliases[item.productId] || item.productId;
+    quantities.set(productId,Math.min(MAX_QUANTITY,(quantities.get(productId) || 0)+item.quantity));
+  }
+  return normalizeList([...quantities].map(([productId,quantity])=>({productId,quantity})),products);
+}
+const sampleList=[
+  {productId:'reference:spaghetti-500',quantity:2},{productId:'reference:frollini-gocce',quantity:1},
+  {productId:'reference:latte-intero-1000',quantity:2},{productId:'reference:passata-700',quantity:1},
+  {productId:'reference:banane-1000',quantity:1},{productId:'reference:yogurt-bianco',quantity:1}
 ];
-
-const products = [
-  { id:'demo-pasta-1', name:'Spaghetti n. 5', brand:'Barilla', size:'500 g', category:'pasta', art:'pasta', color:'#23499b', label:'SPAGHETTI', base:119 },
-  { id:'demo-pasta-2', name:'Fusilli', brand:'De Cecco', size:'500 g', category:'pasta', art:'pasta', color:'#315783', label:'FUSILLI', base:179 },
-  { id:'demo-biscotti-1', name:'Gocciole al cioccolato', brand:'Pavesi', size:'500 g', category:'biscotti', art:'cookie', color:'#c39761', label:'GOCCIOLE', base:279 },
-  { id:'demo-latte-1', name:'Latte intero UHT', brand:'Granarolo', size:'1 l', category:'latticini', art:'milk', color:'#82b9dc', label:'LATTE', base:149 },
-  { id:'demo-passata-1', name:'Passata di pomodoro', brand:'Mutti', size:'700 g', category:'dispensa', art:'bottle', color:'#c75042', label:'PASSATA', base:169 },
-  { id:'demo-riso-1', name:'Riso Carnaroli', brand:'Riso Scotti', size:'1 kg', category:'pasta', art:'pasta', color:'#86a4b7', label:'CARNAROLI', base:349 },
-  { id:'demo-biscotti-2', name:'Macine', brand:'Mulino Bianco', size:'800 g', category:'biscotti', art:'cookie', color:'#e2be76', label:'MACINE', base:289 },
-  { id:'demo-yogurt-1', name:'Yogurt bianco intero', brand:'Müller', size:'2 × 125 g', category:'latticini', art:'yogurt', color:'#8ca76e', label:'BIANCO', base:129 },
-  { id:'demo-olio-1', name:'Olio extravergine di oliva', brand:'Monini', size:'1 l', category:'dispensa', art:'bottle', color:'#648454', label:'EXTRAVERGINE', base:849 },
-  { id:'demo-banane-1', name:'Banane', brand:'Chiquita', size:'Confezione 1 kg', category:'ortofrutta', art:'banana', color:'#e4bd43', label:'BANANE', base:189 },
-  { id:'demo-mele-1', name:'Mele Golden', brand:'Melinda', size:'Confezione 1 kg', category:'ortofrutta', art:'apple', color:'#b0bb54', label:'GOLDEN', base:229 },
-  { id:'demo-insalata-1', name:'Insalata mista', brand:'Bonduelle', size:'200 g', category:'ortofrutta', art:'greens', color:'#76a264', label:'INSALATA', base:169 },
-  { id:'demo-acqua-1', name:'Acqua naturale', brand:'Sant’Anna', size:'6 × 1,5 l', category:'bevande', art:'water', color:'#84b6cd', label:'NATURALE', base:249 },
-  { id:'demo-caffe-1', name:'Caffè Qualità Rossa', brand:'Lavazza', size:'250 g', category:'biscotti', art:'coffee', color:'#b04c44', label:'CAFFÈ', base:399 },
-  { id:'demo-mozzarella-1', name:'Mozzarella', brand:'Santa Lucia', size:'3 × 125 g', category:'latticini', art:'yogurt', color:'#80a4bd', label:'MOZZARELLA', base:329 },
-  { id:'demo-ceci-1', name:'Ceci cotti al vapore', brand:'Valfrutta', size:'360 g', category:'dispensa', art:'jar', color:'#aaba79', label:'CECI', base:109 },
-  { id:'demo-succo-1', name:'Succo di arancia', brand:'Yoga', size:'1 l', category:'bevande', art:'milk', color:'#dd9c4b', label:'ARANCIA', base:199 },
-  { id:'demo-detersivo-1', name:'Detersivo per lavatrice', brand:'Dixan', size:'19 lavaggi', category:'casa', art:'detergent', color:'#798ac3', label:'LAVATRICE', base:499 },
-  { id:'demo-carta-1', name:'Carta casa', brand:'Scottex', size:'2 rotoli', category:'casa', art:'paper', color:'#c9b19a', label:'CARTA CASA', base:219 },
-  { id:'demo-burro-1', name:'Burro classico', brand:'Parmareggio', size:'250 g', category:'latticini', art:'butter', color:'#d1ba78', label:'BURRO', base:259 },
-  { id:'demo-farina-1', name:'Farina tipo 00', brand:'Barilla', size:'1 kg', category:'dispensa', art:'pasta', color:'#bed1d6', label:'FARINA 00', base:109 },
-  { id:'demo-patate-1', name:'Patate a pasta gialla', brand:'Orto di casa', size:'Confezione 1,5 kg', category:'ortofrutta', art:'potato', color:'#b39872', label:'PATATE', base:239 },
-  { id:'demo-te-1', name:'Tè classico', brand:'Star', size:'25 filtri', category:'biscotti', art:'coffee', color:'#d3ac55', label:'TÈ CLASSICO', base:159 },
-  { id:'demo-tonno-1', name:'Tonno all’olio di oliva', brand:'Rio Mare', size:'3 × 80 g', category:'dispensa', art:'tuna', color:'#cd9b92', label:'TONNO', base:399 }
-];
-
-products.push(...extraProducts.map(([id,name,brand,size,category,art,base],i)=>({id:`demo-extra-${id}`,name,brand,size,category,art,base,label:name.toUpperCase().slice(0,15),color:['#66865e','#b39567','#809eb3','#b66d60','#92946e'][i%5]})));
-
-const demoLocation = { label: 'Cagliari, centro · zona dimostrativa', lat:39.2238, lon:9.1217 };
-const sampleList = [
-  {productId:'demo-pasta-1',quantity:2}, {productId:'demo-biscotti-1',quantity:1},
-  {productId:'demo-latte-1',quantity:2}, {productId:'demo-passata-1',quantity:1},
-  {productId:'demo-banane-1',quantity:1}, {productId:'demo-yogurt-1',quantity:1}
-];
-const sampleLists = [
+const list=ids=>ids.map(id=>({productId:`reference:${id}`,quantity:id==='latte-intero-1000'?3:1}));
+const sampleLists=[
   {id:'veloce',name:'Lista veloce',description:'6 prodotti per iniziare',items:sampleList},
-  {id:'settimana',name:'Spesa settimanale',description:'16 prodotti per la settimana',items:['demo-pasta-1','demo-latte-1','demo-passata-1','demo-extra-uova','demo-extra-pollo','demo-extra-pomodori','demo-extra-carote','demo-extra-pancarre','demo-extra-piselli','demo-extra-parmigiano','demo-biscotti-1','demo-banane-1','demo-extra-lenticchie','demo-yogurt-1','demo-extra-piatti','demo-extra-ricotta'].map(productId=>({productId,quantity:productId==='demo-latte-1'?3:1}))},
-  {id:'casa',name:'Casa e pulizia',description:'8 prodotti per la casa',items:['demo-detersivo-1','demo-carta-1','demo-extra-piatti','demo-extra-ammorbidente','demo-extra-spugne','demo-extra-sacchi','demo-extra-carta-igienica','demo-extra-candeggina'].map(productId=>({productId,quantity:1}))},
-  {id:'colazione',name:'Colazione',description:'8 prodotti per iniziare la giornata',items:['demo-latte-1','demo-biscotti-1','demo-caffe-1','demo-extra-fette-biscottate','demo-extra-miele','demo-extra-confettura','demo-extra-yogurt-greco','demo-extra-cornflakes'].map(productId=>({productId,quantity:1}))}
+  {id:'settimana',name:'Spesa settimanale',description:'16 prodotti per la settimana',items:list(['spaghetti-500','latte-intero-1000','passata-700','uova-6','petto-pollo','pomodori-ciliegino','carote','pane-toast','piselli-surgelati','parmigiano','frollini-gocce','banane-1000','lenticchie','yogurt-bianco','piatti-1000','ricotta'])},
+  {id:'casa',name:'Casa e pulizia',description:'8 prodotti per la casa',items:list(['detersivo-lavatrice','carta-casa','piatti-1000','ammorbidente','spugne','sacchi-rifiuti','carta-igienica-4','candeggina'])},
+  {id:'colazione',name:'Colazione',description:'8 prodotti per iniziare la giornata',items:list(['latte-intero-1000','frollini-gocce','caffe-moka','fette-biscottate','miele','confettura-albicocche','yogurt-greco','cornflakes'])}
 ];
 
 function createDemoData() {
@@ -332,15 +838,15 @@ function createDemoData() {
     {id:'demo-dispensa',name:'La Dispensa',chain:'La Dispensa',initial:'D',color:'#ab8b54',address:'Negozio fittizio · zona centro-ovest',lat:45.4732,lon:9.1830,factor:0.99},
     {id:'demo-orizzonte',name:'Orizzonte',chain:'Orizzonte',initial:'O',color:'#739279',address:'Negozio fittizio · zona nord',lat:45.5092,lon:9.1950,factor:1.04}
   ].map((s,si) => ({...s, lat:demoLocation.lat+(s.lat-45.4642), lon:demoLocation.lon+(s.lon-9.19), demo:true, catalogStatus:'connected', offers:Object.fromEntries(products.map((p,pi)=>[p.id,{
-    priceCents:Math.round(p.base*s.factor) + ((pi+si)%3)*5,
-    availability:si===3 && [2,7,9].includes(pi) || si===4 && [3,4,10].includes(pi) || si===6 && pi===0 || pi>=24 && si===3 && pi%17===0 ? 'out_of_stock':si===5 && pi===2?'unknown':'in_stock',
+    priceCents:Math.round(p.reference.priceCents*s.factor) + ((pi+si)%3)*5,
+    availability:si===3 && p.id==='reference:passata-700' || si===4 && p.id==='reference:latte-intero-1000' || si===6 && p.id==='reference:spaghetti-500' || pi>=24 && si===3 && pi%17===0 ? 'out_of_stock':si===5 && p.id==='reference:frollini-gocce'?'unknown':'in_stock',
     observedAt:si===5 && pi>=24 && pi%11===0?new Date(Date.now()-172_800_000).toISOString():observedAt,maxAgeMinutes:1440,currency:'EUR',sourceLabel:'Dato dimostrativo',sourceUrl:null,
-    ...(si===2 && pi===0 ? {quantityAvailable:1}: {})
+    ...(si===2 && p.id==='reference:spaghetti-500' ? {quantityAvailable:1}: {})
   }]))}));
   return {mode:'demo',products,categories,stores,generatedAt:observedAt,warnings:[],attribution:'Dati interamente dimostrativi. Negozi, prezzi e disponibilità sono fittizi.'};
 }
 
-return {categories, products, demoLocation, sampleList, sampleLists, createDemoData};
+return {categories, products, demoLocation, sampleList, sampleLists, createDemoData, migrateDemoList, legacyDemoAliases};
 })();
 const Art=(()=>{
 const escape = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -406,7 +912,7 @@ return {GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError};
 })();
 (()=>{
 const { compareBasket, comparisonSummary, priceForProduct, nearbyStores, normalizeList, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, normalizeRadius }=Core;
-const { createDemoData, demoLocation, sampleList, sampleLists }=Demo;
+const { createDemoData, demoLocation, sampleList, sampleLists, migrateDemoList }=Demo;
 const { icon, productArt, heroArt }=Art;
 const { GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError }=Location;
 
@@ -511,15 +1017,21 @@ function locationStrip() {
 function catalogPage() {
   const p=products();
   return `<section class="page-intro"><div><div class="eyebrow">PICCOLE SCELTE, UNA BELLA DIFFERENZA</div><h1>La tua lista. <em>Il prezzo giusto.</em></h1><p>Aggiungi quello che ti serve. Al resto ci pensiamo noi.</p></div><span class="section-doodle">${icon('bag')}<span>La spesa di sempre,<br>con un po’ più di cura.</span></span></section>
-    ${locationStrip()}${state.mode==='live' && state.data.referenceCatalog?`<div class="estimate-notice">${icon('info')}<div><strong>Componi il carrello anche con prezzi simulati</strong><p>I prodotti di riferimento descrivono articoli generici. Prezzo e presenza nei negozi non sono confermati. Tocca “Fonte della stima” per il riferimento usato.</p></div></div>`:''}${state.mode==='live' && state.data.warnings.length?`<div class="data-notice">${icon('info')}<div>${state.data.warnings.map(w=>`<p>${esc(w)}</p>`).join('')}</div></div>`:''}
-    <div class="shopping-layout"><section class="catalog" aria-label="Catalogo prodotti"><div class="catalog-heading"><h2>Cosa mettiamo in lista?</h2><span>${p.length} prodotti ${state.mode==='demo'?'di esempio':''}</span></div>
+    ${locationStrip()}${state.mode==='live' && state.data.referenceCatalog?`<div class="estimate-notice">${icon('info')}<div><strong>Componi il carrello anche con prezzi simulati</strong><p>Il catalogo è lo stesso della demo. I prezzi simulati provengono da riferimenti pubblici o da stime indicative; prezzo e presenza nei negozi non sono confermati. Tocca “Fonte della stima” per il riferimento usato.</p></div></div>`:''}${state.mode==='live' && state.data.warnings.length?`<div class="data-notice">${icon('info')}<div>${state.data.warnings.map(w=>`<p>${esc(w)}</p>`).join('')}</div></div>`:''}
+    <div class="shopping-layout"><section class="catalog" aria-label="Catalogo prodotti"><div class="catalog-heading"><h2>Cosa mettiamo in lista?</h2><span>${p.length} prodotti · ${state.data.categories.length-1} categorie</span></div>
       <div class="search-field">${icon('search')}<input id="product-search" type="search" autocomplete="off" placeholder="Cerca un prodotto o una marca…" aria-label="Cerca un prodotto o una marca" value="${esc(state.search)}"><kbd aria-hidden="true">/</kbd></div>
-      <div class="categories" role="group" aria-label="Categorie prodotti">${(state.data.categories || []).map(c=>`<button class="category ${state.category===c.id?'selected':''}" data-category="${esc(c.id)}" aria-pressed="${state.category===c.id}">${icon(c.icon)}${esc(c.name)}</button>`).join('')}</div>
+      ${categoryNavigation()}
       <div class="product-section-heading"><h3 id="category-title">${esc(state.data.categories.find(c=>c.id===state.category)?.name || 'Tutti i prodotti')}${state.category==='all'?' i prodotti':''}</h3><span class="muted">Stesso prodotto, stesso formato</span></div>
       <div id="product-grid" class="product-grid">${productGrid()}</div>
       ${p.length?'<p class="catalog-footnote">Illustrazioni indicative. I prezzi simulati sono riferimenti di prodotto e formato; i prezzi verificati riguardano i negozi nel raggio.</p>':''}
     </section><aside class="cart-area" id="cart-area" aria-label="La tua lista">${cart()}</aside></div><button class="mobile-cart" data-action="toggle-cart">${icon('bag')}<span>La tua lista · <b id="mobile-count">${count()}</b></span>${icon('chevron')}</button>
     <div class="source-note">${icon('info')}<span>${esc(state.data.attribution)}</span></div>`;
+}
+
+function categoryNavigation() {
+  const categories=state.data.categories || [];
+  const counts=Object.fromEntries(categories.map(c=>[c.id,c.id==='all'?products().length:products().filter(p=>p.category===c.id).length]));
+  return `<div class="category-picker"><label for="category-select">Scegli una categoria<span>${categories.length-1} categorie da esplorare</span></label><select id="category-select" aria-label="Scegli una categoria">${categories.map(c=>`<option value="${esc(c.id)}" ${state.category===c.id?'selected':''}>${esc(c.name)} · ${counts[c.id]} prodotti</option>`).join('')}</select></div><div class="categories" role="group" aria-label="Categorie prodotti">${categories.map(c=>`<button class="category ${state.category===c.id?'selected':''}" data-category="${esc(c.id)}" aria-label="${esc(c.name)}" aria-pressed="${state.category===c.id}">${icon(c.icon)}${esc(c.name)}<span class="category-count" aria-hidden="true">${counts[c.id]}</span></button>`).join('')}</div>`;
 }
 
 function productGrid() {
@@ -725,11 +1237,17 @@ function showDetail(id) {
   if(!result)return;
   const priced=result.priceComplete ?? result.complete,simulated=result.simulatedCount || 0;
   showModal(esc(result.store.name),`<p class="modal-description">${distance(result.store.distanceKm)} · ${esc(result.store.address)}</p><div class="detail-summary ${result.complete?'':'partial-summary'}"><span>${priced?simulated?'Totale stimato del carrello':'Totale completo':'Subtotale delle righe con prezzo'}</span><strong>${result.pricedCount?money(result.totalCents):'—'}</strong><small>${result.availableCount} prezzi verificati · ${simulated} prezzi simulati · ${result.unpricedCount ?? result.missingCount} righe senza totale</small></div>${simulated?`<div class="detail-price-split"><span>Parte verificata <b>${money(result.verifiedTotalCents)}</b></span><span>Parte simulata <b>${money(result.simulatedTotalCents)}</b></span></div>`:''}
-    <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Prodotto e fonte</th><th>Qtà</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody>${result.rows.map(row=>`<tr class="${row.status==='available'?'':'unavailable-row'}"><td><strong>${esc(row.product.name)}</strong><span>${esc(row.product.brand)} · ${esc(row.product.size)}</span><small class="row-status ${row.status==='available'?'good':'partial'}">${icon(row.status==='available'?'check':'info')} ${statusLabels[row.status]}${row.status==='insufficient'?` (max ${row.offer.quantityAvailable})`:''}</small>${row.simulated?`<small class="offer-source"><a href="${esc(safeLink(row.reference.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(row.reference.sourceLabel)} ${icon('external')}</a> · consultato il ${esc(row.reference.checkedOn)}<br>${esc(row.reference.sourceProduct || '')}. ${esc(row.reference.method || '')}</small>`:row.offer?`<small class="offer-source">${row.offer.sourceUrl?`<a href="${esc(safeLink(row.offer.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(row.offer.sourceLabel)} ${icon('external')}</a>`:esc(row.offer.sourceLabel)} · ${new Date(row.offer.observedAt).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</small>`:''}</td><td>${row.quantity}</td><td>${row.unitPriceCents!==null?money(row.unitPriceCents):'—'}${row.simulated?'<small class="simulated-price-label">Prezzo simulato</small>':''}</td><td><b>${row.lineTotalCents!==null?money(row.lineTotalCents):'—'}</b></td></tr>`).join('')}</tbody></table></div><div class="modal-note">${icon('info')}<p>${state.mode==='demo'?'Negozi, prezzi e disponibilità sono fittizi. ':''}${simulated?'I prezzi simulati non confermano assortimento e disponibilità del negozio. I riferimenti generici non sono sostituzioni automatiche dei prodotti di marca. ':''}${!priced?'Righe senza prezzo, esaurite e con quantità insufficiente sono escluse dal subtotale. ':''}Viaggio e consegna esclusi.</p></div><button class="button primary full" data-action="close-modal">Torna al confronto</button>`,true);
+    <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Prodotto e fonte</th><th>Qtà</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody>${result.rows.map(row=>`<tr class="${row.status==='available'?'':'unavailable-row'}"><td><strong>${esc(row.product.name)}</strong><span>${esc(row.product.brand)} · ${esc(row.product.size)}</span><small class="row-status ${row.status==='available'?'good':'partial'}">${icon(row.status==='available'?'check':'info')} ${statusLabels[row.status]}${row.status==='insufficient'?` (max ${row.offer.quantityAvailable})`:''}</small>${row.simulated?`<small class="offer-source">${referenceAttribution(row.reference)}<br>${esc(row.reference.method || '')}</small>`:row.offer?`<small class="offer-source">${row.offer.sourceUrl?`<a href="${esc(safeLink(row.offer.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(row.offer.sourceLabel)} ${icon('external')}</a>`:esc(row.offer.sourceLabel)} · ${new Date(row.offer.observedAt).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</small>`:''}</td><td>${row.quantity}</td><td>${row.unitPriceCents!==null?money(row.unitPriceCents):'—'}${row.simulated?'<small class="simulated-price-label">Prezzo simulato</small>':''}</td><td><b>${row.lineTotalCents!==null?money(row.lineTotalCents):'—'}</b></td></tr>`).join('')}</tbody></table></div><div class="modal-note">${icon('info')}<p>${state.mode==='demo'?'Negozi, prezzi e disponibilità sono fittizi. ':''}${simulated?'I prezzi simulati non confermano assortimento e disponibilità del negozio. I riferimenti generici non sono sostituzioni automatiche dei prodotti di marca. ':''}${!priced?'Righe senza prezzo, esaurite e con quantità insufficiente sono escluse dal subtotale. ':''}Viaggio e consegna esclusi.</p></div><button class="button primary full" data-action="close-modal">Torna al confronto</button>`,true);
+}
+function referenceAttribution(ref) {
+  const label=ref.sourceProduct || ref.sourceLabel;
+  const source=ref.sourceUrl?`<a href="${esc(safeLink(ref.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(label)} ${icon('external')}</a>`:esc(label);
+  const dateLabel=ref.origin==='editorial'?'Stima definita il':ref.origin==='feed'?'Prezzo osservato il':'Riferimento consultato il';
+  return `${source}<br>${dateLabel} ${esc(ref.checkedOn)}${Number.isInteger(ref.sourcePriceCents)?` · ${money(ref.sourcePriceCents)} per ${ref.sourceAmount} ${esc(ref.unit)}`:''}.`;
 }
 function showPriceSource(id) {
   const p=product(id),ref=p?.reference;if(!ref)return;
-  showModal('Come viene stimato questo prezzo',`<p class="modal-description">${esc(p.name)} · ${esc(p.size)}</p><div class="reference-price"><span>Prezzo simulato</span><strong>${money(ref.priceCents)}</strong></div><p class="modal-description">${esc(ref.method)} Non è un prezzo verificato del supermercato e non conferma la disponibilità.</p><p class="reference-source"><a href="${esc(safeLink(ref.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(ref.sourceProduct || ref.sourceLabel)} ${icon('external')}</a><br>Riferimento consultato il ${esc(ref.checkedOn)}${Number.isInteger(ref.sourcePriceCents)?` · ${money(ref.sourcePriceCents)} per ${ref.sourceAmount} ${esc(ref.unit)}`:''}.</p><p class="modal-description">Lo stesso riferimento si applica a tutti i negozi privi di prezzo verificato. Non è una media statistica di mercato.</p><button class="button primary full" data-action="close-modal">Torna ai prodotti</button>`);
+  showModal('Come viene stimato questo prezzo',`<p class="modal-description">${esc(p.name)} · ${esc(p.size)}</p><div class="reference-price"><span>Prezzo simulato</span><strong>${money(ref.priceCents)}</strong></div><p class="modal-description">${esc(ref.method)} Non è un prezzo verificato del supermercato e non conferma la disponibilità.</p><p class="reference-source">${referenceAttribution(ref)}</p><p class="modal-description">Lo stesso riferimento si applica a tutti i negozi privi di prezzo verificato. Non è una media statistica di mercato.</p><button class="button primary full" data-action="close-modal">Torna ai prodotti</button>`);
 }
 
 function safeLink(value) {try {const u=new URL(value);return u.protocol==='https:'?u.href:'#';}catch{return '#';}}
@@ -746,7 +1264,7 @@ function exportList() {
   for(const r of results){
     const priced=r.priceComplete ?? r.complete;
     lines.push('',`${r.store.name}: ${r.pricedCount?money(r.totalCents):'non calcolabile'} — ${priced?r.simulatedCount?'TOTALE STIMATO':'totale completo':'subtotale parziale'}`,`${r.availableCount} prezzi verificati · ${r.simulatedCount || 0} prezzi simulati`);
-    for(const row of r.rows)lines.push(`${row.quantity} × ${row.product.name} ${row.product.size}: ${row.lineTotalCents===null?'non calcolabile':money(row.lineTotalCents)} — ${statusLabels[row.status]}${row.simulated?` — riferimento ${row.reference.checkedOn}: ${row.reference.sourceUrl}`:''}`);
+    for(const row of r.rows)lines.push(`${row.quantity} × ${row.product.name} ${row.product.size}: ${row.lineTotalCents===null?'non calcolabile':money(row.lineTotalCents)} — ${statusLabels[row.status]}${row.simulated?` — riferimento ${row.reference.checkedOn}: ${row.reference.sourceUrl || row.reference.sourceLabel} (${row.reference.origin==='editorial'?'stima indicativa':'riferimento'})`:''}`);
   }
   lines.push('','I prezzi simulati non confermano assortimento e disponibilità e non sono una media di mercato. A parità di stime non è possibile indicare un negozio più conveniente. Viaggio e consegna esclusi.');
   const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='la-mia-spesa-lista.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Lista esportata. Buona spesa!');
@@ -791,7 +1309,7 @@ document.addEventListener('input',event=> {
   if(event.target.id==='product-search'){state.visibleLimit=24;state.search=event.target.value;$('#product-grid').innerHTML=productGrid();}
   if(event.target.classList.contains('radius-slider')){updateRadiusControl(event.target.closest('form'),Number(event.target.value));}
 });
-document.addEventListener('change',event=>{if(event.target.id==='hide-incomplete'){state.completeOnly=event.target.checked;$('#incomplete-results').hidden=state.completeOnly;}});
+document.addEventListener('change',event=>{if(event.target.id==='category-select'){state.category=event.target.value;state.visibleLimit=24;render();$('#category-select').focus({preventScroll:true});}if(event.target.id==='hide-incomplete'){state.completeOnly=event.target.checked;$('#incomplete-results').hidden=state.completeOnly;}});
 document.addEventListener('submit',event=> {
   if(['location-form','location-modal-form'].includes(event.target.id)){event.preventDefault();findLocation(event.target);}
   if(event.target.id==='demo-radius-form'){event.preventDefault();state.radius=Number(new FormData(event.target).get('radius'));state.results=null;closeModal();persist();render();toast(`Raggio aggiornato: ${stores().length} negozi demo.`);}
@@ -803,12 +1321,13 @@ $('#modal').addEventListener('click',event=> {if(event.target===$('#modal')){con
 async function init() {
   hydrateIcons();
   if(saved?.version===1 && saved.mode==='demo') {
-    state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.radius=normalizeRadius(saved.radius);state.list=normalizeList(saved.list,products());state.page=saved.page==='location'?'location':'catalog';
+    state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.radius=normalizeRadius(saved.radius);state.list=migrateDemoList(saved.list);state.page=saved.page==='location'?'location':'catalog';
   } else if(saved?.version===1 && saved.mode==='live' && validCoordinates(saved.location?.lat,saved.location?.lon)) {
     state.location=saved.location;state.radius=normalizeRadius(saved.radius);state.list=Array.isArray(saved.list)?saved.list:[];
   }
   if(window.SPESINA_STATIC && state.mode!=='demo'){state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.list=[];state.page='catalog';}
   render();
+  if(saved?.mode==='demo' && saved.list?.some(item=>String(item?.productId).startsWith('demo-'))) {persist();toast('La tua lista demo è stata aggiornata al catalogo condiviso, con le quantità salvate.');}
   if(!window.SPESINA_STATIC && location.protocol!=='file:') {
     try {const status=await api('status');state.live=status.live===true;} catch {state.live=false;}
     if(state.page==='location')render();

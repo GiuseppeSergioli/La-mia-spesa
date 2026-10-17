@@ -9,13 +9,13 @@ const offer=(priceCents,extra={})=>({priceCents,availability:'in_stock',observed
 const compare=(list,products,stores)=>compareBasket(list,products,stores,now,{allowEstimates:true});
 
 test('reference products have dated public sources, integer estimates and distinct formats',()=>{
-  assert.equal(referenceProducts.length,30);assert.equal(referenceCategories.length-1,8);assert.equal(new Set(referenceProducts.map(p=>p.id)).size,30);
-  for(const p of referenceProducts){assert.ok(p.generic);assert.ok(referenceCategories.some(c=>c.id===p.category));assert.ok(referencePrice(p));assert.equal(new URL(p.reference.sourceUrl).hostname,'spesaonline.conad.it');assert.equal(p.reference.checkedOn,'2026-10-17');}
+  assert.equal(referenceProducts.length,384);assert.equal(referenceCategories.length-1,24);assert.equal(new Set(referenceProducts.map(p=>p.id)).size,384);
+  for(const p of referenceProducts){assert.ok(p.generic);assert.ok(referenceCategories.some(c=>c.id===p.category));assert.ok(referencePrice(p));if(p.reference.origin==='public')assert.equal(new URL(p.reference.sourceUrl).hostname,'spesaonline.conad.it');else {assert.equal(p.reference.sourceUrl,null);assert.equal(p.reference.origin,'editorial');assert.match(p.reference.method,/Non è un prezzo rilevato/);}assert.equal(p.reference.checkedOn,'2026-10-17');}
   assert.equal(latte.reference.priceCents,130);assert.match(latte.reference.method,/proporzionale/);
 });
 test('empty price feeds still provide a shopping catalog without creating store offers',()=>{
   const stores=[store('Real supermarket')],original=structuredClone(stores),data=shoppingCatalog([],stores,now);
-  assert.equal(data.products.length,30);assert.equal(data.referenceCatalog.enabled,true);assert.deepEqual(stores,original);assert.deepEqual(stores[0].offers,{});
+  assert.equal(data.products.length,384);assert.equal(data.referenceCatalog.enabled,true);assert.deepEqual(stores,original);assert.deepEqual(stores[0].offers,{});
 });
 test('estimated rows count in the sum but never become verified stock or complete availability',()=>{
   const [r]=compare([{productId:pasta.id,quantity:3},{productId:latte.id,quantity:2}],[pasta,latte],[store('A')]);

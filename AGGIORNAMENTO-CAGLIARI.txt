@@ -1,32 +1,27 @@
-LA MIA SPESA — AGGIORNAMENTO 1.3.0
+LA MIA SPESA — AGGIORNAMENTO 1.4.0
 
-IL NUOVO PERCORSO
-1. Scegli indirizzo o posizione e raggio (500 m–6 km).
-2. Guarda i negozi trovati e premi Componi il carrello.
-3. Sfoglia le categorie, scegli prodotti e quantità.
-4. Premi Confronta la spesa per i totali dei supermercati della zona.
+CATALOGO AMPLIATO E UNIFORME
+- 24 categorie, 16 prodotti per categoria: 384 scelte complessive.
+- Stesse categorie, nomi, formati e prodotti nel carrello e nel simulatore.
+- Menu di scelta categoria con conteggi; la prima pagina mostra un prodotto per ciascuna categoria. Mostra altri prodotti ne carica altri 24.
+- Le vecchie liste demo vengono aggiornate agli esempi generici nuovi conservando le quantità. Gli ID dei 30 prodotti del precedente carrello rimangono validi.
+- Il confronto accetta anche un carrello contenente tutti i 384 prodotti.
 
-ANCHE SENZA LISTINI LOCALI
-Sono disponibili 30 prodotti generici in 8 categorie, con Prezzo simulato, riferimento pubblico e data consultabili. Il costo viene sommato al carrello e distinto dai prezzi verificati nel dettaglio. Non è un assortimento confermato dei supermercati. Se non si trova alcun negozio puoi preparare la lista, ma il confronto richiede almeno un punto nel raggio.
+CATEGORIE
+Pasta e riso; biscotti; cereali e colazione; latte e bevande vegetali; yogurt e dessert; formaggi e uova; pane e prodotti da forno; snack e aperitivi; conserve e legumi; sughi e condimenti; farine e ingredienti; frutta fresca; verdura fresca; carne; salumi e affettati; pesce; surgelati e gelati; acqua e bevande; caffè e tisane; pulizia casa; bucato e carta; cura della persona; prima infanzia; alimenti e cura animali.
 
-Lo stesso prodotto senza prezzo locale ha lo stesso riferimento in tutti i negozi: se tutti i valori sono simulati, l’app mostra la parità. Non viene inventato un vincitore o un risparmio reale. I prodotti indicati esplicitamente come esauriti o con scorte insufficienti restano mancanti. I riferimenti non sono una media statistica di mercato e non si aggiornano automaticamente. Dettagli in docs/PREZZI-SIMULATI.md.
+PREZZI
+Rimane la dicitura Prezzo simulato quando manca il prezzo locale. I 30 precedenti riferimenti pubblici mantengono fonte e data. Le altre 354 voci hanno valori indicativi definiti per il catalogo: nella finestra Fonte della stima viene indicato che non sono prezzi rilevati né una media di mercato. Nessuna URL di prezzo inventata per questi valori. Non è stato attivato un nuovo feed prezzi delle catene. Anche la disponibilità rimane da verificare.
 
-NEGOZI E PREZZI
-Restano attivi la ricerca cartografica e l’elenco parziale di riserva di 8 punti reali Eurospin/Lidl. Nessun feed prezzi locale è ancora configurato. Il confronto usa quindi riferimenti simulati, salvo futuri prezzi verificati dei feed. La demo separata conserva 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte.
-
-POSIZIONE
-Usa la mia posizione richiede una misura aggiornata ad alta precisione. Mostra il margine d’errore e chiede di confermare il punto prima della ricerca. Se il punto non corrisponde o la precisione è scarsa, premi Inserisci l’indirizzo. Abilita la posizione precisa per il sito sul dispositivo. Il pulsante Parti dal centro di Cagliari resta un’alternativa esplicita e indicativa.
-
-AGGIORNARE IL SITO ESISTENTE
+AGGIORNARE IL SITO
 1. Estrai lo ZIP e apri la cartella spesina.
-2. Su GitHub apri GiuseppeSergioli/La-mia-spesa, ramo main.
-3. Add file > Upload files: carica il CONTENUTO della cartella, mantenendo tutte le sottocartelle. package.json deve essere nella radice del repository. Sono necessari anche public/location.mjs, server/reference-catalog.mjs e server/shopping.mjs. Carica i file estratti, non lo ZIP.
+2. Su GitHub apri GiuseppeSergioli/La-mia-spesa.
+3. Add file > Upload files: carica il CONTENUTO di spesina, mantenendo le sottocartelle. package.json deve restare nella radice del repository. È indispensabile il nuovo public/catalog.mjs, insieme ai file demo, app e server aggiornati.
 4. Conferma Commit changes.
-5. Sul servizio Render già esistente: Manual Deploy > Deploy latest commit, oppure attendi il deploy automatico.
-6. /api/status deve indicare version 1.3.0 ed estimatedShopping true. configuredStores 0 indica l’assenza dei feed verificati e non blocca più la scelta dei prodotti.
-7. Riapri il sito, prova Parti dal centro di Cagliari > Componi il carrello > scegli prodotti > Confronta la spesa. Controlla Prezzo simulato e la parità fra negozi senza prezzi locali.
+5. Su Render, nel servizio esistente: Manual Deploy > Deploy latest commit, oppure attendi il deploy automatico.
+6. /api/status deve mostrare version 1.4.0. Dopo il deploy, nel carrello e nella demo devono comparire 384 prodotti e 24 categorie; scegli una categoria per vedere le sue 16 opzioni.
 
-La URL del sito resta la stessa. Questa chat non ha caricato o distribuito automaticamente l’aggiornamento. Nessuna modifica alle altre applicazioni Render.
+La URL rimane la stessa. L’aggiornamento non è stato distribuito automaticamente da questa chat. Le altre applicazioni Render non sono state modificate.
 
 VERIFICA
-85 test automatici superati; controllo visuale con Chromium e GPS fisico non eseguiti qui. Il workflow manuale GitHub Browser checks comprende il nuovo percorso e il GPS simulato. Vedi VALIDAZIONE.md.
+92 test automatici superati: cataloghi identici, 16 prodotti per categoria, compatibilità delle liste, prezzi, disponibilità e confronto completo dei 384 articoli. Controllo visuale nel browser non eseguito qui. Vedi VALIDAZIONE.md.

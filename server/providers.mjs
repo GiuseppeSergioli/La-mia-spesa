@@ -7,7 +7,7 @@ import { enrichStore, sourceCoverage } from './retailers.mjs';
 import { supplementStores } from './local-stores.mjs';
 import { shoppingCatalog } from './shopping.mjs';
 
-const UA = `LaMiaSpesa/1.3 (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
+const UA = `LaMiaSpesa/1.4 (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
 const MAX_BYTES = 4 * 1024 * 1024;
 const cache = new Map();
 const pending = new Map();
@@ -210,5 +210,5 @@ export async function buildLiveCatalog(location, radius, configs) {
   const linkedStores=stores.map(enrichStore);
   const localStoreCount=linkedStores.filter(s=>s.discoverySource==='verified_directory').length;
   if(!mapAvailable)warnings.unshift(localStoreCount?'La ricerca sulla mappa non risponde. Mostriamo un elenco locale parziale, verificato il 17/10/2026, filtrato per distanza.':'La ricerca sulla mappa non risponde. Non possiamo stabilire quanti negozi siano presenti: riprova tra poco.');
-  return {mode:'live',...shoppingCatalog(catalog,linkedStores),stores:linkedStores,storeDiscovery:{status:mapAvailable?'online':localStoreCount?'local_directory':'unavailable',mapAvailable,localStoreCount,verifiedOn:'2026-10-17'},retailerSources:sourceCoverage(linkedStores),coverage:{foundStores:linkedStores.length,priceConnectedStores:linkedStores.filter(s=>s.catalogStatus==='connected').length,exhaustive:false,mapAvailable},warnings:[...new Set(warnings)],generatedAt:new Date().toISOString(),attribution:'© OpenStreetMap contributors · ODbL. Elenco locale integrativo da schede ufficiali, verifica 17/10/2026. Copertura parziale. Prezzi simulati: riferimenti pubblici datati di prodotti comparabili; disponibilità locale non verificata. Prezzi online e in negozio possono differire.'};
+  return {mode:'live',...shoppingCatalog(catalog,linkedStores),stores:linkedStores,storeDiscovery:{status:mapAvailable?'online':localStoreCount?'local_directory':'unavailable',mapAvailable,localStoreCount,verifiedOn:'2026-10-17'},retailerSources:sourceCoverage(linkedStores),coverage:{foundStores:linkedStores.length,priceConnectedStores:linkedStores.filter(s=>s.catalogStatus==='connected').length,exhaustive:false,mapAvailable},warnings:[...new Set(warnings)],generatedAt:new Date().toISOString(),attribution:'© OpenStreetMap contributors · ODbL. Elenco locale integrativo da schede ufficiali, verifica 17/10/2026. Copertura parziale. Prezzi simulati: riferimenti pubblici datati o stime indicative del catalogo; disponibilità locale non verificata. Prezzi online e in negozio possono differire.'};
 }
