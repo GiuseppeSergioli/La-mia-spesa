@@ -1,22 +1,29 @@
-LA MIA SPESA — AGGIORNAMENTO 1.5.0
+LA MIA SPESA — AGGIORNAMENTO 1.6.0
 
-LE TRE MODIFICHE
-1. Riempi il tuo carrello è il pulsante principale: apre direttamente i prodotti. Cerca supermercati è secondario e facoltativo; l’elenco conserva il comando per proseguire.
-2. Categorie su più righe: 12 subito visibili, con icone, nomi e conteggi. Mostra tutte le 24 categorie espande la griglia. Il menu permette di raggiungerle tutte; la selezione rimane visibile anche nella griglia richiusa. Stessa interfaccia nella demo.
-3. Indirizzo vuoto: Via Roma, presso il Palazzo Civico. Quattro pulsanti distinti: Via Roma, Piazza Yenne, Piazza Garibaldi, Piazza Repubblica. Non dipendono dalla ricerca esterna degli indirizzi. I suggerimenti duplicati della ricerca geografica vengono rimossi senza perdere i diversi numeri civici.
+COSA DEVE APPARIRE NELLA HOME
+Un grande pulsante verde Componi la tua spesa, con simbolo del carrello.
+Sotto, un piccolo comando Cerca supermercati, indicato come facoltativo e informativo.
+Componi la tua spesa apre subito i prodotti: non occorre prima cercare o scegliere un supermercato.
+La ricerca dei negozi continua mentre compili il carrello. Una risposta lenta o un errore della mappa non chiude la pagina prodotti.
 
-Rimangono 384 prodotti, 24 categorie e 16 scelte per categoria; quantità e liste salvate vengono conservate. Raggio massimo 6 km. GPS con conferma e ritorno alla home sempre disponibili. Nessun nuovo feed prezzi collegato: le stime restano marcate Prezzo simulato.
-L’elenco di riserva include anche Carrefour Express via Manno 10, con coordinate dal sito ufficiale: copre la partenza Via Roma anche entro 500 metri. L’elenco di 9 punti è parziale e non indica scorte o prezzi verificati.
+VERIFICA DI AVER AGGIORNATO LA VERSIONE GIUSTA
+In fondo alla home deve comparire v1.6.0.
+Nel server, /api/status deve restituire version 1.6.0.
+La demo autonoma dist/index.html mostra la home aggiornata e permette di comporre la spesa senza Internet.
 
-AGGIORNARE IL SITO
-1. Estrai lo ZIP e apri la cartella spesina.
-2. Su GitHub apri GiuseppeSergioli/La-mia-spesa.
-3. Add file > Upload files: carica il CONTENUTO di spesina, mantenendo le sottocartelle. package.json deve restare nella radice del repository. Aggiorna anche public/location.mjs, app.mjs, styles.css, server e package-lock.json insieme agli altri file del pacchetto.
-4. Conferma Commit changes.
-5. Su Render, nel servizio esistente: Manual Deploy > Deploy latest commit, oppure attendi il deploy automatico.
-6. /api/status deve mostrare version 1.5.0. Riapri la URL già usata e aggiorna la pagina. Verifica il pulsante Riempi il tuo carrello, le quattro zone e la griglia categorie.
+AGGIORNARE GITHUB E RENDER
+1. Estrai La-mia-spesa-1.6.0.zip.
+2. Nella cartella estratta trovi direttamente package.json, package-lock.json, public, server, dist e gli altri file.
+3. Apri GiuseppeSergioli/La-mia-spesa su GitHub, nella pagina principale del repository.
+4. Add file > Upload files: carica i file e le cartelle estratti, mantenendo le sottocartelle. package.json deve stare alla radice; public e server devono sostituire le cartelle esistenti.
+5. Conferma Commit changes. Se compare un errore, riapri package.json dal repository e verifica se la versione è arrivata; il messaggio esatto serve per capire l’eventuale blocco.
+6. Su Render, nel servizio esistente: Manual Deploy > Deploy latest commit.
+7. Riapri l’app e controlla il pulsante Componi la tua spesa e v1.6.0 in fondo. Se necessario, sul Mac aggiorna con Cmd+Shift+R.
 
-La URL rimane la stessa. Questa chat non ha eseguito il deploy.
+La URL resta quella già usata. Questa chat non ha eseguito il deploy.
+
+SONO INCLUSI ANCHE
+Quattro zone rapide distinte, Via Roma predefinita quando lasci vuoto, raggio massimo di 6 km, 12 categorie subito visibili espandibili a 24, 384 prodotti con 16 scelte per categoria e catalogo uniforme nel simulatore. Le liste salvate vengono conservate. Non è stato aggiunto un feed prezzi locale: i prezzi simulati restano indicati come tali.
 
 VERIFICA
-97 test automatici superati; moduli e demo compilati. Controllo visuale nel browser non eseguito qui. Vedi VALIDAZIONE.md.
+107 test automatici superati. Dieci controlli eseguono le funzioni e gli eventi dell’app con DOM simulato: apertura immediata, ricerca lenta o fallita, riprova, quantità cambiate durante l’attesa, cambio zona, ritorno alla home e demo offline. Demo autonoma compilata. Controllo visuale in un browser non eseguito qui. Vedi VALIDAZIONE.md.

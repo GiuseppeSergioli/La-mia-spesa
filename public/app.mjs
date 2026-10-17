@@ -2,12 +2,14 @@ import { compareBasket, comparisonSummary, priceForProduct, nearbyStores, normal
 import { createDemoData, demoLocation, sampleList, sampleLists, migrateDemoList } from './demo.mjs';
 import { icon, productArt, heroArt } from './art.mjs';
 import { CAGLIARI_STARTS, knownStart, GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError } from './location.mjs';
+import { catalogProducts, catalogCategories, REFERENCE_CHECKED_ON } from './catalog.mjs';
+import { APP_VERSION } from './version.mjs';
 
 const $ = (selector,root=document) => root.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='spesina:v1';
-const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],category:'all',categoriesExpanded:false,search:'',live:false,busy:false,cartOpen:false,completeOnly:false,results:null,visibleLimit:24};
-let toastTimer, requestId=0, pendingGps=null;
+const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],pendingList:[],category:'all',categoriesExpanded:false,search:'',live:false,busy:false,storeSearchPending:false,cartOpen:false,completeOnly:false,results:null,visibleLimit:24};
+let toastTimer, requestId=0, storeRequestId=0, pendingGps=null;
 let saved=null;
 try {saved=JSON.parse(localStorage.getItem(KEY));} catch {}
 const stores = () => state.data && state.location ? nearbyStores(state.data.stores,state.location,state.radius):[];
@@ -20,7 +22,7 @@ const priceInfo=(p,qty=1)=>priceForProduct(p,stores(),qty,Date.now(),state.mode=
 const localComparison=()=>compareBasket(state.list,products(),stores(),Date.now(),{allowEstimates:state.mode==='live'});
 
 function persist() {
-  try {localStorage.setItem(KEY,JSON.stringify({version:1,mode:state.mode,page:state.page,location:state.location,radius:state.radius,list:state.list}));} catch {}
+  try {localStorage.setItem(KEY,JSON.stringify({version:1,mode:state.mode,page:state.page,location:state.location,radius:state.radius,list:[...state.list,...state.pendingList]}));} catch {}
 }
 function toast(message) {
   const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),3800);
@@ -42,7 +44,7 @@ function updateHeader() {
   document.querySelectorAll('[data-step]').forEach(button=> {
     const step=button.dataset.step,i=order.indexOf(step);
     button.classList.toggle('active',i===current);button.classList.toggle('done',i<current);
-    button.disabled=state.busy || step!=='location' && !state.data || step==='compare' && (!state.list.length || !stores().length);
+    button.disabled=state.busy || step!=='location' && !state.data || step==='compare' && (state.storeSearchPending || !state.list.length || !stores().length);
     if (i===current) button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');
     $('.step-number',button).innerHTML=i<current ? icon('check'):i+1;
   });
@@ -54,6 +56,7 @@ function render() {
   updateHeader();
   const content=state.page==='location' ? locationPage():state.page==='stores'?liveDirectoryPage():state.page==='compare' ? comparePage():catalogPage();
   $('#main').innerHTML=(state.page!=='location'?`<div class="page-toolbar"><button class="button secondary home-button" data-action="home">${icon('back')} Torna alla home</button><span>La tua lista resta salvata</span></div>`:'')+content;
+  const version=$('#app-version');if(version)version.textContent=`v${APP_VERSION}`;
   hydrateIcons($('#main'));
   document.title=state.page==='compare' ? 'Il tuo confronto — La mia spesa':state.page==='catalog' ? 'La tua lista — La mia spesa':'La mia spesa — La tua spesa, al prezzo giusto.';
 }
@@ -81,7 +84,7 @@ function locationFields(modal=false) {
     <div class="location-alternatives"><button class="text-button geolocation" type="button" data-action="geolocate">${icon('target')} Usa la mia posizione</button></div>
     ${radiusControl(modal?'modal-radius':'radius')}
     <p class="field-hint">Da 500 m a 6 km, a passi di 500 m. Distanza in linea d’aria.</p>
-    <div class="location-actions"><button class="button primary full" type="submit" name="destination" value="catalog" ${state.busy?'disabled':''}>Riempi il tuo carrello ${icon('arrow')}</button><p>Scegli i prodotti, poi confronteremo i totali dei negozi nella zona.</p><button class="button secondary full" type="submit" name="destination" value="stores" ${state.busy?'disabled':''}>${icon('search')} Cerca supermercati</button><span>Facoltativo: consulta prima i negozi vicini.</span></div>
+    <div class="location-actions"><button class="button primary full compose-shopping" type="submit" name="destination" value="catalog" ${state.busy?'disabled':''}>${icon('bag')}<span>Componi la tua spesa</span>${icon('arrow')}</button><p>Scegli subito prodotti e quantità.<br>Confronteremo i supermercati alla fine.</p><div class="optional-store-search"><button class="text-button" type="submit" name="destination" value="stores" ${state.busy?'disabled':''}>${icon('search')} Cerca supermercati</button><span>Solo per consultare i negozi vicini · facoltativo</span></div></div>
     <div class="form-feedback" role="status"></div><div class="location-candidates"></div>
   </form>`;
 }
@@ -99,14 +102,14 @@ function locationPage() {
 
 function locationStrip() {
   const discovery=state.data?.storeDiscovery;
-  const label=state.mode==='demo'?`${stores().length} negozi demo`:discovery?.status==='unavailable'?'Ricerca da riprovare':discovery?.status==='local_directory'?`${stores().length} negozi · elenco locale`:`${stores().length} negozi individuati`;
+  const label=state.mode==='demo'?`${stores().length} negozi demo`:state.storeSearchPending?'Cerco i supermercati…':discovery?.status==='unavailable'?'Ricerca da riprovare':discovery?.status==='local_directory'?`${stores().length} negozi · elenco locale`:`${stores().length} negozi individuati`;
   return `<div class="location-strip"><div>${icon('pin')}<div><strong>${esc(state.location?.label)}</strong><span>Entro ${distance(state.radius)} in linea d’aria${state.location?.source==='gps'?` · precisione ${accuracyLabel(state.location.accuracyMeters)}`:''}</span></div><button class="text-button" data-action="edit-location">Modifica</button></div><button class="store-count" data-action="stores">${icon('store')}<span>${label}</span>${icon('chevron')}</button></div>`;
 }
 
 function catalogPage() {
   const p=products();
   return `<section class="page-intro"><div><div class="eyebrow">PICCOLE SCELTE, UNA BELLA DIFFERENZA</div><h1>La tua lista. <em>Il prezzo giusto.</em></h1><p>Aggiungi quello che ti serve. Al resto ci pensiamo noi.</p></div><span class="section-doodle">${icon('bag')}<span>La spesa di sempre,<br>con un po’ più di cura.</span></span></section>
-    ${locationStrip()}${state.mode==='live' && state.data.referenceCatalog?`<div class="estimate-notice">${icon('info')}<div><strong>Componi il carrello anche con prezzi simulati</strong><p>Il catalogo è lo stesso della demo. I prezzi simulati provengono da riferimenti pubblici o da stime indicative; prezzo e presenza nei negozi non sono confermati. Tocca “Fonte della stima” per il riferimento usato.</p></div></div>`:''}${state.mode==='live' && state.data.warnings.length?`<div class="data-notice">${icon('info')}<div>${state.data.warnings.map(w=>`<p>${esc(w)}</p>`).join('')}</div></div>`:''}
+    ${locationStrip()}${state.mode==='live'?shoppingSearchStatus():''}${state.pendingList.length?`<div class="data-notice">${icon('info')}<p>${state.pendingList.length} prodotti della lista salvata sono in attesa di verifica nel catalogo del negozio.</p></div>`:''}${state.mode==='live' && state.data.referenceCatalog?`<div class="estimate-notice">${icon('info')}<div><strong>Componi il carrello anche con prezzi simulati</strong><p>Il catalogo è lo stesso della demo. I prezzi simulati provengono da riferimenti pubblici o da stime indicative; prezzo e presenza nei negozi non sono confermati. Tocca “Fonte della stima” per il riferimento usato.</p></div></div>`:''}${state.mode==='live' && state.data.warnings.length?`<div class="data-notice">${icon('info')}<div>${state.data.warnings.map(w=>`<p>${esc(w)}</p>`).join('')}</div></div>`:''}
     <div class="shopping-layout"><section class="catalog" aria-label="Catalogo prodotti"><div class="catalog-heading"><h2>Cosa mettiamo in lista?</h2><span>${p.length} prodotti · ${state.data.categories.length-1} categorie</span></div>
       <div class="search-field">${icon('search')}<input id="product-search" type="search" autocomplete="off" placeholder="Cerca un prodotto o una marca…" aria-label="Cerca un prodotto o una marca" value="${esc(state.search)}"><kbd aria-hidden="true">/</kbd></div>
       ${categoryNavigation()}
@@ -152,7 +155,7 @@ function cart() {
     ${state.mode==='demo'?`<button class="demo-list-picker" data-action="sample-lists">${icon('list')} Prova una lista pronta ${icon('chevron')}</button>`:''}${state.list.length?`<div class="cart-items">${prices.map(item=> {
       const p=product(item.productId);return `<div class="cart-item"><img src="${productArt(p)}" alt="" width="42" height="48"><div><strong>${esc(p.name)}</strong><span>${esc(p.brand)} · ${esc(p.size)}</span><small class="cart-price ${item.info.simulated?'simulated-price-label':''}">${item.info.priceCents===null?'Prezzo non verificato':`${money(item.info.priceCents)} / conf. · ${item.info.simulated?'Prezzo simulato':'prezzo minimo verificato'}`}</small>${quantityControl(p.id,item.quantity,true)}</div></div>`;
     }).join('')}</div><div class="cart-estimate"><span>${simulated?(hasAll?'Totale indicativo':'Subtotale indicativo'):hasAll?'Minimo teorico':'Subtotale verificato'}</span><strong>${hasSome?money(total):'—'}</strong></div><p class="cart-disclaimer">${simulated?'Include prezzi simulati; non conferma prezzi o disponibilità nei negozi.':'Somma dei prezzi minimi tra negozi diversi.'} ${!hasAll?'Alcune righe non hanno prezzo. ':''}Il totale di ogni negozio è nel confronto.</p>`:`<div class="empty-cart"><span>${icon('list')}</span><h3>Componi il tuo<br>carrello.</h3><p>Tocca <b>+</b> sui prodotti, poi scegli le quantità.</p>${state.mode==='demo'?'<button class="text-button" data-action="sample-list">Usa una lista d’esempio '+icon('arrow')+'</button>':''}</div>`}
-    ${!stores().length?'<p class="no-store-cart">Puoi preparare la lista. Per confrontarla serve almeno un negozio nel raggio: modifica la zona.</p>':''}<div class="cart-cta"><button class="button primary full" data-action="compare" ${!state.list.length || !stores().length || state.busy?'disabled':''}>${state.busy?'<span class="spinner"></span> Calcolo dei totali…':`Confronta la spesa ${icon('arrow')}`}</button><span>${icon('shield')} Prezzi verificati e simulati sempre distinti</span></div></div>`;
+    ${state.storeSearchPending?'<p class="no-store-cart">Puoi già aggiungere i prodotti. Cerco i negozi per il confronto finale.</p>':!stores().length?'<p class="no-store-cart">Puoi preparare la lista. Per confrontarla serve almeno un negozio nel raggio: modifica la zona.</p>':''}<div class="cart-cta"><button class="button primary full" data-action="compare" ${!state.list.length || !stores().length || state.busy || state.storeSearchPending?'disabled':''}>${state.busy?'<span class="spinner"></span> Calcolo dei totali…':`Confronta la spesa ${icon('arrow')}`}</button><span>${icon('shield')} Prezzi verificati e simulati sempre distinti</span></div></div>`;
 }
 
 function comparePage() {
@@ -210,17 +213,18 @@ function chooseSampleList() {
 }
 
 function startDemo(withSample=false) {
-  requestId++;state.busy=false;state.mode='demo';state.location={...demoLocation};state.data=createDemoData();state.radius=DEFAULT_RADIUS_KM;state.list=withSample?structuredClone(sampleList):[];state.page='catalog';state.category='all';state.search='';state.results=null;state.cartOpen=false;state.visibleLimit=24;
+  requestId++;storeRequestId++;state.busy=false;state.storeSearchPending=false;state.pendingList=[];state.mode='demo';state.location={...demoLocation};state.data=createDemoData();state.radius=DEFAULT_RADIUS_KM;state.list=withSample?structuredClone(sampleList):[];state.page='catalog';state.category='all';state.search='';state.results=null;state.cartOpen=false;state.visibleLimit=24;
   closeModal();persist();render();announcePage();
 }
 function exitDemo() {
-  requestId++;state.busy=false;state.mode='live';state.data=null;state.list=[];state.location=null;state.results=null;state.page='location';state.cartOpen=false;saved=null;persist();closeModal();render();announcePage();
+  requestId++;storeRequestId++;state.busy=false;state.storeSearchPending=false;state.pendingList=[];state.mode='live';state.data=null;state.list=[];state.location=null;state.results=null;state.page='location';state.cartOpen=false;saved=null;persist();closeModal();render();announcePage();
 }
 
 async function findLocation(form,destination='catalog') {
   if (state.busy) return;
   const feedback=$('.form-feedback',form),candidates=$('.location-candidates',form);
-  if (!state.live) {feedback.textContent='La ricerca reale richiede il server. Per esplorare l’app scegli “Prova la demo”.';return;}
+  if(destination==='catalog' && state.mode==='demo'){state.radius=normalizeRadius(Number(new FormData(form).get('radius')));state.results=null;return resumeList();}
+  if (!state.live && destination==='stores') {feedback.textContent='La ricerca reale richiede il server. Per esplorare l’app scegli “Prova la demo”.';return;}
   const q=String(new FormData(form).get('address') || '').trim();
   const selected=knownStart(q,state.mode==='live'?state.location:null);
   form._destination=destination;
@@ -246,21 +250,62 @@ function chooseStart(id,form) {
   $('[name="address"]',form).value=place.label;
   form.querySelectorAll('[data-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.start===id)));
   $('.location-candidates',form).innerHTML='';
-  $('.form-feedback',form).textContent=`Partenza: ${place.name}. Premi “Riempi il tuo carrello” per scegliere i prodotti.`;
+  $('.form-feedback',form).textContent=`Partenza: ${place.name}. Premi “Componi la tua spesa” per scegliere i prodotti.`;
 }
 
-async function loadLocation(loc,radius,feedback,destination='catalog') {
-  if(state.busy) return;const id=++requestId;state.busy=true;updateHeader();
-  if(feedback) feedback.innerHTML=`<span class="spinner dark"></span> ${destination==='stores'?'Cerco i supermercati nella tua zona…':'Preparo i prodotti e cerco i negozi per il confronto…'}`;
-  setLocationButtons(true);
+function shoppingStartData(previousProducts=[]) {
+  const products=structuredClone(catalogProducts),ids=new Set(products.map(p=>p.id));
+  for(const p of previousProducts)if(!ids.has(p.id)){products.push(structuredClone(p));ids.add(p.id);}
+  const categories=structuredClone(catalogCategories);
+  for(const category of new Set(products.map(p=>p.category)))if(!categories.some(c=>c.id===category))categories.push({id:category,name:category,icon:'grid'});
+  return {mode:'live',products,categories,stores:[],warnings:[],retailerSources:[],referenceCatalog:{enabled:true,productCount:catalogProducts.length,checkedOn:REFERENCE_CHECKED_ON},storeDiscovery:{status:'pending',mapAvailable:false},attribution:'Catalogo di riferimento: prezzi simulati indicativi. I negozi e gli eventuali prezzi verificati vengono cercati nella zona selezionata.'};
+}
+
+function shoppingSearchStatus() {
+  if(state.storeSearchPending)return `<div class="shopping-search-status" role="status"><span class="spinner dark"></span><p>Puoi già comporre la tua spesa. Cerco i supermercati per il confronto finale.</p></div>`;
+  if(state.data?.storeDiscovery?.status==='unavailable')return `<div class="shopping-search-status search-unavailable" role="status">${icon('info')}<p>La ricerca dei negozi non è disponibile. La tua lista resta salvata: puoi continuare a comporla.</p><button class="text-button" data-action="retry-stores">${icon('refresh')} Riprova la ricerca</button></div>`;
+  return '';
+}
+
+function refreshShoppingAfterSearch() {
+  if(state.page==='location'){updateHeader();return;}
+  const active=document.activeElement,focusedId=active?.id;
+  const focusedProduct=active?.dataset?.product || active?.dataset?.add,delta=active?.dataset?.delta;
+  const selection=typeof active?.selectionStart==='number'?[active.selectionStart,active.selectionEnd]:null;
+  render();
+  const target=focusedId?document.getElementById(focusedId):focusedProduct?[...document.querySelectorAll('[data-product],[data-add]')].find(button=>(button.dataset.product || button.dataset.add)===focusedProduct && (!delta || button.dataset.delta===delta)):null;
+  target?.focus({preventScroll:true});if(selection && target?.setSelectionRange)target.setSelectionRange(...selection);
+}
+
+async function refreshStores(renderStart=true) {
+  if(state.mode!=='live' || !state.location || !state.data)return;
+  const id=++storeRequestId,loc={...state.location},radius=state.radius;
+  state.storeSearchPending=true;state.data.storeDiscovery={...state.data.storeDiscovery,status:'pending'};
+  if(renderStart)refreshShoppingAfterSearch();
   try {
-    const data=await api(`catalog?${new URLSearchParams({lat:loc.lat,lon:loc.lon,radius})}`);if(id!==requestId) return;
-    const oldCount=state.list.length;
-    state.mode='live';state.location=loc;state.radius=radius;state.data=data;state.list=normalizeList(state.list,data.products);state.page=destination==='stores'?'stores':'catalog';state.category='all';state.search='';state.results=null;state.visibleLimit=24;state.cartOpen=false;
-    if(state.list.length<oldCount) toast('Alcuni prodotti non sono presenti nel nuovo catalogo e sono stati rimossi dalla lista.');
-    pendingGps=null;closeModal();persist();render();announcePage();
-  } catch(e) {if(id===requestId){if(feedback)feedback.textContent=e.message;if(['catalog','stores'].includes(state.page))toast(e.message);}}
-  finally {if(id===requestId){state.busy=false;setLocationButtons(false);if(['catalog','stores'].includes(state.page)) render();else updateHeader();}}
+    const data=await api(`catalog?${new URLSearchParams({lat:loc.lat,lon:loc.lon,radius})}`);if(id!==storeRequestId || state.mode!=='live')return;
+    const current=[...state.list,...state.pendingList],next=normalizeList(current,data.products);
+    state.data=data;state.list=next;state.pendingList=[];state.results=null;state.live=true;
+    if(next.length<current.length)toast('Alcuni prodotti non sono presenti nel nuovo catalogo e sono stati rimossi dalla lista.');
+  } catch(e) {
+    if(id!==storeRequestId || state.mode!=='live')return;
+    state.data.storeDiscovery={status:'unavailable',mapAvailable:false};
+    state.data.warnings=[e.message];
+  } finally {
+    if(id===storeRequestId && state.mode==='live'){state.storeSearchPending=false;persist();refreshShoppingAfterSearch();}
+  }
+}
+
+function loadLocation(loc,radius,_feedback,destination='catalog') {
+  if(state.busy)return;
+  requestId++;
+  const previous=state.mode==='live'?products():[],list=[...state.list,...state.pendingList];
+  state.mode='live';state.location=loc;state.radius=normalizeRadius(radius);state.data=shoppingStartData(previous);
+  const known=new Set(state.data.products.map(p=>p.id));
+  state.list=normalizeList(list,state.data.products);state.pendingList=list.filter(item=>typeof item?.productId==='string' && Number.isInteger(item.quantity) && item.quantity>=1 && item.quantity<=MAX_QUANTITY && !known.has(item.productId));
+  state.page=destination==='stores'?'stores':'catalog';state.category='all';state.search='';state.results=null;state.visibleLimit=24;state.cartOpen=false;state.storeSearchPending=true;
+  pendingGps=null;closeModal();persist();render();announcePage();
+  return refreshStores(false);
 }
 
 function geolocate(radiusOverride=null) {
@@ -288,7 +333,7 @@ function correctGpsWithAddress() {
 }
 
 async function showComparison() {
-  if(!state.list.length || !stores().length || state.busy)return;
+  if(!state.list.length || !stores().length || state.busy || state.storeSearchPending)return;
   const id=++requestId;
   if(state.mode==='live') {
     state.busy=true;refreshListUI();
@@ -321,6 +366,7 @@ function retailerSourceNotes() {
   return sources.length?`<section class="retailer-source-list"><h3>Fonti delle insegne trovate</h3><p class="modal-description">Un collegamento al sito non equivale a un catalogo prezzi importato.</p>${sources.map(source=>`<details><summary>${esc(source.name)}</summary><p>${esc(source.note)}</p><p>Fonte verificata il ${esc(source.checkedOn)}. Prezzi per il confronto: non collegati automaticamente.</p></details>`).join('')}</section>`:'';
 }
 function liveDirectoryPage() {
+  if(state.storeSearchPending)return `<section class="page-intro"><div><div class="eyebrow">RICERCA FACOLTATIVA DEI NEGOZI</div><h1>Cerco i supermercati <em>vicino a te.</em></h1><p>Puoi passare subito ai prodotti mentre completo la ricerca.</p></div></section>${locationStrip()}${shoppingSearchStatus()}<section class="shopping-next"><div><h2>Componi la tua spesa</h2><p>${products().length} prodotti già disponibili, divisi per categoria.</p></div><button class="button primary" data-action="compose-cart">Componi la tua spesa ${icon('arrow')}</button></section>`;
   const discovery=state.data.storeDiscovery || {status:'online',mapAvailable:true};
   const unavailable=discovery.status==='unavailable',localOnly=discovery.status==='local_directory',connected=stores().filter(s=>s.catalogStatus==='connected').length;
   const summary=unavailable?'Numero dei negozi non verificabile':localOnly?`${stores().length} negozi nell’elenco locale · copertura parziale`:`${stores().length} negozi individuati`;
@@ -328,6 +374,7 @@ function liveDirectoryPage() {
 }
 
 function showStores() {
+  if(state.storeSearchPending)return showModal('Cerco i supermercati nella tua zona',`<p class="modal-description">La ricerca continua mentre scegli i prodotti. Il numero dei negozi sarà mostrato appena disponibile.</p><button class="button primary full" data-action="close-modal">Continua a comporre la spesa ${icon('arrow')}</button>`);
   const discovery=state.data?.storeDiscovery,unavailable=state.mode==='live' && discovery?.status==='unavailable',localOnly=discovery?.status==='local_directory';
   const title=unavailable?'Ricerca negozi da riprovare':`I negozi nella tua zona <span class="muted">(${stores().length})</span>`;
   const description=state.mode==='demo'?'Questi negozi sono fittizi.':localOnly?'Elenco locale parziale di punti vendita, verificato il 17/10/2026. La mappa non risponde.':'Risultati OpenStreetMap integrati con un elenco locale parziale. La copertura non è garantita come esaustiva.';
@@ -397,16 +444,16 @@ document.addEventListener('click',event=> {
     'retry-gps':()=>geolocate(pendingGps?.radius),'gps-address':correctGpsWithAddress,
     'more-products':()=>{state.visibleLimit+=24;$('#product-grid').innerHTML=productGrid();},
     'toggle-categories':()=>{state.categoriesExpanded=!state.categoriesExpanded;render();$('[data-action="toggle-categories"]')?.focus({preventScroll:true});},
-    'retry-stores':()=>loadLocation({...state.location},state.radius,$('#directory-feedback'),state.page),
+    'retry-stores':()=>refreshStores(),
     demo:()=>startDemo(false),'exit-demo':exitDemo,help:showHelp,privacy,stores:showStores,'edit-location':editLocation,geolocate:()=>geolocate(),compare:showComparison,
     catalog:()=>{state.page='catalog';state.results=null;render();announcePage();},
     'sample-list':()=>{state.list=structuredClone(sampleList);refreshListUI();toast('Una lista d’esempio, pronta da modificare.');},
     'clear-search':()=>{state.visibleLimit=24;state.search='';state.category='all';render();},
     'clear-list':()=>showModal('Svuotare la lista?',`<p class="modal-description">Rimuoveremo tutti i ${count()} articoli. Potrai aggiungerli di nuovo dal catalogo.</p><div class="modal-buttons"><button class="button secondary" data-action="close-modal">Tieni la lista</button><button class="button primary" data-action="confirm-clear">Svuota la lista</button></div>`),
-    'confirm-clear':()=>{state.list=[];state.page='catalog';closeModal();refreshListUI();toast('Lista svuotata.');},
+    'confirm-clear':()=>{state.list=[];state.pendingList=[];state.page='catalog';closeModal();refreshListUI();toast('Lista svuotata.');},
     'close-modal':closeModal,
     'toggle-cart':()=>{state.cartOpen=!state.cartOpen;$('#cart-area').innerHTML=cart();},
-    'delete-data':()=>{try{localStorage.removeItem(KEY);}catch{}saved=null;state.list=[];state.location=null;state.data=null;state.mode='live';state.page='location';state.results=null;closeModal();render();toast('Zona e lista salvate eliminate.');},
+    'delete-data':()=>{try{localStorage.removeItem(KEY);}catch{}requestId++;storeRequestId++;saved=null;state.busy=false;state.storeSearchPending=false;state.list=[];state.pendingList=[];state.location=null;state.data=null;state.mode='live';state.page='location';state.results=null;closeModal();render();toast('Zona e lista salvate eliminate.');},
     export:exportList,print:()=>window.print()
   };
   actions[button.dataset.action]?.();
@@ -432,7 +479,7 @@ async function init() {
   } else if(saved?.version===1 && saved.mode==='live' && validCoordinates(saved.location?.lat,saved.location?.lon)) {
     state.location=saved.location;state.radius=normalizeRadius(saved.radius);state.list=Array.isArray(saved.list)?saved.list:[];
   }
-  if(window.SPESINA_STATIC && state.mode!=='demo'){state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.list=[];state.page='catalog';}
+  if(window.SPESINA_STATIC && state.mode!=='demo'){state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.list=[];state.page='location';}
   render();
   if(saved?.mode==='demo' && saved.list?.some(item=>String(item?.productId).startsWith('demo-'))) {persist();toast('La tua lista demo è stata aggiornata al catalogo condiviso, con le quantità salvate.');}
   if(!window.SPESINA_STATIC && location.protocol!=='file:') {

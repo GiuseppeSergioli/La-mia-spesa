@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
 import { geocode, buildLiveCatalog, loadFeedConfig, UpstreamError } from './providers.mjs';
 import { validCoordinates, validRadius, compareBasket, nearbyStores } from '../public/core.mjs';
+import {APP_VERSION} from '../public/version.mjs';
 
 const ROOT=fileURLToPath(new URL('../public/',import.meta.url));
 const configPath=process.env.FEEDS_CONFIG || fileURLToPath(new URL('../config/feeds.json',import.meta.url));
@@ -49,7 +50,7 @@ export function createApp() {
       if (req.method==='GET' && url.pathname==='/api/health') return send(res,200,{ok:true,service:'spesina'});
       if (api) {
         if (rateLimited(req)) {res.setHeader('Retry-After','60');return send(res,429,{error:'Troppe richieste. Attendi un minuto e riprova.'});}
-        if (req.method==='GET' && url.pathname==='/api/status') return send(res,200,{live:true,configuredStores:feedConfig.length,version:'1.5.0',estimatedShopping:true,region:'Cagliari',radius:{min:0.5,max:6,step:0.5}});
+        if (req.method==='GET' && url.pathname==='/api/status') return send(res,200,{live:true,configuredStores:feedConfig.length,version:APP_VERSION,estimatedShopping:true,region:'Cagliari',radius:{min:0.5,max:6,step:0.5}});
         if (!['GET','POST'].includes(req.method)) return send(res,405,{error:'Metodo non supportato.'});
         if (active>=8) return send(res,503,{error:'Il servizio è occupato. Riprova tra poco.'});
         active++;acquired=true;

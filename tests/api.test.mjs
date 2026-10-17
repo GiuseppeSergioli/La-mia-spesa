@@ -1,6 +1,7 @@
 import test,{before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../server/index.mjs';
+import {APP_VERSION} from '../public/version.mjs';
 let server,base;
 const originalFetch=globalThis.fetch;
 before(async()=>{
@@ -8,7 +9,7 @@ before(async()=>{
   server=createApp();await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;
 });
 after(async()=>{await new Promise(r=>server.close(r));globalThis.fetch=originalFetch;});
-test('health and live capability are explicit',async()=>{const res=await fetch(`${base}/api/health`);assert.equal(res.status,200);assert.equal((await res.json()).ok,true);const s=await (await fetch(`${base}/api/status`)).json();assert.equal(s.live,true);assert.equal(typeof s.configuredStores,'number');});
+test('health and live capability are explicit',async()=>{const res=await fetch(`${base}/api/health`);assert.equal(res.status,200);assert.equal((await res.json()).ok,true);const s=await (await fetch(`${base}/api/status`)).json();assert.equal(s.live,true);assert.equal(typeof s.configuredStores,'number');assert.equal(s.version,APP_VERSION);});
 test('root page serves Italian application with security headers',async()=>{const res=await fetch(base);assert.match(res.headers.get('content-type'),/text\/html/);assert.match(res.headers.get('content-security-policy'),/script-src 'self'/);assert.equal(res.headers.get('x-content-type-options'),'nosniff');assert.match(await res.text(),/<html lang="it">/);});
 test('ES modules use JavaScript content type',async()=>{const res=await fetch(`${base}/core.mjs`);assert.match(res.headers.get('content-type'),/javascript/);});
 test('invalid radius and coordinates fail before external calls',async()=>{for(const path of ['/api/catalog?lat=45&lon=9&radius=999','/api/catalog?lat=nan&lon=9&radius=5','/api/catalog?lat=&lon=&radius=5','/api/catalog?lat=45&lon=9&radius=0']){const r=await fetch(base+path);assert.equal(r.status,400,path);}});

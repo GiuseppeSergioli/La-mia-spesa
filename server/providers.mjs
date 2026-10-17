@@ -6,8 +6,9 @@ import { haversine, validCoordinates, MAX_PRICE_CENTS, DEFAULT_LOCATION } from '
 import { enrichStore, sourceCoverage } from './retailers.mjs';
 import { supplementStores } from './local-stores.mjs';
 import { shoppingCatalog } from './shopping.mjs';
+import {APP_VERSION} from '../public/version.mjs';
 
-const UA = `LaMiaSpesa/1.5 (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
+const UA = `LaMiaSpesa/${APP_VERSION} (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
 const MAX_BYTES = 4 * 1024 * 1024;
 const cache = new Map();
 const pending = new Map();

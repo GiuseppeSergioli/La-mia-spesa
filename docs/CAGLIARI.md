@@ -1,6 +1,6 @@
 # Cagliari: copertura e integrazioni
 
-Verifica delle fonti: 17 ottobre 2026. Versione 1.5.0.
+Verifica delle fonti: 17 ottobre 2026. Versione 1.6.0.
 
 ## Cosa è effettivamente attivo
 
@@ -8,7 +8,7 @@ L’app ricerca su OpenStreetMap supermercati, discount e piccoli alimentari nel
 
 L’API segnala `coverage.exhaustive: false`: la mappa non garantisce un censimento di tutti i supermercati esistenti. Un negozio non riconosciuto come insegna rimane comunque nei risultati. Negozi indicati esplicitamente come dismessi o abbandonati vengono esclusi. Non abbiamo inserito punti vendita con coordinate inventate.
 
-I link ai siti ufficiali vengono associati ai negozi trovati. L’app mostra separatamente quanti negozi sono stati trovati e quanti hanno un catalogo prezzi effettivamente collegato. Il pulsante principale Riempi il tuo carrello porta direttamente ai prodotti, senza passare dall’elenco informativo dei supermercati. Consente di proseguire anche senza cataloghi locali usando il catalogo condiviso di 384 articoli generici in 24 categorie e prezzi marcati come simulati; i totali risultanti non certificano la convenienza reale delle catene. Fonti e metodo in `PREZZI-SIMULATI.md`. **Questo aggiornamento non attiva alcun nuovo feed prezzi.** La demo è centrata su Cagliari e contiene 384 prodotti, 24 categorie, 8 negozi fittizi e 4 liste pronte, con prezzi e disponibilità inventati.
+I link ai siti ufficiali vengono associati ai negozi trovati. L’app mostra separatamente quanti negozi sono stati trovati e quanti hanno un catalogo prezzi effettivamente collegato. Il pulsante principale Componi la tua spesa porta direttamente ai prodotti, senza passare dall’elenco informativo dei supermercati. Consente di proseguire anche senza cataloghi locali usando il catalogo condiviso di 384 articoli generici in 24 categorie e prezzi marcati come simulati; i totali risultanti non certificano la convenienza reale delle catene. Fonti e metodo in `PREZZI-SIMULATI.md`. **Questo aggiornamento non attiva alcun nuovo feed prezzi.** La demo è centrata su Cagliari e contiene 384 prodotti, 24 categorie, 8 negozi fittizi e 4 liste pronte, con prezzi e disponibilità inventati.
 
 ## Elenco locale di riserva
 

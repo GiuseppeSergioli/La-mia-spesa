@@ -1,6 +1,6 @@
 {
   "name": "spesina",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "description": "Confronta la stessa lista della spesa nei supermercati vicini.",
   "type": "module",
@@ -9,7 +9,7 @@
     "start": "node server/index.mjs",
     "dev": "node --watch server/index.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check server/index.mjs && node --check server/providers.mjs && node --check server/retailers.mjs && node --check server/local-stores.mjs && node --check server/reference-catalog.mjs && node --check server/shopping.mjs && node --check public/catalog.mjs && node --check public/demo.mjs && node --check public/location.mjs && node --check public/app.mjs && node --check public/core.mjs"
+    "check": "node --check server/index.mjs && node --check server/providers.mjs && node --check server/retailers.mjs && node --check server/local-stores.mjs && node --check server/reference-catalog.mjs && node --check server/shopping.mjs && node --check public/catalog.mjs && node --check public/demo.mjs && node --check public/version.mjs && node --check public/location.mjs && node --check public/app.mjs && node --check public/core.mjs"
   },
   "license": "UNLICENSED"
 }

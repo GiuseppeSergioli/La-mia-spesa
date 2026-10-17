@@ -7,8 +7,8 @@
   <meta name="description" content="La tua lista, i supermercati vicini, un confronto chiaro. Scopri dove conviene fare tutta la spesa.">
   <title>La mia spesa — La tua spesa, al prezzo giusto.</title>
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
-  <link rel="stylesheet" href="./styles.css">
-  <script type="module" src="./app.mjs"></script>
+  <link rel="stylesheet" href="./styles.css?v=1.6.0">
+  <script type="module" src="./app.mjs?v=1.6.0"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Vai al contenuto</a>
@@ -23,7 +23,7 @@
   </header>
   <div id="mode-banner" class="mode-banner" hidden></div>
   <main id="main" tabindex="-1"></main>
-  <footer class="footer"><a class="footer-brand" href="./">La mia spesa</a><span>Una lista. Una scelta più semplice.</span><div><button data-action="help">Come funziona</button><button data-action="privacy">Privacy e dati</button></div></footer>
+  <footer class="footer"><a class="footer-brand" href="./">La mia spesa</a><span>Una lista. Una scelta più semplice. <small id="app-version" class="app-version">v1.6.0</small></span><div><button data-action="help">Come funziona</button><button data-action="privacy">Privacy e dati</button></div></footer>
   <dialog id="modal" aria-labelledby="modal-title"><div id="modal-content"></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <noscript><p>Per usare La mia spesa attiva JavaScript nel browser.</p></noscript>

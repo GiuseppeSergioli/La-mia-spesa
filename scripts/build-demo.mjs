@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 const read = path => readFile(new URL(`../${path}`,import.meta.url),'utf8');
 const modules=[
+  ['Version','public/version.mjs','APP_VERSION'],
   ['Core','public/core.mjs','MAX_QUANTITY, MAX_PRICE_CENTS, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, validRadius, normalizeRadius, haversine, validCoordinates, nearbyStores, normalizeList, offerStatus, referencePrice, priceForProduct, compareBasket, comparisonSummary, savingsBetweenComplete, money, distance, lowestPrice'],
   ['Catalog','public/catalog.mjs','REFERENCE_CHECKED_ON, CATALOG_CATEGORY_COUNT, CATALOG_PRODUCTS_PER_CATEGORY, CATALOG_PRODUCT_COUNT, catalogCategories, catalogProducts, catalogCounts'],
   ['Demo','public/demo.mjs','categories, products, demoLocation, sampleList, sampleLists, createDemoData, migrateDemoList, legacyDemoAliases'],
@@ -13,11 +14,11 @@ for(const [name,file,exports] of modules) {
   script+=`const ${name}=(()=>{\n${source}\nreturn {${exports}};\n})();\n`;
 }
 let app=await read('public/app.mjs');
-app=app.replace(/^import \{([^}]+)\} from '\.\/core\.mjs';/m,'const {$1}=Core;').replace(/^import \{([^}]+)\} from '\.\/demo\.mjs';/m,'const {$1}=Demo;').replace(/^import \{([^}]+)\} from '\.\/art\.mjs';/m,'const {$1}=Art;').replace(/^import \{([^}]+)\} from '\.\/location\.mjs';/m,'const {$1}=Location;');
+app=app.replace(/^import \{([^}]+)\} from '\.\/core\.mjs';/m,'const {$1}=Core;').replace(/^import \{([^}]+)\} from '\.\/demo\.mjs';/m,'const {$1}=Demo;').replace(/^import \{([^}]+)\} from '\.\/art\.mjs';/m,'const {$1}=Art;').replace(/^import \{([^}]+)\} from '\.\/location\.mjs';/m,'const {$1}=Location;').replace(/^import \{([^}]+)\} from '\.\/catalog\.mjs';/m,'const {$1}=Catalog;').replace(/^import \{([^}]+)\} from '\.\/version\.mjs';/m,'const {$1}=Version;');
 script+=`(()=>{\n${app}\n})();`;
 const css=await read('public/styles.css'),favicon=await read('public/icon.svg');
 let html=await read('public/index.html');
-html=html.replace('<link rel="stylesheet" href="./styles.css">',`<style>${css}</style>`).replace('<script type="module" src="./app.mjs"></script>','').replace('href="./icon.svg"',`href="data:image/svg+xml,${encodeURIComponent(favicon)}"`).replace('</body>',`<script>${script.replace(/<\/script/gi,'<\\/script')}</script></body>`);
+html=html.replace(/<link rel="stylesheet" href="\.\/styles\.css(?:\?[^"]*)?">/,`<style>${css}</style>`).replace(/<script type="module" src="\.\/app\.mjs(?:\?[^"]*)?"><\/script>/,'').replace('href="./icon.svg"',`href="data:image/svg+xml,${encodeURIComponent(favicon)}"`).replace('</body>',`<script>${script.replace(/<\/script/gi,'<\\/script')}</script></body>`);
 await mkdir(new URL('../dist/',import.meta.url),{recursive:true});
 await writeFile(new URL('../dist/index.html',import.meta.url),html);
 console.log('Demo autonoma generata in dist/index.html');

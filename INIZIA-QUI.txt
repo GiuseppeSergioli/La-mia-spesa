@@ -1,13 +1,24 @@
-LA MIA SPESA — VERSIONE 1.5.0
+LA MIA SPESA — VERSIONE 1.6.0
 
-Per aggiornare Render: AGGIORNAMENTO-CAGLIARI.txt.
-Percorso: zona > Riempi il tuo carrello > prodotti e quantità > Confronta la spesa.
-Cerca supermercati è secondario e facoltativo: apre l’elenco informativo.
-Indirizzo vuoto: Via Roma, Cagliari, presso il Palazzo Civico.
-Zone rapide: Via Roma, Piazza Yenne, Piazza Garibaldi, Piazza Repubblica.
+COMPOSIZIONE SUBITO IN PRIMO PIANO
+Il pulsante verde principale è Componi la tua spesa: apre i prodotti subito, mentre i negozi vengono cercati in sottofondo.
+Cerca supermercati è un piccolo comando testuale sotto al pulsante: serve solo a consultare i negozi ed è facoltativo.
+Un errore o ritardo della mappa non blocca la composizione e non elimina i prodotti scelti.
+
+AGGIORNARE IL SITO
+Estrai lo ZIP. I file package.json, package-lock.json e le cartelle public, server, dist sono direttamente nella cartella estratta.
+Apri il repository GitHub GiuseppeSergioli/La-mia-spesa > Add file > Upload files.
+Trascina i file e le cartelle estratti nella radice del repository, conservando le sottocartelle. package.json deve rimanere alla radice.
+Conferma Commit changes.
+Su Render, nel servizio esistente: Manual Deploy > Deploy latest commit.
+Apri la URL già usata. Il pulsante verde deve dire Componi la tua spesa e in fondo deve comparire v1.6.0.
+Per altri dettagli: AGGIORNAMENTO-CAGLIARI.txt.
+
+INDIRIZZO E CATALOGO
+Campo vuoto: Via Roma, Cagliari. Zone rapide: Via Roma, Piazza Yenne, Piazza Garibaldi, Piazza Repubblica.
 Categorie: griglia di 12 scelte subito visibili, più Tutti e Mostra tutte le 24 categorie.
-Carrello e simulatore: stessi 384 prodotti, 24 categorie, 16 scelte per categoria.
-I prezzi simulati distinguono riferimenti pubblici e stime indicative. Scorte locali non confermate. Nessun nuovo feed prezzi collegato.
-Demo autonoma: apri dist/index.html. Stessi prodotti, con 8 negozi, prezzi e scorte fittizi e 4 liste pronte.
+App e demo condividono 384 prodotti, 24 categorie, 16 scelte per categoria.
+Dove mancano prezzi verificati rimane Prezzo simulato; disponibilità da verificare.
+Demo autonoma: apri dist/index.html; Componi la tua spesa apre la scelta prodotti anche offline.
+
 Server: Node.js 24, npm ci --ignore-scripts, npm start; http://localhost:3000.
-Categorie: docs/CATALOGO.md. Stime: docs/PREZZI-SIMULATI.md. Verifiche: VALIDAZIONE.md.
