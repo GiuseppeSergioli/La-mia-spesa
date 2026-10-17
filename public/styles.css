@@ -23,3 +23,14 @@
 
 .location-alternatives{display:flex;flex-wrap:wrap;gap:0 17px}.centre-hint{font-size:10px;color:#707b66;line-height:1.7;margin-top:7px}
 @media(max-width:700px){.location-alternatives{gap:0 12px}.location-alternatives .text-button{min-height:33px;font-size:11px}}
+
+.page-toolbar{display:flex;align-items:center;gap:13px;margin:-9px 0 27px}.page-toolbar .home-button{font-size:12px;min-height:41px;padding:10px 15px;border-color:#c4d1b6;color:var(--green)}.page-toolbar>span{font-size:10px;color:#707b66}.resume-button{margin-top:15px}.more-products{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:9px;padding:20px 0 8px}.more-products>span{font-size:11px;color:#707b66}.demo-list-picker{display:flex;align-items:center;gap:6px;width:calc(100% - 30px);margin:12px 15px 0;padding:9px 10px;text-align:left;font-size:11px;border:1px solid #dce5d2;border-radius:6px;background:#f2f5e9;color:var(--green)}.demo-list-picker>.icon{width:14px;height:14px}.demo-list-picker>.icon:last-child{margin-left:auto}.sample-list-options{display:grid;gap:10px}.sample-list-options>button{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);padding:17px;border-radius:9px;background:#f6f7ee;text-align:left}.sample-list-options>button:hover{border-color:#95b181;background:#edf3e3}.sample-list-options>button>span{display:grid;grid-template-columns:25px 1fr;gap:3px 10px}.sample-list-options>button>span>.icon{grid-row:1/3;align-self:center;color:#87a76d}.sample-list-options strong{font-size:13px;font-weight:600}.sample-list-options small{font-size:11px;color:#707b66}.coverage-error{background:#f6edde;border-color:#e1d2b5;color:#8b673c}.retry-search{margin:12px 0 25px}.retry-search>.button{font-size:12px}.local-store-tag{color:#8f7445!important;background:#f6f1df;display:inline-block!important;width:max-content;border-radius:3px;padding:2px 5px;margin:6px 0 3px}.live-directory .local-store-tag{font-size:9px!important}
+@media(max-width:700px){.page-toolbar{margin:-7px 0 22px;flex-wrap:wrap;gap:6px}.page-toolbar .home-button{min-height:44px;font-size:12px}.page-toolbar>span{font-size:9px;margin-left:3px}.demo-list-picker{min-height:40px;font-size:12px}.retry-search>.button{width:100%;font-size:11px}.more-products>.button{min-height:44px}.sample-list-options strong{font-size:14px}.sample-list-options small{font-size:12px}}
+@media print{.page-toolbar,.demo-list-picker,.more-products,.retry-search{display:none!important}}
+
+@media(max-width:700px){.cart-items{max-height:calc(82dvh - 300px)}}
+
+/* Name chosen for the published app. */
+.brand{font-size:27px;letter-spacing:-1.1px;white-space:nowrap}
+@media(max-width:700px){.brand{font-size:21px;letter-spacing:-.8px}}
+@media(max-width:360px){.brand{font-size:19px}.header{gap:10px}}

@@ -4,11 +4,13 @@ import https from 'node:https';
 import { isIP } from 'node:net';
 import { haversine, validCoordinates, MAX_PRICE_CENTS, DEFAULT_LOCATION } from '../public/core.mjs';
 import { enrichStore, sourceCoverage } from './retailers.mjs';
+import { supplementStores } from './local-stores.mjs';
 
-const UA = 'Spesina/1.0 (grocery comparison; OpenStreetMap attribution in app)';
+const UA = `LaMiaSpesa/1.2 (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
 const MAX_BYTES = 4 * 1024 * 1024;
 const cache = new Map();
 const pending = new Map();
+const mapCooldown = new Map();
 
 export async function cached(key, ttl, work) {
   const hit = cache.get(key);
@@ -69,15 +71,28 @@ export async function geocode(query) {
 }
 
 export async function discoverStores(lat, lon, radiusKm) {
+  const endpoint=new URL(process.env.OVERPASS_SEARCH_URL || 'https://overpass.private.coffee/api/interpreter');
+  if(endpoint.protocol!=='https:' || endpoint.username || endpoint.password) throw new UpstreamError('Endpoint cartografico non valido.');
   // Coordinates rounded to ~10m for reusable cache keys; filtering uses exact location.
-  const key = `osm:${lat.toFixed(4)}:${lon.toFixed(4)}:${radiusKm}`;
+  const key = `osm:${endpoint.href}:${lat.toFixed(4)}:${lon.toFixed(4)}:${radiusKm}`;
   return cached(key, 900_000, async () => {
-    const query = `[out:json][timeout:22];nwr["shop"~"^(supermarket|discount|convenience)$"](around:${Math.ceil(radiusKm*1000)},${lat},${lon});out center tags;`;
-    const response = await fetch('https://overpass-api.de/api/interpreter', {
-      method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','User-Agent':UA},body:new URLSearchParams({data:query}),signal:AbortSignal.timeout(27_000)
-    });
-    const data = await readJson(response);
-    if (data.remark) throw new UpstreamError('La ricerca dei negozi non è completa. Riduci il raggio e riprova.');
+    if((mapCooldown.get(endpoint.host) || 0)>Date.now()) throw new UpstreamError('Ricerca negozi temporaneamente non disponibile.',503);
+    const query = `[out:json][timeout:8];nwr["shop"~"^(supermarket|discount|convenience)$"](around:${Math.ceil(radiusKm*1000)},${lat},${lon});out center tags;`;
+    let data;
+    try {
+      let response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','User-Agent':UA},body:new URLSearchParams({data:query}),signal:AbortSignal.timeout(11_000)});
+      // An operator/proxy may disable POST. GET is a documented Overpass alternative.
+      if(response.status===405 || response.status===501) {
+        const getUrl=new URL(endpoint);getUrl.searchParams.set('data',query);
+        response=await fetch(getUrl,{headers:{'User-Agent':UA},signal:AbortSignal.timeout(11_000)});
+      }
+      data=await readJson(response);
+      if(data.remark || !Array.isArray(data.elements)) throw new UpstreamError('La ricerca dei negozi non è completa.');
+    } catch(error) {
+      mapCooldown.set(endpoint.host,Date.now()+30_000);
+      console.warn('Store discovery unavailable',{status:error.status || null,reason:error.name});
+      throw error;
+    }
     const seen = [];
     return (data.elements ?? []).flatMap(e => {
       const pos = e.center ?? e, t = e.tags ?? {}, name = t.name || t.brand || 'Supermercato';
@@ -168,12 +183,12 @@ export function validateCatalog(data, config, now = Date.now()) {
 
 export async function buildLiveCatalog(location, radius, configs) {
   const warnings=[],products=new Map();
-  let discovered=[];
+  let discovered=[],mapAvailable=true;
   try {discovered=await discoverStores(location.lat,location.lon,radius);}
-  catch { warnings.push('La ricerca OpenStreetMap non è disponibile. Sono mostrati solo gli eventuali punti vendita configurati.'); }
+  catch {mapAvailable=false;}
   const eligible=configs.filter(c=>haversine(location,c.store)<=radius);
   const outcomes=await Promise.allSettled(eligible.map(c=>cached(`feed:${c.id}`,300_000,async()=>validateCatalog(await fetchFeed(c),c))));
-  const stores=discovered.filter(s=>haversine(location,s)<=radius);
+  const stores=supplementStores(discovered.filter(s=>haversine(location,s)<=radius),location,radius);
   eligible.forEach((c,i)=> {
     const match=stores.findIndex(s=> c.store.osmId ? s.osmId===c.store.osmId : s.name.toLowerCase()===c.store.name.toLowerCase() && haversine(s,c.store)<.08);
     const old=match>=0 ? stores[match] : {};
@@ -189,8 +204,10 @@ export async function buildLiveCatalog(location, radius, configs) {
     } else warnings.push(`Catalogo di ${store.name} non disponibile. I prezzi non sono stati stimati.`);
     if (match>=0) stores[match]=store;else stores.push(store);
   });
-  if (!configs.length) warnings.push('Nessun catalogo prezzi collegato. I negozi provengono da OpenStreetMap; i collegamenti ai siti ufficiali non importano automaticamente prezzi e disponibilità.');
+  if (!configs.length) warnings.push('Nessun catalogo prezzi collegato. I negozi provengono dalla ricerca cartografica e da un elenco locale parziale; i collegamenti ai siti ufficiali non importano automaticamente prezzi e disponibilità.');
   const catalog=[...products.values()];
   const linkedStores=stores.map(enrichStore);
-  return {mode:'live',products:catalog,stores:linkedStores,retailerSources:sourceCoverage(linkedStores),coverage:{foundStores:linkedStores.length,priceConnectedStores:linkedStores.filter(s=>s.catalogStatus==='connected').length,exhaustive:false},categories:[{id:'all',name:'Tutti',icon:'grid'},...[...new Set(catalog.map(p=>p.category))].map(id=>({id,name:id,icon:'grid'}))],warnings:[...new Set(warnings)],generatedAt:new Date().toISOString(),attribution:'© OpenStreetMap contributors · ODbL. Ricerca di supermercati, discount e piccoli alimentari senza filtro di insegna. La copertura può essere incompleta. Collegamenti ufficiali distinti dai cataloghi prezzi. Prezzi online e prezzi in negozio possono differire.'};
+  const localStoreCount=linkedStores.filter(s=>s.discoverySource==='verified_directory').length;
+  if(!mapAvailable)warnings.unshift(localStoreCount?'La ricerca sulla mappa non risponde. Mostriamo un elenco locale parziale, verificato il 17/10/2026, filtrato per distanza.':'La ricerca sulla mappa non risponde. Non possiamo stabilire quanti negozi siano presenti: riprova tra poco.');
+  return {mode:'live',products:catalog,stores:linkedStores,storeDiscovery:{status:mapAvailable?'online':localStoreCount?'local_directory':'unavailable',mapAvailable,localStoreCount,verifiedOn:'2026-10-17'},retailerSources:sourceCoverage(linkedStores),coverage:{foundStores:linkedStores.length,priceConnectedStores:linkedStores.filter(s=>s.catalogStatus==='connected').length,exhaustive:false,mapAvailable},categories:[{id:'all',name:'Tutti',icon:'grid'},...[...new Set(catalog.map(p=>p.category))].map(id=>({id,name:id,icon:'grid'}))],warnings:[...new Set(warnings)],generatedAt:new Date().toISOString(),attribution:'© OpenStreetMap contributors · ODbL. Elenco locale integrativo: indirizzi e coordinate dalle schede ufficiali dei punti vendita, verificati il 17/10/2026. Copertura parziale. Collegamenti ufficiali distinti dai cataloghi prezzi. Prezzi online e prezzi in negozio possono differire.'};
 }

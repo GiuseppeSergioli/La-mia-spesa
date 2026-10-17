@@ -1,11 +1,11 @@
 import { compareBasket, nearbyStores, normalizeList, lowestPrice, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, normalizeRadius } from './core.mjs';
-import { createDemoData, demoLocation, sampleList } from './demo.mjs';
+import { createDemoData, demoLocation, sampleList, sampleLists } from './demo.mjs';
 import { icon, productArt, heroArt } from './art.mjs';
 
 const $ = (selector,root=document) => root.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='spesina:v1';
-const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],category:'all',search:'',live:false,busy:false,cartOpen:false,completeOnly:false,results:null};
+const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],category:'all',search:'',live:false,busy:false,cartOpen:false,completeOnly:false,results:null,visibleLimit:24};
 let toastTimer, requestId=0;
 let saved=null;
 try {saved=JSON.parse(localStorage.getItem(KEY));} catch {}
@@ -17,7 +17,7 @@ const quantity = id => state.list.find(i=>i.productId===id)?.quantity || 0;
 const statusLabels={available:'Disponibile',out_of_stock:'Esaurito',unknown:'Disponibilità non verificata',stale:'Prezzo non aggiornato',insufficient:'Quantità insufficiente'};
 
 function persist() {
-  try {localStorage.setItem(KEY,JSON.stringify({version:1,mode:state.mode,location:state.location,radius:state.radius,list:state.list}));} catch {}
+  try {localStorage.setItem(KEY,JSON.stringify({version:1,mode:state.mode,page:state.page,location:state.location,radius:state.radius,list:state.list}));} catch {}
 }
 function toast(message) {
   const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),3800);
@@ -49,9 +49,10 @@ function updateHeader() {
 
 function render() {
   updateHeader();
-  $('#main').innerHTML=state.page==='location' ? locationPage():state.page==='compare' ? comparePage():catalogPage();
+  const content=state.page==='location' ? locationPage():state.page==='compare' ? comparePage():catalogPage();
+  $('#main').innerHTML=(state.page!=='location'?`<div class="page-toolbar"><button class="button secondary home-button" data-action="home">${icon('back')} Torna alla home</button><span>La tua lista resta salvata</span></div>`:'')+content;
   hydrateIcons($('#main'));
-  document.title=state.page==='compare' ? 'Il tuo confronto — Spesina':state.page==='catalog' ? 'La tua lista — Spesina':'Spesina — La tua spesa, al prezzo giusto.';
+  document.title=state.page==='compare' ? 'Il tuo confronto — La mia spesa':state.page==='catalog' ? 'La tua lista — La mia spesa':'La mia spesa — La tua spesa, al prezzo giusto.';
 }
 
 function radiusControl(id) {
@@ -68,7 +69,7 @@ function updateRadiusControl(form,value) {
 function locationFields(modal=false) {
   return `<form id="${modal?'location-modal-form':'location-form'}" class="location-form">
     <label class="field-label" for="${modal?'modal-address':'address'}">Da dove partiamo?</label>
-    <div class="address-field">${icon('pin')}<input id="${modal?'modal-address':'address'}" name="address" autocomplete="street-address" maxlength="200" minlength="3" placeholder="Città, CAP o indirizzo" value="${esc(state.mode==='live' ? state.location?.label || saved?.mode==='live' && saved?.location?.label || 'Cagliari':'')}" required></div>
+    <div class="address-field">${icon('pin')}<input id="${modal?'modal-address':'address'}" name="address" autocomplete="street-address" maxlength="200" minlength="3" placeholder="Città, CAP o indirizzo" value="${esc(state.mode==='live' ? state.location?.label || saved?.mode==='live' && saved?.location?.label || 'Cagliari':'Cagliari')}" required></div>
     <div class="location-alternatives"><button class="text-button geolocation" type="button" data-action="geolocate">${icon('target')} Usa la mia posizione</button><button class="text-button geolocation" type="button" data-action="cagliari-centre">${icon('pin')} Parti dal centro di Cagliari</button></div>
     <p class="centre-hint">Il centro città è un punto di partenza indicativo, non il tuo indirizzo.</p>
     ${radiusControl(modal?'modal-radius':'radius')}
@@ -83,14 +84,16 @@ function locationPage() {
     <h1>Stessa spesa.<br><em>Una scelta migliore.</em></h1><p class="welcome-description">Scegli cosa mettere nel carrello.<br>Scopri dove conviene comprarlo, vicino a te.</p>
     <div class="welcome-art">${heroArt()}</div><div class="welcome-note">${icon('check')} Stessi prodotti e formati ${icon('check')} Totali trasparenti</div>
     </div><div class="location-card"><span class="little-label">COMINCIAMO DA QUI</span><h2>La convenienza è vicina.</h2><p>Partiamo da Cagliari. Inserisci il tuo indirizzo per una ricerca precisa.</p>${locationFields()}
-    <div class="demo-entry"><span>Vuoi prima dare un’occhiata?</span><button data-action="demo">Prova la demo ${icon('arrow')}</button></div>
+    <div class="demo-entry"><span>Vuoi prima dare un’occhiata?</span><button data-action="${state.mode==='demo' && state.data?'resume-list':'demo'}">${state.mode==='demo' && state.data?'Riprendi la demo':'Prova la demo'} ${icon('arrow')}</button></div>${state.data && state.mode==='live'?`<button class="button secondary full resume-button" data-action="resume-list">Torna alla tua lista ${icon('arrow')}</button>`:''}
     ${!state.live?'<p class="static-note">In questa anteprima puoi provare la demo. La ricerca reale si attiva avviando il server.</p>':''}</div></section>
     <section class="how-strip"><div><span class="how-number">01</span><div><h3>Scegli la tua zona</h3><p>Tu decidi quanto allontanarti.</p></div></div><div><span class="how-number">02</span><div><h3>Componi la tua lista</h3><p>I prodotti che ami, per categoria.</p></div></div><div><span class="how-number">03</span><div><h3>Confronta tutta la spesa</h3><p>Un totale chiaro per ogni negozio.</p></div></div></section>
     <div class="honesty-note">${icon('shield')} I prezzi reali vengono mostrati solo per i punti vendita con catalogo collegato. Nessuna stima nascosta.</div>`;
 }
 
 function locationStrip() {
-  return `<div class="location-strip"><div>${icon('pin')}<div><strong>${esc(state.location?.label)}</strong><span>Entro ${distance(state.radius)} in linea d’aria</span></div><button class="text-button" data-action="edit-location">Modifica</button></div><button class="store-count" data-action="stores">${icon('store')}<span><strong>${stores().length}</strong> supermercati ${state.mode==='demo'?'demo':'trovati'}</span>${icon('chevron')}</button></div>`;
+  const discovery=state.data?.storeDiscovery;
+  const label=state.mode==='demo'?`${stores().length} negozi demo`:discovery?.status==='unavailable'?'Ricerca da riprovare':discovery?.status==='local_directory'?`${stores().length} negozi · elenco locale`:`${stores().length} negozi individuati`;
+  return `<div class="location-strip"><div>${icon('pin')}<div><strong>${esc(state.location?.label)}</strong><span>Entro ${distance(state.radius)} in linea d’aria</span></div><button class="text-button" data-action="edit-location">Modifica</button></div><button class="store-count" data-action="stores">${icon('store')}<span>${label}</span>${icon('chevron')}</button></div>`;
 }
 
 function catalogPage() {
@@ -112,11 +115,11 @@ function productGrid() {
   if (!products().length) return `<div class="empty-state no-catalog"><span class="empty-icon">${icon('store')}</span><h3>${stores().length?'Negozi trovati. Ora servono i cataloghi.':'Non abbiamo trovato negozi in questa zona.'}</h3><p>${stores().length?'Per scegliere prodotti e confrontare prezzi, collega i cataloghi dei singoli punti vendita. I negozi trovati sulla mappa non forniscono automaticamente prezzi e scorte.':'Prova ad ampliare il raggio o a cercare un altro indirizzo.'}</p><button class="button primary" data-action="${stores().length?'demo':'edit-location'}">${stores().length?'Esplora il confronto in demo':'Modifica la zona'} ${icon('arrow')}</button>${stores().length?'<button class="text-button" data-action="stores">Vedi i negozi trovati</button>':''}</div>`;
   const filtered=products().filter(p=>(state.category==='all' || p.category===state.category) && `${p.name} ${p.brand} ${p.size}`.toLocaleLowerCase('it').includes(state.search.toLocaleLowerCase('it')));
   if (!filtered.length) return `<div class="empty-state"><span class="empty-icon">${icon('search')}</span><h3>Qui non c’è ancora.</h3><p>Prova un’altra parola o scegli una categoria diversa.</p><button class="text-button" data-action="clear-search">Mostra tutti i prodotti</button></div>`;
-  return filtered.map(p=> {
+  return filtered.slice(0,state.visibleLimit).map(p=> {
     const qty=quantity(p.id),min=lowestPrice(p.id,stores(),Math.max(qty,1));
     const available=stores().filter(s=>lowestPrice(p.id,[s],Math.max(qty,1))!==null).length;
     return `<article class="product-card ${qty?'in-list':''}"><div class="product-visual"><img src="${productArt(p)}" alt="" width="180" height="190" loading="lazy">${qty?`<span class="added-badge">${icon('check')} In lista</span>`:''}</div><div class="product-info"><span class="product-brand">${esc(p.brand)}</span><h4>${esc(p.name)}</h4><span class="product-size">${esc(p.size)}</span><div class="product-bottom"><div><span class="price-label">${min!==null?'a partire da':'Prezzo non verificato'}</span>${min!==null?`<strong class="product-price">${money(min)}</strong><span class="available-count">in ${available} ${available===1?'negozio':'negozi'}</span>`:''}</div>${qty?quantityControl(p.id,qty):`<button class="add-button" data-add="${esc(p.id)}" aria-label="Aggiungi ${esc(p.name)} alla lista">${icon('plus')}</button>`}</div></div></article>`;
-  }).join('');
+  }).join('')+(filtered.length>state.visibleLimit?`<div class="more-products"><button class="button secondary" data-action="more-products">Mostra altri prodotti ${icon('chevron')}</button><span>${state.visibleLimit} di ${filtered.length} prodotti</span></div>`:'');
 }
 
 function quantityControl(id,qty,small=false) {
@@ -128,7 +131,7 @@ function cart() {
   const total=state.list.reduce((sum,item)=>sum+(lowestPrice(item.productId,stores(),item.quantity) ?? 0)*item.quantity,0);
   const hasAll=state.list.every(item=>lowestPrice(item.productId,stores(),item.quantity)!==null);
   return `<div class="cart ${state.cartOpen?'cart-open':''}"><div class="cart-heading"><div>${icon('bag')}<h2>La tua lista</h2><span class="count-badge">${count()}</span></div>${state.list.length?'<button class="icon-button" data-action="clear-list" aria-label="Svuota la lista">'+icon('trash')+'</button>':''}<button class="icon-button close-cart" data-action="toggle-cart" aria-label="Chiudi lista">${icon('close')}</button></div>
-    ${state.list.length?`<div class="cart-items">${state.list.map(item=> {
+    ${state.mode==='demo'?`<button class="demo-list-picker" data-action="sample-lists">${icon('list')} Prova una lista pronta ${icon('chevron')}</button>`:''}${state.list.length?`<div class="cart-items">${state.list.map(item=> {
       const p=product(item.productId);return `<div class="cart-item"><img src="${productArt(p)}" alt="" width="42" height="48"><div><strong>${esc(p.name)}</strong><span>${esc(p.brand)} · ${esc(p.size)}</span>${quantityControl(p.id,item.quantity,true)}</div></div>`;
     }).join('')}</div><div class="cart-estimate"><span>${hasAll?'Minimo teorico':'Subtotale teorico verificato'}</span><strong>${money(total)}</strong></div><p class="cart-disclaimer">Somma dei prezzi minimi tra negozi diversi.${hasAll?'':' Alcuni prezzi non sono verificati.'} Il totale per un solo negozio è nel confronto.</p>`:`<div class="empty-cart"><span>${icon('list')}</span><h3>Le buone scelte<br>iniziano da una lista.</h3><p>Tocca <b>+</b> sui prodotti per aggiungerli qui.</p>${state.mode==='demo'?'<button class="text-button" data-action="sample-list">Usa una lista d’esempio '+icon('arrow')+'</button>':''}</div>`}
     <div class="cart-cta"><button class="button primary full" data-action="compare" ${!state.list.length || state.busy?'disabled':''}>${state.busy?'<span class="spinner"></span> Aggiornamento prezzi…':`Confronta la spesa ${icon('arrow')}`}</button><span>${icon('shield')} Stessi prodotti, confronto trasparente</span></div></div>`;
@@ -174,8 +177,20 @@ function changeQuantity(id,delta) {
   if (delta>0) toast(`${product(id).name} · ${quantity(id)} in lista`);
 }
 
+function goHome() {
+  requestId++;state.busy=false;state.page='location';state.cartOpen=false;state.results=null;
+  closeModal();persist();render();announcePage();
+}
+function resumeList() {
+  if(!state.data)return;
+  state.page='catalog';state.cartOpen=false;state.busy=false;persist();render();announcePage();
+}
+function chooseSampleList() {
+  showModal('Una lista pronta da esplorare',`<p class="modal-description">Scegli una lista dimostrativa. Se hai già articoli in lista, questa scelta li sostituirà.</p><div class="sample-list-options">${sampleLists.map(list=>`<button data-sample-list="${list.id}"><span>${icon('bag')}<strong>${esc(list.name)}</strong><small>${esc(list.description)}</small></span>${icon('arrow')}</button>`).join('')}</div>`);
+}
+
 function startDemo(withSample=false) {
-  requestId++;state.busy=false;state.mode='demo';state.location={...demoLocation};state.data=createDemoData();state.radius=DEFAULT_RADIUS_KM;state.list=withSample?structuredClone(sampleList):[];state.page='catalog';state.category='all';state.search='';state.results=null;state.cartOpen=false;
+  requestId++;state.busy=false;state.mode='demo';state.location={...demoLocation};state.data=createDemoData();state.radius=DEFAULT_RADIUS_KM;state.list=withSample?structuredClone(sampleList):[];state.page='catalog';state.category='all';state.search='';state.results=null;state.cartOpen=false;state.visibleLimit=24;
   closeModal();persist();render();announcePage();
 }
 function exitDemo() {
@@ -234,14 +249,16 @@ function useCagliariCentre() {
 
 async function showComparison() {
   if(!state.list.length || state.busy)return;
+  const id=++requestId;
   if(state.mode==='live') {
     state.busy=true;refreshListUI();
     try {
       const response=await api('compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:state.location.lat,lon:state.location.lon,radius:state.radius,list:state.list})});
+      if(id!==requestId)return;
       state.results=response.results;
       if(response.warnings.length) toast(response.warnings[0]);
-    } catch(e){toast(e.message);return;}
-    finally {state.busy=false;if(state.page==='catalog' && $('#cart-area')) {$('#cart-area').innerHTML=cart();updateHeader();}}
+    } catch(e){if(id===requestId)toast(e.message);return;}
+    finally {if(id===requestId)state.busy=false;if(id===requestId && state.page==='catalog' && $('#cart-area')) {$('#cart-area').innerHTML=cart();updateHeader();}}
   } else {state.data=createDemoData();state.results=compareBasket(state.list,products(),stores());}
   state.page='compare';state.cartOpen=false;render();announcePage();
 }
@@ -257,17 +274,27 @@ function showHelp() {
   showModal('La spesa, in tre piccoli passi.',`<div class="help-steps"><div><span>1</span><div><h3>Dicci dove cercare</h3><p>Inserisci la tua zona e un raggio massimo. Le distanze sono in linea d’aria.</p></div></div><div><span>2</span><div><h3>Scegli i tuoi prodotti</h3><p>Sfoglia le categorie, cerca una marca e aggiungi le quantità. Confrontiamo sempre lo stesso prodotto e formato.</p></div></div><div><span>3</span><div><h3>Trova il totale più basso</h3><p>Prima trovi le liste complete, in ordine di prezzo. Poi i subtotali, con ogni prodotto mancante o non verificato segnalato.</p></div></div></div><div class="modal-note">${icon('info')}<p>La demo usa negozi e prezzi fittizi. Nella ricerca reale servono feed dei singoli negozi: la presenza sulla mappa non garantisce l’accesso ai prezzi. I totali non includono viaggio o consegna.</p></div><button class="button primary full" data-action="close-modal">Tutto chiaro ${icon('check')}</button>`);
 }
 function storeDirectoryRows() {
-  return stores().map(s=>`<div class="nearby-store"><span class="store-logo">${esc(s.initial || s.name[0])}</span><div><strong>${esc(s.name)}</strong><span>${esc(s.address)}</span><small>${s.catalogStatus==='connected'?'Prezzi collegati al confronto':s.catalogStatus==='error'?'Catalogo temporaneamente non disponibile':'Prezzi non collegati al confronto'}</small>${state.mode==='live'?`<div class="store-link-actions">${s.officialUrl?`<a href="${esc(safeLink(s.officialUrl))}" target="_blank" rel="noopener noreferrer">${esc(s.officialLinkLabel || 'Sito ufficiale')} ${icon('external')}</a>`:''}${s.onlineUrl?`<a href="${esc(safeLink(s.onlineUrl))}" target="_blank" rel="noopener noreferrer">Spesa online ${icon('external')}</a>`:''}<a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}" target="_blank" rel="noopener noreferrer">Mappa ${icon('external')}</a></div>${s.linkScope==='chain'?'<span class="source-scope-note">Il link è dell’insegna: sul sito seleziona il negozio corretto.</span>':''}`:''}</div><b>${distance(s.distanceKm)}</b></div>`).join('');
+  return stores().map(s=>`<div class="nearby-store"><span class="store-logo">${esc(s.initial || s.name[0])}</span><div><strong>${esc(s.name)}</strong><span>${esc(s.address)}</span>${s.discoverySource==='verified_directory'?'<small class="local-store-tag">Elenco locale · verifica 17/10/2026</small>':''}<small>${s.catalogStatus==='connected'?'Prezzi collegati al confronto':s.catalogStatus==='error'?'Catalogo temporaneamente non disponibile':'Prezzi non collegati al confronto'}</small>${state.mode==='live'?`<div class="store-link-actions">${s.officialUrl?`<a href="${esc(safeLink(s.officialUrl))}" target="_blank" rel="noopener noreferrer">${esc(s.officialLinkLabel || 'Sito ufficiale')} ${icon('external')}</a>`:''}${s.onlineUrl?`<a href="${esc(safeLink(s.onlineUrl))}" target="_blank" rel="noopener noreferrer">Spesa online ${icon('external')}</a>`:''}<a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}" target="_blank" rel="noopener noreferrer">Mappa ${icon('external')}</a></div>${s.linkScope==='chain'?'<span class="source-scope-note">Il link è dell’insegna: sul sito seleziona il negozio corretto.</span>':''}`:''}</div><b>${distance(s.distanceKm)}</b></div>`).join('');
 }
 function retailerSourceNotes() {
   const sources=state.data?.retailerSources || [];
   return sources.length?`<section class="retailer-source-list"><h3>Fonti delle insegne trovate</h3><p class="modal-description">Un collegamento al sito non equivale a un catalogo prezzi importato.</p>${sources.map(source=>`<details><summary>${esc(source.name)}</summary><p>${esc(source.note)}</p><p>Fonte verificata il ${esc(source.checkedOn)}. Prezzi per il confronto: non collegati automaticamente.</p></details>`).join('')}</section>`:'';
 }
 function liveDirectoryPage() {
-  return `<section class="page-intro"><div><div class="eyebrow">LA SPESA NEL TUO QUARTIERE</div><h1>I supermercati <em>vicino a te.</em></h1><p>Supermercati, discount e piccoli alimentari entro ${distance(state.radius)}.</p></div></section>${locationStrip()}<div class="coverage-summary"><strong>${stores().length} negozi trovati · ${stores().filter(s=>s.catalogStatus==='connected').length} cataloghi prezzi collegati</strong><br>Le liste complete saranno confrontabili quando i prezzi dei singoli negozi saranno disponibili. La ricerca sulla mappa può essere incompleta.</div>${state.data.warnings.map(w=>`<div class="data-notice">${icon('info')}<p>${esc(w)}</p></div>`).join('')}<section class="live-directory"><h2>Negozi e collegamenti disponibili</h2><div class="nearby-list">${stores().length?storeDirectoryRows():'<p class="modal-description">Nessun negozio trovato. Prova un altro indirizzo o amplia il raggio fino a 6 km.</p>'}</div></section>${retailerSourceNotes()}<div class="directory-demo-note"><p>Vuoi provare come funzionerà il confronto?</p><button class="button secondary" data-action="demo">Apri la demo con prezzi fittizi ${icon('arrow')}</button></div><div class="source-note">${icon('info')}<span>${esc(state.data.attribution)}</span></div>`;
+  const discovery=state.data.storeDiscovery || {status:'online',mapAvailable:true};
+  const unavailable=discovery.status==='unavailable',localOnly=discovery.status==='local_directory';
+  const connected=stores().filter(s=>s.catalogStatus==='connected').length;
+  const summary=unavailable?'Numero dei negozi non verificabile':localOnly?`${stores().length} negozi nell’elenco locale · copertura parziale`:`${stores().length} negozi individuati`;
+  return `<section class="page-intro"><div><div class="eyebrow">LA SPESA NEL TUO QUARTIERE</div><h1>${unavailable?'Ricerca negozi <em>da riprovare.</em>':'I supermercati <em>vicino a te.</em>'}</h1><p>Supermercati, discount e piccoli alimentari entro ${distance(state.radius)}.</p></div></section>${locationStrip()}<div class="coverage-summary ${unavailable?'coverage-error':''}"><strong>${summary}</strong><br>${connected} cataloghi prezzi collegati. ${localOnly?'Elenco locale datato 17/10/2026, disponibile anche quando la mappa non risponde.':'La copertura può essere incompleta.'} Il confronto prezzi richiede cataloghi collegati ai singoli negozi.</div>${state.data.warnings.filter(w=>!w.startsWith('Nessun catalogo prezzi collegato')).map(w=>`<div class="data-notice">${icon('info')}<p>${esc(w)}</p></div>`).join('')}${!discovery.mapAvailable?`<div class="retry-search"><button class="button primary" data-action="retry-stores" ${state.busy?'disabled':''}>${icon('refresh')} Riprova la ricerca sulla mappa</button><div id="directory-feedback" class="form-feedback" role="status"></div></div>`:''}<section class="live-directory"><h2>${localOnly?'Punti vendita dell’elenco locale':'Negozi e collegamenti disponibili'}</h2><div class="nearby-list">${stores().length?storeDirectoryRows():`<p class="modal-description">${unavailable?'Il servizio cartografico non ha risposto. Il numero di negozi della zona non è verificabile in questo momento.':'Nessun negozio nelle fonti disponibili per questo raggio. Puoi modificare la zona, fino a un massimo di 6 km.'}</p>`}</div></section>${retailerSourceNotes()}<div class="directory-demo-note"><p>Il confronto prezzi è disponibile nella demo, con dati fittizi.</p><button class="button secondary" data-action="demo">Esplora la demo estesa ${icon('arrow')}</button></div><div class="source-note">${icon('info')}<span>${esc(state.data.attribution)}</span></div>`;
 }
+
 function showStores() {
-  showModal(`I negozi nella tua zona <span class="muted">(${stores().length})</span>`,`<p class="modal-description">Entro ${distance(state.radius)} in linea d’aria. ${state.mode==='demo'?'Questi negozi sono fittizi.':'Supermercati, discount e piccoli alimentari presenti su OpenStreetMap, senza filtro di insegna. Copertura non garantita come esaustiva.'}</p>${state.mode==='live'?`<div class="coverage-summary">${stores().filter(s=>s.catalogStatus==='connected').length} negozi con prezzi collegati su ${stores().length} negozi trovati.</div>`:''}<div class="nearby-list">${stores().length?storeDirectoryRows():'<p>Nessun negozio trovato. Prova un raggio più ampio, fino a 6 km.</p>'}</div>${state.mode==='live'?retailerSourceNotes():''}`,true);
+  const discovery=state.data?.storeDiscovery,unavailable=state.mode==='live' && discovery?.status==='unavailable',localOnly=discovery?.status==='local_directory';
+  const title=unavailable?'Ricerca negozi da riprovare':`I negozi nella tua zona <span class="muted">(${stores().length})</span>`;
+  const description=state.mode==='demo'?'Questi negozi sono fittizi.':localOnly?'Elenco locale parziale di punti vendita, verificato il 17/10/2026. La mappa non risponde.':'Risultati OpenStreetMap integrati con un elenco locale parziale. La copertura non è garantita come esaustiva.';
+  const coverage=unavailable?'Numero dei negozi non verificabile.':`${stores().length} negozi ${localOnly?'nell’elenco locale':'individuati'}.`;
+  const empty=unavailable?'Il servizio cartografico non ha risposto: il numero dei negozi non è verificabile. Riprova dalla pagina della ricerca.':'Nessun negozio nelle fonti disponibili per questo raggio. Puoi modificare la zona, fino a 6 km.';
+  showModal(title,`<p class="modal-description">Entro ${distance(state.radius)} in linea d’aria. ${description}</p>${state.mode==='live'?`<div class="coverage-summary ${unavailable?'coverage-error':''}">${coverage} ${stores().filter(s=>s.catalogStatus==='connected').length} cataloghi prezzi collegati.</div>`:''}<div class="nearby-list">${stores().length?storeDirectoryRows():`<p>${empty}</p>`}</div>${state.mode==='live'?retailerSourceNotes():''}`,true);
 }
 
 function showDetail(id) {
@@ -282,33 +309,37 @@ function editLocation() {
   showModal('Cambiamo zona?',`<p class="modal-description">Aggiorneremo negozi e cataloghi. I prodotti assenti nel nuovo catalogo verranno rimossi dalla lista.</p>${locationFields(true)}`);
 }
 function privacy() {
-  showModal('La tua lista resta tua.',`<div class="privacy-copy"><p>Spesina salva zona, raggio e lista nella memoria di questo browser. Non serve un account. Non usiamo strumenti di analisi o cookie di tracciamento.</p><p>La posizione GPS è richiesta solo quando premi “Usa la mia posizione”. Nella ricerca reale, il testo dell’indirizzo viene inviato al geocodificatore Photon e le coordinate a OpenStreetMap / Overpass per cercare i negozi. Il server conserva temporaneamente queste risposte in cache.</p><p>Il servizio che ospita l’app può conservare log tecnici delle richieste secondo la propria configurazione. In caso di dispositivo condiviso, puoi eliminare i dati salvati qui sotto.</p></div><button class="button secondary full" data-action="delete-data">${icon('trash')} Elimina zona e lista salvate</button>`);
+  showModal('La tua lista resta tua.',`<div class="privacy-copy"><p>La mia spesa salva zona, raggio e lista nella memoria di questo browser. Non serve un account. Non usiamo strumenti di analisi o cookie di tracciamento.</p><p>La posizione GPS è richiesta solo quando premi “Usa la mia posizione”. Nella ricerca reale, il testo dell’indirizzo viene inviato al geocodificatore Photon e le coordinate al servizio Overpass di Private.coffee per cercare i negozi. Puoi consultare la <a href="https://overpass.private.coffee/#terms-of-use" target="_blank" rel="noopener noreferrer">sua informativa</a>. Il server conserva temporaneamente queste risposte in cache.</p><p>Il servizio che ospita l’app può conservare log tecnici delle richieste secondo la propria configurazione. In caso di dispositivo condiviso, puoi eliminare i dati salvati qui sotto.</p></div><button class="button secondary full" data-action="delete-data">${icon('trash')} Elimina zona e lista salvate</button>`);
 }
 function exportList() {
   const results=state.results || compareBasket(state.list,products(),stores());
-  const lines=['SPESINA — LA TUA LISTA',state.mode==='demo'?'DEMO — negozi, prezzi e disponibilità fittizi':'Prezzi dei cataloghi online collegati',`${state.location.label} · raggio ${distance(state.radius)} in linea d’aria`,'',...state.list.map(i=>{const p=product(i.productId);return `${i.quantity} × ${p.brand} ${p.name} — ${p.size}`;}),'','CONFRONTO',...results.map(r=>`${r.store.name}: ${r.availableCount?money(r.totalCents):'non calcolabile'} — ${r.complete?'totale completo':`subtotale parziale (${r.availableCount}/${r.rows.length} prodotti)`}${r.complete?'':'; '+r.rows.filter(row=>row.status!=='available').map(row=>`${row.product.name}: ${statusLabels[row.status]}`).join(', ')}`),'','Totali dei prodotti. Viaggio e consegna esclusi. Disponibilità soggetta a variazioni.'];
-  const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='spesina-lista.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Lista esportata. Buona spesa!');
+  const lines=['LA MIA SPESA — LA TUA LISTA',state.mode==='demo'?'DEMO — negozi, prezzi e disponibilità fittizi':'Prezzi dei cataloghi online collegati',`${state.location.label} · raggio ${distance(state.radius)} in linea d’aria`,'',...state.list.map(i=>{const p=product(i.productId);return `${i.quantity} × ${p.brand} ${p.name} — ${p.size}`;}),'','CONFRONTO',...results.map(r=>`${r.store.name}: ${r.availableCount?money(r.totalCents):'non calcolabile'} — ${r.complete?'totale completo':`subtotale parziale (${r.availableCount}/${r.rows.length} prodotti)`}${r.complete?'':'; '+r.rows.filter(row=>row.status!=='available').map(row=>`${row.product.name}: ${statusLabels[row.status]}`).join(', ')}`),'','Totali dei prodotti. Viaggio e consegna esclusi. Disponibilità soggetta a variazioni.'];
+  const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='la-mia-spesa-lista.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Lista esportata. Buona spesa!');
 }
 
 document.addEventListener('click',event=> {
-  if(event.target.closest('.brand,.footer-brand')){event.preventDefault();state.page=state.data?'catalog':'location';state.cartOpen=false;render();announcePage();return;}
+  if(event.target.closest('.brand,.footer-brand')){event.preventDefault();goHome();return;}
   const button=event.target.closest('button');if(!button || button.disabled)return;
   if(button.dataset.radiusAdjust){const form=button.closest('form');const input=$('.radius-slider',form);updateRadiusControl(form,Math.max(MIN_RADIUS_KM,Math.min(MAX_RADIUS_KM,Number(input.value)+Number(button.dataset.radiusAdjust))));return;}
   if(button.dataset.add)return changeQuantity(button.dataset.add,1);
   if(button.dataset.delta)return changeQuantity(button.dataset.product,Number(button.dataset.delta));
-  if(button.dataset.category) {state.category=button.dataset.category;render();$('#product-search').focus({preventScroll:true});return;}
+  if(button.dataset.sampleList){const list=sampleLists.find(l=>l.id===button.dataset.sampleList);if(list){state.list=structuredClone(list.items);closeModal();refreshListUI();toast(`${list.name}: lista demo caricata.`);}return;}
+  if(button.dataset.category) {state.visibleLimit=24;state.category=button.dataset.category;render();$('#product-search').focus({preventScroll:true});return;}
   if(button.dataset.detail)return showDetail(button.dataset.detail);
   if(button.dataset.locationIndex!==undefined){const form=button.closest('form');return loadLocation(form._locations[Number(button.dataset.locationIndex)],Number(new FormData(form).get('radius')),$('.form-feedback',form));}
   if(button.dataset.step) {
     if(button.dataset.step==='compare')return showComparison();
-    if(button.dataset.step==='location' && state.data)return editLocation();
+    if(button.dataset.step==='location')return goHome();
     state.page=button.dataset.step;render();announcePage();return;
   }
   const actions={
+    home:goHome,'resume-list':resumeList,'sample-lists':chooseSampleList,
+    'more-products':()=>{state.visibleLimit+=24;$('#product-grid').innerHTML=productGrid();},
+    'retry-stores':()=>loadLocation({...state.location},state.radius,$('#directory-feedback')),
     demo:()=>startDemo(false),'exit-demo':exitDemo,help:showHelp,privacy,stores:showStores,'edit-location':editLocation,geolocate,'cagliari-centre':useCagliariCentre,compare:showComparison,
     catalog:()=>{state.page='catalog';state.results=null;render();announcePage();},
     'sample-list':()=>{state.list=structuredClone(sampleList);refreshListUI();toast('Una lista d’esempio, pronta da modificare.');},
-    'clear-search':()=>{state.search='';state.category='all';render();},
+    'clear-search':()=>{state.visibleLimit=24;state.search='';state.category='all';render();},
     'clear-list':()=>showModal('Svuotare la lista?',`<p class="modal-description">Rimuoveremo tutti i ${count()} articoli. Potrai aggiungerli di nuovo dal catalogo.</p><div class="modal-buttons"><button class="button secondary" data-action="close-modal">Tieni la lista</button><button class="button primary" data-action="confirm-clear">Svuota la lista</button></div>`),
     'confirm-clear':()=>{state.list=[];state.page='catalog';closeModal();refreshListUI();toast('Lista svuotata.');},
     'close-modal':closeModal,
@@ -319,7 +350,7 @@ document.addEventListener('click',event=> {
   actions[button.dataset.action]?.();
 });
 document.addEventListener('input',event=> {
-  if(event.target.id==='product-search'){state.search=event.target.value;$('#product-grid').innerHTML=productGrid();}
+  if(event.target.id==='product-search'){state.visibleLimit=24;state.search=event.target.value;$('#product-grid').innerHTML=productGrid();}
   if(event.target.classList.contains('radius-slider')){updateRadiusControl(event.target.closest('form'),Number(event.target.value));}
 });
 document.addEventListener('change',event=>{if(event.target.id==='hide-incomplete'){state.completeOnly=event.target.checked;$('#incomplete-results').hidden=state.completeOnly;}});
@@ -333,7 +364,7 @@ $('#modal').addEventListener('click',event=> {if(event.target===$('#modal')){con
 async function init() {
   hydrateIcons();
   if(saved?.version===1 && saved.mode==='demo') {
-    state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.radius=normalizeRadius(saved.radius);state.list=normalizeList(saved.list,products());state.page='catalog';
+    state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.radius=normalizeRadius(saved.radius);state.list=normalizeList(saved.list,products());state.page=saved.page==='location'?'location':'catalog';
   } else if(saved?.version===1 && saved.mode==='live' && validCoordinates(saved.location?.lat,saved.location?.lon)) {
     state.location=saved.location;state.radius=normalizeRadius(saved.radius);state.list=Array.isArray(saved.list)?saved.list:[];
   }

@@ -1,25 +1,29 @@
-LA MIA SPESA — AGGIORNAMENTO 1.1.1 CAGLIARI
+LA MIA SPESA — AGGIORNAMENTO 1.2.0 CAGLIARI
 
-NOVITÀ
-- Cagliari è la città iniziale della ricerca; il tuo indirizzo resta modificabile.
-- Raggio 500 m–6 km, a passi di 500 m, con pulsanti + e -.
-- Limite di 6 km verificato anche dalle API. Vecchie preferenze oltre il limite vengono corrette.
-- Ricerca di supermercati, discount e piccoli alimentari, senza escludere gli indipendenti.
-- Collegamenti verificati di 10 insegne: Pan, Conad, Nonna Isa, Despar, CRAI, Lidl, Eurospin, MD, Carrefour e Tuttigiorni (canale Glovo).
-- Pagina reale con negozi trovati, collegamenti disponibili e numero di cataloghi prezzi collegati.
+LE CORREZIONI
+- Pulsante ben visibile “Torna alla home” dalla lista e dal confronto.
+- Anche logo e passo 1 tornano alla home. La lista resta salvata e puoi riprenderla.
+- Demo ampliata: 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte. I negozi visibili dipendono dal raggio scelto.
+- Ricerca cartografica con un altro servizio Overpass; timeout, risposte incomplete ed errori non vengono più presentati come zero negozi trovati.
+- Elenco locale di riserva con 8 punti vendita reali Eurospin e Lidl nel Cagliaritano, verificati il 17/10/2026. Vengono mostrati soltanto quelli nel raggio indicato. È un elenco parziale, non tutti i supermercati.
+- Pulsante per riprovare la ricerca se la mappa non risponde. Se non esistono voci locali nella tua zona, viene indicato che il numero dei negozi non è verificabile.
+- Nome visibile dell’app: La mia spesa.
+- Raggio sempre 500 m–6 km, a passi di 500 m, in linea d’aria.
 
-STATO DEI PREZZI
-Nessun nuovo catalogo prezzi è stato attivato. I siti e la spesa online delle catene NON sono feed automaticamente importati. La demo rimane fittizia. La mappa non garantisce di comprendere tutti i negozi esistenti. Dettagli e fonti in docs/CAGLIARI.md.
+STATO DEI PREZZI REALI
+Nessun catalogo prezzi reale è collegato. Le schede ufficiali degli 8 negozi e i link delle 10 insegne non importano prezzi o scorte. Il confronto funziona con i dati fittizi della demo; non è ancora un servizio operativo di confronto prezzi fra supermercati reali. Dettagli e fonti in docs/CAGLIARI.md.
 
 COME AGGIORNARE IL SITO GIÀ PUBBLICATO
 1. Estrai lo ZIP e apri la cartella spesina.
-2. Apri SU GITHUB il repository GiuseppeSergioli/La-mia-spesa, ramo main.
-3. Add file > Upload files: trascina i file e le cartelle CONTENUTI in spesina, mantenendo le sottocartelle. package.json deve rimanere nella radice del repository. Carica i file estratti, non il file ZIP e non un ulteriore livello spesina/.
-4. Conferma il commit. Attendi il nuovo deploy automatico di quel servizio Render; se è disabilitato usa Manual Deploy > Deploy latest commit.
-5. Verifica nell’app Cagliari precompilata e raggio massimo 6 km. I browser che hanno una demo salvata possono usare Passa alla ricerca reale per tornare alla pagina iniziale.
-6. Per un controllo tecnico, /api/status deve mostrare versione 1.1.1 e radius.max uguale a 6. Il numero configuredStores può rimanere 0: non sono stati attivati feed reali.
+2. Su GitHub apri GiuseppeSergioli/La-mia-spesa, ramo main.
+3. Add file > Upload files: trascina i file e le cartelle CONTENUTI in spesina, mantenendo le sottocartelle. package.json deve rimanere nella radice del repository. Carica i file estratti, non lo ZIP e non un ulteriore livello spesina/. Sono necessari anche il nuovo server/local-stores.mjs e il public/demo.mjs ampliato.
+4. Conferma il commit. Attendi il nuovo deploy automatico del servizio Render esistente; se disabilitato usa Manual Deploy > Deploy latest commit.
+5. Riapri la tua URL Render. /api/status deve indicare versione 1.2.0 e radius.max uguale a 6. configuredStores resterà 0 finché non vengono configurati veri feed prezzi.
+6. Prova la demo, aggiungi un prodotto, premi Torna alla home e poi Riprendi la demo: il prodotto deve essere ancora in lista. Con Prova una lista pronta puoi esplorare quattro esempi.
+7. Per i negozi reali prova Parti dal centro di Cagliari. Anche se la mappa non risponde, vedrai le voci locali comprese nel raggio. Con 3 km dal centro non vedrai tutti gli 8 punti dell’elenco, perché alcuni sono più lontani.
+8. Se la versione è corretta ma la pagina sembra vecchia, ricarica forzando l’aggiornamento del browser.
 
-Questo aggiornamento non richiede di cambiare autorizzazioni GitHub, workspace Render o configurazioni delle altre applicazioni. Non usare New Web Service: aggiorna quello già creato.
+Non serve cambiare le autorizzazioni GitHub o creare un nuovo servizio Render. Questo pacchetto aggiorna soltanto La-mia-spesa e non cambia le altre applicazioni. La URL del sito esistente rimane la stessa. La chat non ha caricato o distribuito automaticamente questo aggiornamento.
 
-CORREZIONE 1.1.1
-Rimosso il parametro lingua dalla chiamata Photon. Errori del servizio geografico gestiti con indicazione delle alternative. Aggiunto Parti dal centro di Cagliari: non sostituisce silenziosamente il tuo indirizzo e non dipende dalla ricerca indirizzi. Anche Usa la mia posizione evita quella ricerca, ma richiede il permesso del browser. La ricerca dei negozi dipende comunque da Overpass. La correzione è stata verificata con test locali simulati; per verificare l’hosting occorre aprire il sito dopo il deploy.
+VERIFICA
+66 test automatici superati; verifica visuale con Chromium non eseguita. Vedi VALIDAZIONE.md. È disponibile anche il workflow GitHub manuale Browser checks, non ancora eseguito.

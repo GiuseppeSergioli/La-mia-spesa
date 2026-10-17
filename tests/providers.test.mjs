@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateCatalog, validateFeedConfig, publicIPv4, safeSourceUrl, cached, geocode, buildLiveCatalog } from '../server/providers.mjs';
+import { validateCatalog, validateFeedConfig, publicIPv4, safeSourceUrl, cached, geocode, buildLiveCatalog, discoverStores } from '../server/providers.mjs';
 const now=Date.parse('2026-10-17T12:00:00Z');
 const config={id:'store',url:'https://feed.example.com/catalog.json',allowedHosts:['feed.example.com','shop.example.com'],store:{name:'Supermarket',address:'Milano',lat:45,lon:9},maxAgeMinutes:120};
 const p={id:'sku:pasta-500',name:'Pasta',brand:'Marca',size:'500 g',category:'Pasta e riso',priceCents:119,availability:'in_stock',observedAt:'2026-10-17T11:00:00Z',sourceUrl:'https://shop.example.com/store/pasta',conditions:'none'};
@@ -51,10 +51,10 @@ test('live discovery includes independent shops and convenience stores, but no i
   ]});};
   try{
     const data=await buildLiveCatalog({lat:39.2238,lon:9.1217},2.5,[]);
-    assert.match(query,/convenience/);assert.match(query,/around:2500/);assert.equal(data.stores.length,2);
+    assert.match(query,/convenience/);assert.match(query,/around:2500/);assert.equal(data.stores.filter(s=>s.discoverySource!=='verified_directory').length,2);
     assert.equal(data.stores.some(s=>s.name==='Alimentari del quartiere'),true);
     assert.equal(data.stores[0].onlineUrl,'https://www.cosicomodo.it/pan/cagliari-plaia');
-    assert.equal(data.coverage.priceConnectedStores,0);assert.equal(data.coverage.exhaustive,false);assert.deepEqual(data.products,[]);assert.equal(data.retailerSources.length,1);
+    assert.equal(data.coverage.priceConnectedStores,0);assert.equal(data.coverage.exhaustive,false);assert.deepEqual(data.products,[]);assert.ok(data.retailerSources.some(s=>s.id==='pan'));
   }finally{globalThis.fetch=original;}
 });
 test('geocoding is biased to Cagliari and keeps the explicit address selection',async()=>{
@@ -77,4 +77,27 @@ test('geocoding network failure does not fabricate coordinates or return the cit
 test('geocoding malformed success responses are caught as service errors',async()=>{
   const original=globalThis.fetch,oldWarn=console.warn;globalThis.fetch=async()=>Response.json({error:'bad payload'});console.warn=()=>{};
   try{await assert.rejects(geocode('private-address-malformed'),/ricerca degli indirizzi/);}finally{globalThis.fetch=original;console.warn=oldWarn;}
+});
+
+
+test('a map outage returns a dated local directory without claiming live prices',async()=>{
+  const original=globalThis.fetch,oldWarn=console.warn,oldEndpoint=process.env.OVERPASS_SEARCH_URL;let calls=0;
+  process.env.OVERPASS_SEARCH_URL='https://map-outage.example/api/interpreter';
+  globalThis.fetch=async()=>{calls++;return new Response('Unavailable',{status:503});};console.warn=()=>{};
+  try{
+    const data=await buildLiveCatalog({lat:39.2238,lon:9.1217},3,[]);
+    assert.equal(data.storeDiscovery.status,'local_directory');assert.equal(data.storeDiscovery.mapAvailable,false);assert.ok(data.stores.length>0);assert.ok(data.stores.every(s=>s.discoverySource==='verified_directory'));assert.equal(data.coverage.priceConnectedStores,0);assert.deepEqual(data.products,[]);
+    await buildLiveCatalog({lat:39.2238,lon:9.1217},3,[]);assert.equal(calls,1,'cooldown prevents hammering a failing server');
+  }finally{globalThis.fetch=original;console.warn=oldWarn;if(oldEndpoint===undefined)delete process.env.OVERPASS_SEARCH_URL;else process.env.OVERPASS_SEARCH_URL=oldEndpoint;}
+});
+test('outside the local directory a map outage is unknown, not a successful empty search',async()=>{
+  const original=globalThis.fetch,oldWarn=console.warn,oldEndpoint=process.env.OVERPASS_SEARCH_URL;
+  process.env.OVERPASS_SEARCH_URL='https://map-unknown.example/api/interpreter';globalThis.fetch=async()=>{throw new TypeError('fetch failed');};console.warn=()=>{};
+  try{const data=await buildLiveCatalog({lat:45,lon:9},3,[]);assert.equal(data.storeDiscovery.status,'unavailable');assert.equal(data.coverage.mapAvailable,false);assert.deepEqual(data.stores,[]);assert.ok(data.warnings.some(w=>w.includes('Non possiamo stabilire')));}finally{globalThis.fetch=original;console.warn=oldWarn;if(oldEndpoint===undefined)delete process.env.OVERPASS_SEARCH_URL;else process.env.OVERPASS_SEARCH_URL=oldEndpoint;}
+});
+test('GET is used only when an Overpass endpoint rejects POST',async()=>{
+  const original=globalThis.fetch,oldEndpoint=process.env.OVERPASS_SEARCH_URL;const methods=[];
+  process.env.OVERPASS_SEARCH_URL='https://map-method.example/api/interpreter';
+  globalThis.fetch=async(url,options)=>{methods.push(options.method || 'GET');if(methods.length===1)return new Response('',{status:405});assert.ok(new URL(url).searchParams.get('data').includes('around:1500'));return Response.json({elements:[]});};
+  try{assert.deepEqual(await discoverStores(39.2,9.1,1.5),[]);assert.deepEqual(methods,['POST','GET']);}finally{globalThis.fetch=original;if(oldEndpoint===undefined)delete process.env.OVERPASS_SEARCH_URL;else process.env.OVERPASS_SEARCH_URL=oldEndpoint;}
 });

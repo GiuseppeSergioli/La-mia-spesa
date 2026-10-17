@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { compareBasket, offerStatus, normalizeList, nearbyStores, haversine, validCoordinates, savingsBetweenComplete, lowestPrice, money } from '../public/core.mjs';
-import { createDemoData, demoLocation, sampleList } from '../public/demo.mjs';
+import { createDemoData, demoLocation, sampleList, sampleLists, products as demoProducts, categories as demoCategories } from '../public/demo.mjs';
 import { MIN_RADIUS_KM, MAX_RADIUS_KM, DEFAULT_RADIUS_KM, validRadius, normalizeRadius } from '../public/core.mjs';
 
 const now=Date.parse('2026-10-17T12:00:00Z');
@@ -73,7 +73,7 @@ test('partial results prioritize coverage and never show made-up savings',()=>{
 });
 test('demo yields a real exercise of complete, out of stock and insufficient rows',()=>{
   const data=createDemoData(),r=compareBasket(sampleList,data.products,nearbyStores(data.stores,demoLocation,5));
-  assert.equal(r.length,5);assert.equal(r.filter(x=>x.complete).length,2);assert.equal(r[0].store.name,'Mercato Verde');assert.ok(r.some(x=>x.rows.some(y=>y.status==='insufficient')));assert.ok(r.some(x=>x.rows.some(y=>y.status==='out_of_stock')));
+  assert.equal(r.length,7);assert.equal(r.filter(x=>x.complete).length,2);assert.equal(r[0].store.name,'Mercato Verde');assert.ok(r.some(x=>x.rows.some(y=>y.status==='insufficient')));assert.ok(r.some(x=>x.rows.some(y=>y.status==='out_of_stock')));
 });
 test('Italian currency is formatted correctly',()=>{assert.match(money(119),/1,19/);});
 
@@ -87,5 +87,16 @@ test('old saved distances migrate into the new limits without rejecting fraction
 });
 test('Cagliari demo stores move together with the demo centre',()=>{
   assert.match(demoLocation.label,/Cagliari/);
-  const data=createDemoData();assert.equal(nearbyStores(data.stores,demoLocation,6).length,5);assert.equal(nearbyStores(data.stores,demoLocation,.5).length,0);assert.equal(nearbyStores(data.stores,demoLocation,1).length,1);
+  const data=createDemoData();assert.equal(nearbyStores(data.stores,demoLocation,6).length,8);assert.equal(nearbyStores(data.stores,demoLocation,.5).length,0);assert.equal(nearbyStores(data.stores,demoLocation,1).length,1);
+});
+
+
+test('extended demo has distinct products, valid categories and complete sample lists',()=>{
+  assert.equal(demoProducts.length,96);assert.equal(new Set(demoProducts.map(p=>p.id)).size,96);
+  assert.equal(demoCategories.length-1,14);assert.equal(sampleLists.length,4);
+  for(const p of demoProducts)assert.ok(demoCategories.some(c=>c.id===p.category));
+  for(const list of sampleLists){assert.equal(normalizeList(list.items,demoProducts).length,list.items.length);assert.ok(compareBasket(list.items,demoProducts,nearbyStores(createDemoData().stores,demoLocation,3)).some(r=>r.complete));}
+});
+test('extended demo illustrates unknown availability and stale prices',()=>{
+  const data=createDemoData();assert.ok(data.stores.some(s=>Object.values(s.offers).some(o=>offerStatus(o)==='unknown')));assert.ok(data.stores.some(s=>Object.values(s.offers).some(o=>offerStatus(o)==='stale')));
 });

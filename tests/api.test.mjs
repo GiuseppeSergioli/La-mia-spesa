@@ -4,7 +4,7 @@ import { createApp } from '../server/index.mjs';
 let server,base;
 const originalFetch=globalThis.fetch;
 before(async()=>{
-  globalThis.fetch=(url,options)=>String(url).startsWith('https://overpass-api.de/') ? Promise.resolve(Response.json({elements:[]})) : originalFetch(url,options);
+  globalThis.fetch=(url,options)=>String(url).startsWith('https://overpass.private.coffee/') ? Promise.resolve(Response.json({elements:[]})) : originalFetch(url,options);
   server=createApp();await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;
 });
 after(async()=>{await new Promise(r=>server.close(r));globalThis.fetch=originalFetch;});

@@ -1,6 +1,6 @@
 # Cagliari: copertura e integrazioni
 
-Verifica delle fonti: 17 ottobre 2026. Versione 1.1.
+Verifica delle fonti: 17 ottobre 2026. Versione 1.2.0.
 
 ## Cosa è effettivamente attivo
 
@@ -8,7 +8,26 @@ L’app ricerca su OpenStreetMap supermercati, discount e piccoli alimentari nel
 
 L’API segnala `coverage.exhaustive: false`: la mappa non garantisce un censimento di tutti i supermercati esistenti. Un negozio non riconosciuto come insegna rimane comunque nei risultati. Negozi indicati esplicitamente come dismessi o abbandonati vengono esclusi. Non abbiamo inserito punti vendita con coordinate inventate.
 
-I link ai siti ufficiali vengono associati ai negozi trovati. L’app mostra separatamente quanti negozi sono stati trovati e quanti hanno un catalogo prezzi effettivamente collegato. **Questo aggiornamento non attiva alcun nuovo feed prezzi.** La demo, spostata sul centro di Cagliari, mantiene negozi e prezzi fittizi.
+I link ai siti ufficiali vengono associati ai negozi trovati. L’app mostra separatamente quanti negozi sono stati trovati e quanti hanno un catalogo prezzi effettivamente collegato. **Questo aggiornamento non attiva alcun nuovo feed prezzi.** La demo è centrata su Cagliari e contiene 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte, con prezzi e disponibilità inventati.
+
+## Elenco locale di riserva
+
+La ricerca Overpass predefinita usa Private.coffee. Un timeout o una risposta incompleta vengono segnalati come guasto. Se il servizio non risponde, l’app può mostrare gli 8 punti seguenti, filtrati per la distanza dalla posizione scelta: un raggio di 3 km dal centro non li comprende tutti. Se nessuna voce locale rientra nel raggio, il numero dei negozi viene dichiarato non verificabile, anziché zero.
+
+Questo elenco di due catene è parziale, verificato il 17/10/2026. Non indica prezzi, scorte o apertura in tempo reale. Le coordinate sono tratte dai link di indicazioni stradali presenti nelle schede ufficiali, non da indirizzi geocodificati a intuito. I dettagli sono in `server/local-stores.mjs`; quando la mappa risponde l’elenco integra i risultati, evitando duplicati della stessa catena entro 100 metri.
+
+| Punto vendita | Fonte ufficiale |
+| --- | --- |
+| Eurospin, viale Marconi 215, Cagliari | [Scheda](https://www.eurospin.com/it-it/punti-vendita/cagliari-viale-marconi/) |
+| Eurospin, via Stamira, Cagliari | [Scheda](https://www.eurospin.com/it-it/punti-vendita/cagliari-via-stamira/) |
+| Eurospin, S.S. 130 c/o ex F.A.S., Elmas | [Scheda](https://www.eurospin.com/it-it/punti-vendita/elmas-s-s-130/) |
+| Eurospin, ex S.S. 131, Sestu | [Scheda](https://www.eurospin.com/it-it/punti-vendita/sestu-ex-s-s-131/) |
+| Eurospin, località Is Coras, Sestu | [Scheda](https://www.eurospin.com/it-it/punti-vendita/sestu-loc-is-coras/) |
+| Lidl, viale Monastir 130, Cagliari | [Scheda](https://www.lidl.it/s/it-IT/ricerca-negozio/cagliari-ca/viale-monastir-130/) |
+| Lidl, viale Marconi 163, Cagliari | [Scheda](https://www.lidl.it/s/it-IT/ricerca-negozio/cagliari-ca/viale-marconi-163/) |
+| Lidl, via André Marie Ampère, Cagliari | [Scheda](https://www.lidl.it/s/it-IT/ricerca-negozio/cagliari-ca/via-andre-marie-ampere-snc/) |
+
+Servizio cartografico: [Private.coffee Overpass](https://overpass.private.coffee/). La risposta dal sito Render finale deve ancora essere verificata: i test locali simulano successi ed errori e non confermano il ripristino online.
 
 ## Fonti consultate e stato
 

@@ -1,8 +1,10 @@
-# Spesina
+# La mia spesa
 
 Un’app in italiano per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
 
-**Versione 1.1.1 — Cagliari:** indirizzo iniziale Cagliari, raggio da 0,5 a 6 km ogni 500 metri, ricerca di supermercati/discount/alimentari senza filtro di insegna e directory di collegamenti verificati per 10 insegne. Il sito iniziale è stato pubblicato dall’utente; questo aggiornamento non è ancora applicato al repository GitHub o a Render da questa chat. Nessuna catena è attualmente collegata a un feed di prezzi. La demo usa cinque negozi fittizi, 24 prodotti illustrati e prezzi inventati. Vedi `AGGIORNAMENTO-CAGLIARI.txt` e `docs/CAGLIARI.md` per lo stato esatto delle integrazioni.
+**Versione 1.2.0 — Cagliari:** ritorno alla home da lista e confronto senza cancellare la lista, demo con 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte. Raggio da 0,5 a 6 km ogni 500 metri. La ricerca cartografica è integrata con un elenco locale parziale di 8 punti vendita reali Eurospin/Lidl: possono essere mostrati anche se il servizio mappa non risponde, sempre rispettando il raggio scelto. Un guasto viene distinto da una ricerca riuscita senza risultati.
+
+**Prezzi reali: nessun catalogo collegato.** I negozi reali sono una directory, non un confronto prezzi operativo. La demo usa prezzi e disponibilità inventati. Il sito iniziale è stato pubblicato dall’utente; questa versione deve ancora essere caricata nel repository e distribuita su Render. Vedi `AGGIORNAMENTO-CAGLIARI.txt` e `docs/CAGLIARI.md`.
 
 ## Avvio
 
@@ -13,7 +15,7 @@ npm ci --ignore-scripts
 npm start
 ```
 
-Apri `http://localhost:3000`. Premi **Prova la demo**, poi **Usa una lista d’esempio** per esplorare subito il confronto. La demo funziona anche senza Internet. La ricerca geografica reale richiede una connessione dal server a Photon e Overpass.
+Apri `http://localhost:3000`. Premi **Prova la demo**, poi **Prova una lista pronta** per esplorare subito il confronto. La demo funziona anche senza Internet. La ricerca indirizzi usa Photon; la ricerca cartografica usa Overpass di Private.coffee. L’elenco locale non richiede questi servizi, ma copre soltanto alcuni negozi del Cagliaritano.
 
 ```bash
 npm run check
@@ -28,8 +30,12 @@ L’ultimo comando genera `dist/index.html`: una demo autonoma, apribile anche c
 - Indirizzo con scelta esplicita del risultato geografico, oppure geolocalizzazione su consenso.
 - Raggio da 0,5 a 6 km, con incrementi di 0,5 km e pulsanti +/− per aggiustamenti di 500 metri, espresso in **linea d’aria**. Non è una distanza stradale e non stima il tempo di viaggio.
 - Ricerca reale di supermercati, discount e piccoli alimentari presenti in OpenStreetMap, compresi i negozi indipendenti. La copertura può essere incompleta; il fatto che un negozio esista sulla mappa non implica che il suo catalogo sia accessibile.
+- Demo con 96 prodotti in 14 categorie, caricamento di altri 24 prodotti per volta e quattro liste: veloce, settimanale, casa e colazione. Gli 8 negozi fittizi sono visibili solo se compresi nel raggio.
 - Categorie cliccabili, ricerca per prodotto e marca, selezione di confezioni e quantità da 1 a 99.
+- Pulsante **Torna alla home** nelle pagine di lista e confronto; anche il logo e il passo 1 portano alla home. Il ritorno conserva la lista. Dalla home si può riprendere la demo o la lista già caricata.
 - Lista salvata nel browser; pulsante per eliminare lista e zona.
+- Elenco locale datato 17/10/2026 di 8 punti vendita reali di due catene, con link alla scheda ufficiale e coordinate tratte dai link di indicazioni delle catene. Copertura parziale, nessun prezzo o scorta incluso.
+- Errore del servizio mappa distinto da zero risultati: elenco locale quando presente, altrimenti numero di negozi non verificabile e pulsante per riprovare.
 - Prezzo minimo indicativo nel catalogo e confronto della lista completa per singolo negozio.
 - Totali completi ordinati dal più basso al più alto; liste incomplete in una sezione separata, per copertura e poi subtotale. Nessun risparmio calcolato confrontando un subtotale con una lista completa.
 - Stati distinti: disponibile, esaurito, quantità insufficiente, disponibilità sconosciuta e prezzo scaduto.
@@ -47,7 +53,7 @@ La chat non dispone di una connessione GitHub utilizzabile. Il sito iniziale è 
    ```bash
    git init -b main
    git add .
-   git commit -m "Add Spesina grocery comparison app"
+   git commit -m "Add La mia spesa grocery comparison app"
    git remote add origin URL_DEL_TUO_REPOSITORY
    git push -u origin main
    ```
@@ -100,16 +106,19 @@ I totali coprono i soli articoli, escludono costi di viaggio e consegna e si rif
 I test Node non richiedono Internet e verificano prezzi, scorte, validazione, fonti e API. È incluso anche `scripts/ui-check.mjs` per test reali nel browser, eseguibile dopo l’installazione facoltativa di Playwright e Chromium, con il server già avviato:
 
 ```bash
-npm install --no-save playwright
+npm install --no-save --package-lock=false playwright@1.62.1
 npx playwright install chromium --only-shell
 node scripts/ui-check.mjs
 ```
+
+È incluso il workflow manuale **Browser checks** su GitHub Actions, che installa il browser, esegue lo stesso script e raccoglie le schermate in un artifact. I controlli browser non sono stati eseguiti in questa sessione; vedi `VALIDAZIONE.md`.
 
 ## Fonti e documentazione
 
 - [Conad — catalogo e verifica zona per costi e disponibilità](https://spesaonline.conad.it/tutti-i-prodotti)
 - [Photon — server pubblico e limiti d’uso](https://github.com/komoot/photon)
 - [OpenStreetMap / Overpass — API e istanze pubbliche](https://wiki.openstreetmap.org/wiki/Overpass_API)
+- [Private.coffee — istanza Overpass e condizioni](https://overpass.private.coffee/)
 - [Attribuzione OpenStreetMap](https://www.openstreetmap.org/copyright)
 - [GitHub — pubblicazione con Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 - [Render — Web Services](https://render.com/docs/web-services)
@@ -119,8 +128,15 @@ I nomi dei prodotti dimostrativi identificano esempi di selezione, non partnersh
 
 ## Ricerca indirizzi: correzione 1.1.1
 
-Photon viene interrogato senza forzare una lingua: il nome locale può essere restituito senza quel parametro. Eventuali errori non diventano una posizione inventata e non vengono conservati in cache. Il pulsante “Parti dal centro di Cagliari” è un’alternativa esplicita: non usa il servizio di geocodifica e cerca negozi dal punto indicativo del centro; “Usa la mia posizione” usa invece le coordinate consentite dal browser. Entrambi continuano a richiedere la ricerca dei negozi tramite Overpass.
+Photon viene interrogato senza forzare una lingua: il nome locale può essere restituito senza quel parametro. Eventuali errori non diventano una posizione inventata e non vengono conservati in cache. Il pulsante “Parti dal centro di Cagliari” è un’alternativa esplicita: non usa il servizio di geocodifica e cerca negozi dal punto indicativo del centro; “Usa la mia posizione” usa invece le coordinate consentite dal browser. Entrambi tentano la ricerca dei negozi tramite Overpass; in caso di errore vengono mostrati i punti dell’elenco locale compresi nel raggio, quando presenti.
 
 Per usare una propria istanza Photon compatibile, imposta PHOTON_SEARCH_URL sull’endpoint HTTPS di ricerca nella configurazione del server. Non è una URL ricevuta dal browser. I log della ricerca fallita riportano solo tipo di errore e stato HTTP, senza indirizzo o URL completa.
 
 Documentazione: https://github.com/komoot/photon/blob/master/docs/api-v1.md
+
+
+## Ricerca negozi: correzione 1.2.0
+
+Il servizio Overpass predefinito è `https://overpass.private.coffee/api/interpreter`. Timeout e risposte incomplete generano uno stato di errore, non una falsa ricerca riuscita con zero negozi. Dopo un guasto il server attende 30 secondi prima di ritentare lo stesso servizio; le ricerche riuscite sono in cache per 15 minuti. L’elenco locale viene filtrato per distanza e integrato evitando duplicati vicini della stessa catena.
+
+Per un’istanza dedicata, configura `OVERPASS_SEARCH_URL` con un endpoint HTTPS compatibile. Il provider usa POST; passa a GET solo se il server risponde 405 o 501. I log non includono l’indirizzo o le coordinate cercate. Un servizio cartografico pubblico non garantisce disponibilità né copertura completa.

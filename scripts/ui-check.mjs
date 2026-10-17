@@ -20,23 +20,29 @@ try {
   await page.screenshot({path:resolve(output,'location-desktop.png'),fullPage:true});
   await page.getByRole('button',{name:'Prova la demo'}).click();
   assert.equal(await page.locator('.product-card').count(),24);
-  await page.getByRole('button',{name:'Pasta e riso',exact:true}).click();assert.equal(await page.locator('.product-card').count(),3);
+  await page.getByRole('button',{name:'Mostra altri prodotti'}).click();assert.equal(await page.locator('.product-card').count(),48);
+  await page.getByRole('button',{name:'Pasta e riso',exact:true}).click();assert.equal(await page.locator('.product-card').count(),9);
   await page.getByRole('button',{name:'Tutti',exact:true}).click();
-  await page.locator('#product-search').fill('Granarolo');assert.equal(await page.locator('.product-card').count(),1);
+  await page.locator('#product-search').fill('Latte intero UHT');assert.equal(await page.locator('.product-card').count(),1);
   await page.locator('#product-search').fill('');
   await page.getByRole('button',{name:'Aggiungi Spaghetti n. 5 alla lista',exact:true}).click();assert.equal(await page.locator('.count-badge').innerText(),'1');
   await page.getByRole('button',{name:'Aumenta quantità di Spaghetti n. 5',exact:true}).first().click();assert.equal(await page.locator('.count-badge').innerText(),'2');
-  await page.reload();assert.equal(await page.locator('.count-badge').innerText(),'2');
+  await page.getByRole('button',{name:'Torna alla home',exact:true}).click();assert.equal(await page.locator('#location-form').isVisible(),true);assert.equal(await page.locator('#modal').isVisible(),false);
+  await page.reload();assert.equal(await page.locator('#location-form').isVisible(),true);
+  await page.getByRole('button',{name:'Riprendi la demo'}).click();assert.equal(await page.locator('.count-badge').innerText(),'2');
+  await page.locator('.brand').click();assert.equal(await page.locator('#location-form').isVisible(),true);await page.getByRole('button',{name:'Riprendi la demo'}).click();assert.equal(await page.locator('.count-badge').innerText(),'2');
+  await page.locator('[data-step="location"]').click();assert.equal(await page.locator('#location-form').isVisible(),true);await page.getByRole('button',{name:'Riprendi la demo'}).click();
   await page.getByRole('button',{name:'Svuota la lista',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Svuota la lista',exact:true}).click();
-  await page.getByRole('button',{name:'Usa una lista d’esempio'}).click();
+  await page.getByRole('button',{name:'Prova una lista pronta'}).click();await page.getByRole('button',{name:/Spesa settimanale/}).click();assert.equal(await page.locator('.cart-item').count(),16);
+  await page.getByRole('button',{name:'Prova una lista pronta'}).click();await page.getByRole('button',{name:/Lista veloce/}).click();assert.equal(await page.locator('.cart-item').count(),6);
   await page.screenshot({path:resolve(output,'catalog-desktop.png'),fullPage:true});
   await page.getByRole('button',{name:'Confronta la spesa',exact:false}).click();
   assert.equal(await page.locator('.complete-results .store-result').count(),2);
-  assert.equal(await page.locator('.incomplete-section .store-result').count(),1);
+  assert.equal(await page.locator('.incomplete-section .store-result').count(),3);
   assert.match(await page.locator('.winner h2').innerText(),/Mercato Verde/);
   await page.getByRole('button',{name:'Vedi il dettaglio'}).click();assert.equal(await page.locator('.detail-table tbody tr').count(),6);await page.getByRole('button',{name:'Torna al confronto'}).click();
   await page.locator('#hide-incomplete').check();assert.equal(await page.locator('#incomplete-results').isVisible(),false);await page.locator('#hide-incomplete').uncheck();
-  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta lista'}).click();assert.equal((await download).suggestedFilename(),'spesina-lista.txt');
+  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta lista'}).click();assert.equal((await download).suggestedFilename(),'la-mia-spesa-lista.txt');
   await page.screenshot({path:resolve(output,'comparison-desktop.png'),fullPage:true});
   for(const width of [320,390,768,1440]) {
     await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`comparison overflow at ${width}`);
@@ -50,7 +56,7 @@ try {
   }
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:resolve(output,'catalog-mobile.png'),fullPage:true});
   await page.getByRole('button',{name:'Modifica',exact:true}).click();await page.locator('#demo-radius').fill('1');await page.getByRole('button',{name:'Aggiorna la zona'}).click();
-  assert.match(await page.locator('.store-count').innerText(),/1 supermercati/);
+  assert.match(await page.locator('.store-count').innerText(),/1 negozi demo/);
   // Verify the live form and that server-authoritative comparison results are retained.
   await page.getByRole('button',{name:'Passa alla ricerca reale'}).click();
   const live=createDemoData();live.mode='live';live.warnings=[];
@@ -68,5 +74,11 @@ try {
   await page.getByRole('button',{name:'La tua lista ·'}).click();
   await page.getByRole('button',{name:'Confronta la spesa',exact:false}).click();
   assert.match(await page.locator('.winner-price>strong').innerText(),/77,77/);
+  // A map error must not turn into a claim that no supermarkets exist.
+  await page.getByRole('button',{name:'Torna alla home',exact:true}).click();
+  await page.route('**/api/catalog?*',route=>route.fulfill({json:{mode:'live',products:[],stores:[],categories:[{id:'all',name:'Tutti',icon:'grid'}],warnings:['La ricerca sulla mappa non risponde.'],retailerSources:[],storeDiscovery:{status:'unavailable',mapAvailable:false,localStoreCount:0},attribution:'Test fixture'}}));
+  await page.getByRole('button',{name:'Parti dal centro di Cagliari',exact:true}).click();
+  assert.match(await page.locator('h1').innerText(),/da riprovare/);assert.equal((await page.locator('.coverage-summary').innerText()).includes('0 negozi trovati'),false);assert.equal(await page.getByRole('button',{name:'Riprova la ricerca sulla mappa'}).isVisible(),true);
+  await page.getByRole('button',{name:'Torna alla home',exact:true}).click();assert.equal(await page.locator('#location-form').isVisible(),true);
   assert.deepEqual(errors,[]);console.log('Browser checks passed: navigation, filters, quantities, persistence, comparison, export, mobile widths and live API rendering.');
 } finally {await browser.close();}

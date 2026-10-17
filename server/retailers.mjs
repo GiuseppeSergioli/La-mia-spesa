@@ -23,7 +23,7 @@ export function enrichStore(store) {
   if(store.demo) return store;
   const source=retailerForStore(store);
   if(!source) return store; // Unrecognized and independent shops remain in the results.
-  let officialUrl=source.website,onlineUrl=source.onlineUrl || null,linkScope='chain';
+  let officialUrl=store.officialUrl || source.website,onlineUrl=store.onlineUrl || source.onlineUrl || null,linkScope=store.linkScope || 'chain';
   const address=normalize(store.address);
   if(source.id==='pan' && address.includes('laplaia')) {
     officialUrl='https://www.supermercatipan.it/punti-vendita/sardegna/iper-plaia';

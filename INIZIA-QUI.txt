@@ -1,8 +1,10 @@
-SPESINA / LA MIA SPESA — VERSIONE 1.1 CAGLIARI
+LA MIA SPESA — VERSIONE 1.2.0 CAGLIARI
 
 Se hai già il sito su Render: leggi AGGIORNAMENTO-CAGLIARI.txt.
-Per provare la demo: apri dist/index.html. Negozi e prezzi sono fittizi.
+Per provare la demo: apri dist/index.html. 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte. Prezzi e scorte sono inventati.
 Per avviare il server: Node.js 24, npm ci --ignore-scripts, npm start. Apri http://localhost:3000.
 Raggio: da 500 metri a 6 km, ogni 500 metri. Distanze in linea d’aria.
-Per lo stato delle integrazioni reali: docs/CAGLIARI.md.
-Per i test: VALIDAZIONE.md.
+La lista e il confronto hanno un pulsante Torna alla home che conserva la lista.
+La directory reale include un elenco locale parziale di 8 punti Eurospin/Lidl; nessun catalogo prezzi reale è collegato.
+Per fonti e stato delle integrazioni: docs/CAGLIARI.md.
+Per test e limiti della verifica: VALIDAZIONE.md.
