@@ -1,6 +1,20 @@
 // Shared by the browser, the API and the automated tests. Prices are integer cents.
 export const MAX_QUANTITY = 99;
 export const MAX_PRICE_CENTS = 100_000_000;
+export const MIN_RADIUS_KM = 0.5;
+export const MAX_RADIUS_KM = 6;
+export const RADIUS_STEP_KM = 0.5;
+export const DEFAULT_RADIUS_KM = 3;
+export const DEFAULT_LOCATION = {label:'Cagliari · centro città',lat:39.2238,lon:9.1217};
+
+export function validRadius(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= MIN_RADIUS_KM && value <= MAX_RADIUS_KM && Number.isInteger(value / RADIUS_STEP_KM);
+}
+
+export function normalizeRadius(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return DEFAULT_RADIUS_KM;
+  return Math.max(MIN_RADIUS_KM,Math.min(MAX_RADIUS_KM,Math.round(value / RADIUS_STEP_KM) * RADIUS_STEP_KM));
+}
 
 export function haversine(a, b) {
   const rad = n => n * Math.PI / 180;

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { compareBasket, offerStatus, normalizeList, nearbyStores, haversine, validCoordinates, savingsBetweenComplete, lowestPrice, money } from '../public/core.mjs';
 import { createDemoData, demoLocation, sampleList } from '../public/demo.mjs';
+import { MIN_RADIUS_KM, MAX_RADIUS_KM, DEFAULT_RADIUS_KM, validRadius, normalizeRadius } from '../public/core.mjs';
 
 const now=Date.parse('2026-10-17T12:00:00Z');
 const products=[{id:'p',name:'Pasta',brand:'A',size:'500 g'},{id:'b',name:'Biscotti',brand:'B',size:'800 g'}];
@@ -60,7 +61,7 @@ test('two package sizes remain distinct products without automatic substitutions
   assert.equal(r.complete,false);assert.equal(r.rows[0].status,'unknown');
 });
 test('radius excludes even a cheaper store outside the area',()=>{
-  const stores=[{id:'near',lat:45.4642,lon:9.19},{id:'far',lat:45.5642,lon:9.19}];
+  const stores=[{id:'near',lat:demoLocation.lat,lon:demoLocation.lon},{id:'far',lat:demoLocation.lat+0.1,lon:demoLocation.lon}];
   assert.deepEqual(nearbyStores(stores,demoLocation,5).map(s=>s.id),['near']);assert.ok(haversine(stores[0],stores[1])>11);
 });
 test('coordinates reject missing, nonnumeric and infinite values',()=>{
@@ -75,3 +76,16 @@ test('demo yields a real exercise of complete, out of stock and insufficient row
   assert.equal(r.length,5);assert.equal(r.filter(x=>x.complete).length,2);assert.equal(r[0].store.name,'Mercato Verde');assert.ok(r.some(x=>x.rows.some(y=>y.status==='insufficient')));assert.ok(r.some(x=>x.rows.some(y=>y.status==='out_of_stock')));
 });
 test('Italian currency is formatted correctly',()=>{assert.match(money(119),/1,19/);});
+
+test('all twelve half-kilometre radius choices are valid and no value exceeds 6 km',()=>{
+  assert.equal(MIN_RADIUS_KM,.5);assert.equal(MAX_RADIUS_KM,6);
+  for(let r=.5;r<=6;r+=.5)assert.equal(validRadius(r),true,r);
+  for(const r of [0,.49,.6,1.1,6.01,6.5,25,Infinity,NaN,null,'3'])assert.equal(validRadius(r),false,String(r));
+});
+test('old saved distances migrate into the new limits without rejecting fractions',()=>{
+  assert.equal(normalizeRadius(25),6);assert.equal(normalizeRadius(6.5),6);assert.equal(normalizeRadius(.5),.5);assert.equal(normalizeRadius(2.5),2.5);assert.equal(normalizeRadius(2.3),2.5);assert.equal(normalizeRadius(.1),.5);assert.equal(normalizeRadius(null),DEFAULT_RADIUS_KM);
+});
+test('Cagliari demo stores move together with the demo centre',()=>{
+  assert.match(demoLocation.label,/Cagliari/);
+  const data=createDemoData();assert.equal(nearbyStores(data.stores,demoLocation,6).length,5);assert.equal(nearbyStores(data.stores,demoLocation,.5).length,0);assert.equal(nearbyStores(data.stores,demoLocation,1).length,1);
+});

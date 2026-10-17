@@ -9,9 +9,9 @@
     "store": {
       "name": "Nome esatto del punto vendita",
       "chain": "Nome catena",
-      "address": "Indirizzo effettivo del negozio, Milano",
-      "lat": 45.4642,
-      "lon": 9.19
+      "address": "Indirizzo effettivo del negozio, Cagliari",
+      "lat": 39.2238,
+      "lon": 9.1217
     }
   }
 ]

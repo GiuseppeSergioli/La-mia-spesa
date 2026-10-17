@@ -32,7 +32,7 @@ try {
   await page.screenshot({path:resolve(output,'catalog-desktop.png'),fullPage:true});
   await page.getByRole('button',{name:'Confronta la spesa',exact:false}).click();
   assert.equal(await page.locator('.complete-results .store-result').count(),2);
-  assert.equal(await page.locator('.incomplete-section .store-result').count(),3);
+  assert.equal(await page.locator('.incomplete-section .store-result').count(),1);
   assert.match(await page.locator('.winner h2').innerText(),/Mercato Verde/);
   await page.getByRole('button',{name:'Vedi il dettaglio'}).click();assert.equal(await page.locator('.detail-table tbody tr').count(),6);await page.getByRole('button',{name:'Torna al confronto'}).click();
   await page.locator('#hide-incomplete').check();assert.equal(await page.locator('#incomplete-results').isVisible(),false);await page.locator('#hide-incomplete').uncheck();
@@ -58,11 +58,11 @@ try {
   await page.route('**/api/catalog?*',route=>route.fulfill({json:live}));
   await page.route('**/api/compare',async route=> {
     const body=route.request().postDataJSON();
-    const results=compareBasket(body.list,live.products,nearbyStores(live.stores,demoLocation,5));
+    const results=compareBasket(body.list,live.products,nearbyStores(live.stores,demoLocation,body.radius));
     for(const r of results) if(r.complete) r.totalCents=7777;
     await route.fulfill({json:{results,warnings:[],generatedAt:new Date().toISOString()}});
   });
-  await page.locator('#address').fill('Milano');await page.getByRole('button',{name:'Cerca supermercati',exact:false}).click();
+  await page.locator('#address').fill('Cagliari');await page.getByRole('button',{name:'Cerca supermercati',exact:false}).click();
   await page.getByRole('button',{name:'Indirizzo di test'}).click();
   await page.getByRole('button',{name:'Aggiungi Spaghetti n. 5 alla lista',exact:true}).click();
   await page.getByRole('button',{name:'La tua lista ·'}).click();

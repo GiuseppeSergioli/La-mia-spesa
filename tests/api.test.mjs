@@ -2,8 +2,12 @@ import test,{before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../server/index.mjs';
 let server,base;
-before(async()=>{server=createApp();await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;});
-after(async()=>{await new Promise(r=>server.close(r));});
+const originalFetch=globalThis.fetch;
+before(async()=>{
+  globalThis.fetch=(url,options)=>String(url).startsWith('https://overpass-api.de/') ? Promise.resolve(Response.json({elements:[]})) : originalFetch(url,options);
+  server=createApp();await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;
+});
+after(async()=>{await new Promise(r=>server.close(r));globalThis.fetch=originalFetch;});
 test('health and live capability are explicit',async()=>{const res=await fetch(`${base}/api/health`);assert.equal(res.status,200);assert.equal((await res.json()).ok,true);const s=await (await fetch(`${base}/api/status`)).json();assert.equal(s.live,true);assert.equal(typeof s.configuredStores,'number');});
 test('root page serves Italian application with security headers',async()=>{const res=await fetch(base);assert.match(res.headers.get('content-type'),/text\/html/);assert.match(res.headers.get('content-security-policy'),/script-src 'self'/);assert.equal(res.headers.get('x-content-type-options'),'nosniff');assert.match(await res.text(),/<html lang="it">/);});
 test('ES modules use JavaScript content type',async()=>{const res=await fetch(`${base}/core.mjs`);assert.match(res.headers.get('content-type'),/javascript/);});
@@ -14,3 +18,13 @@ test('invalid shopping lists are rejected by compare API',async()=>{for(const li
 test('cross-site compare calls are refused',async()=>{const r=await fetch(`${base}/api/compare`,{method:'POST',headers:{Origin:'https://evil.example','Content-Type':'application/json'},body:'{}'});assert.equal(r.status,403);});
 test('malformed JSON produces a clean error',async()=>{const r=await fetch(`${base}/api/compare`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});assert.equal(r.status,400);assert.equal((await r.json()).error,'JSON non valido.');});
 test('unsupported method and nonexistent API return errors',async()=>{assert.equal((await fetch(`${base}/api/status`,{method:'DELETE'})).status,405);assert.equal((await fetch(`${base}/api/nope`)).status,404);});
+test('server rejects radius above 6 km or outside half-kilometre increments',async()=>{
+  for(const radius of ['6.5','25','0.6','5.9']){const res=await fetch(`${base}/api/catalog?lat=39.2238&lon=9.1217&radius=${radius}`);assert.equal(res.status,400);assert.match((await res.json()).error,/6 km/);}
+  const res=await fetch(`${base}/api/compare`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:39.2238,lon:9.1217,radius:6.5,list:[{productId:'p',quantity:1}]})});assert.equal(res.status,400);
+});
+test('catalog accepts fractional radius and advertises incomplete map coverage',async()=>{
+  for(const radius of [.5,1.5,6]){
+    const res=await fetch(`${base}/api/catalog?lat=39.2238&lon=9.1217&radius=${radius}`);assert.equal(res.status,200);const data=await res.json();assert.equal(data.coverage.exhaustive,false);assert.equal(data.coverage.priceConnectedStores,0);assert.deepEqual(data.products,[]);
+  }
+});
+test('status identifies Cagliari and the 6-km limit',async()=>{const data=await(await fetch(`${base}/api/status`)).json();assert.equal(data.region,'Cagliari');assert.deepEqual(data.radius,{min:.5,max:6,step:.5});});

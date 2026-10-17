@@ -1,0 +1,22 @@
+LA MIA SPESA — AGGIORNAMENTO 1.1 CAGLIARI
+
+NOVITÀ
+- Cagliari è la città iniziale della ricerca; il tuo indirizzo resta modificabile.
+- Raggio 500 m–6 km, a passi di 500 m, con pulsanti + e -.
+- Limite di 6 km verificato anche dalle API. Vecchie preferenze oltre il limite vengono corrette.
+- Ricerca di supermercati, discount e piccoli alimentari, senza escludere gli indipendenti.
+- Collegamenti verificati di 10 insegne: Pan, Conad, Nonna Isa, Despar, CRAI, Lidl, Eurospin, MD, Carrefour e Tuttigiorni (canale Glovo).
+- Pagina reale con negozi trovati, collegamenti disponibili e numero di cataloghi prezzi collegati.
+
+STATO DEI PREZZI
+Nessun nuovo catalogo prezzi è stato attivato. I siti e la spesa online delle catene NON sono feed automaticamente importati. La demo rimane fittizia. La mappa non garantisce di comprendere tutti i negozi esistenti. Dettagli e fonti in docs/CAGLIARI.md.
+
+COME AGGIORNARE IL SITO GIÀ PUBBLICATO
+1. Estrai lo ZIP e apri la cartella spesina.
+2. Apri SU GITHUB il repository GiuseppeSergioli/La-mia-spesa, ramo main.
+3. Add file > Upload files: trascina i file e le cartelle CONTENUTI in spesina, mantenendo le sottocartelle. package.json deve rimanere nella radice del repository. Carica i file estratti, non il file ZIP e non un ulteriore livello spesina/.
+4. Conferma il commit. Attendi il nuovo deploy automatico di quel servizio Render; se è disabilitato usa Manual Deploy > Deploy latest commit.
+5. Verifica nell’app Cagliari precompilata e raggio massimo 6 km. I browser che hanno una demo salvata possono usare Passa alla ricerca reale per tornare alla pagina iniziale.
+6. Per un controllo tecnico, /api/status deve mostrare versione 1.1.0 e radius.max uguale a 6. Il numero configuredStores può rimanere 0: non sono stati attivati feed reali.
+
+Questo aggiornamento non richiede di cambiare autorizzazioni GitHub, workspace Render o configurazioni delle altre applicazioni. Non usare New Web Service: aggiorna quello già creato.

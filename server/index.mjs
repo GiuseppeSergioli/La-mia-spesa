@@ -3,7 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
 import { geocode, buildLiveCatalog, loadFeedConfig, UpstreamError } from './providers.mjs';
-import { validCoordinates, compareBasket, nearbyStores } from '../public/core.mjs';
+import { validCoordinates, validRadius, compareBasket, nearbyStores } from '../public/core.mjs';
 
 const ROOT=fileURLToPath(new URL('../public/',import.meta.url));
 const configPath=process.env.FEEDS_CONFIG || fileURLToPath(new URL('../config/feeds.json',import.meta.url));
@@ -17,7 +17,7 @@ function send(res,status,data) {
 }
 function coordinates(q) {
   const lat=q.get('lat')?.trim(),lon=q.get('lon')?.trim(),radius=q.get('radius')?.trim();
-  if (!lat || !lon || !radius || !validCoordinates(Number(lat),Number(lon)) || !Number.isFinite(Number(radius)) || Number(radius)<.5 || Number(radius)>25) throw new RangeError('Posizione o raggio non validi. Scegli tra 0,5 e 25 km.');
+  if (!lat || !lon || !radius || !validCoordinates(Number(lat),Number(lon)) || !validRadius(Number(radius))) throw new RangeError('Posizione o raggio non validi. Scegli da 0,5 a 6 km, a passi di 0,5 km.');
   return {location:{lat:Number(lat),lon:Number(lon)},radius:Number(radius)};
 }
 async function jsonBody(req) {
@@ -49,7 +49,7 @@ export function createApp() {
       if (req.method==='GET' && url.pathname==='/api/health') return send(res,200,{ok:true,service:'spesina'});
       if (api) {
         if (rateLimited(req)) {res.setHeader('Retry-After','60');return send(res,429,{error:'Troppe richieste. Attendi un minuto e riprova.'});}
-        if (req.method==='GET' && url.pathname==='/api/status') return send(res,200,{live:true,configuredStores:feedConfig.length,version:'1.0.0'});
+        if (req.method==='GET' && url.pathname==='/api/status') return send(res,200,{live:true,configuredStores:feedConfig.length,version:'1.1.0',region:'Cagliari',radius:{min:0.5,max:6,step:0.5}});
         if (!['GET','POST'].includes(req.method)) return send(res,405,{error:'Metodo non supportato.'});
         if (active>=8) return send(res,503,{error:'Il servizio è occupato. Riprova tra poco.'});
         active++;acquired=true;

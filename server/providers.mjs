@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { lookup } from 'node:dns/promises';
 import https from 'node:https';
 import { isIP } from 'node:net';
-import { haversine, validCoordinates, MAX_PRICE_CENTS } from '../public/core.mjs';
+import { haversine, validCoordinates, MAX_PRICE_CENTS, DEFAULT_LOCATION } from '../public/core.mjs';
+import { enrichStore, sourceCoverage } from './retailers.mjs';
 
 const UA = 'Spesina/1.0 (grocery comparison; OpenStreetMap attribution in app)';
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -39,7 +40,7 @@ async function readJson(response) {
 export async function geocode(query) {
   return cached(`geo:${query.toLowerCase()}`, 3_600_000, async () => {
     const url = new URL('https://photon.komoot.io/api/');
-    url.search = new URLSearchParams({q:query,limit:'6',lang:'it'}).toString();
+    url.search = new URLSearchParams({q:query,limit:'6',lang:'it',lat:String(DEFAULT_LOCATION.lat),lon:String(DEFAULT_LOCATION.lon)}).toString();
     const data = await readJson(await fetch(url, {headers:{'User-Agent':UA},signal:AbortSignal.timeout(12_000)}));
     const seen = new Set();
     return (data.features ?? []).flatMap(f => {
@@ -58,7 +59,7 @@ export async function discoverStores(lat, lon, radiusKm) {
   // Coordinates rounded to ~10m for reusable cache keys; filtering uses exact location.
   const key = `osm:${lat.toFixed(4)}:${lon.toFixed(4)}:${radiusKm}`;
   return cached(key, 900_000, async () => {
-    const query = `[out:json][timeout:22];nwr["shop"~"^(supermarket|discount)$"](around:${Math.ceil(radiusKm*1000)},${lat},${lon});out center tags;`;
+    const query = `[out:json][timeout:22];nwr["shop"~"^(supermarket|discount|convenience)$"](around:${Math.ceil(radiusKm*1000)},${lat},${lon});out center tags;`;
     const response = await fetch('https://overpass-api.de/api/interpreter', {
       method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','User-Agent':UA},body:new URLSearchParams({data:query}),signal:AbortSignal.timeout(27_000)
     });
@@ -67,11 +68,12 @@ export async function discoverStores(lat, lon, radiusKm) {
     const seen = [];
     return (data.elements ?? []).flatMap(e => {
       const pos = e.center ?? e, t = e.tags ?? {}, name = t.name || t.brand || 'Supermercato';
+      if(t.disused==='yes' || t.abandoned==='yes') return [];
       if (!validCoordinates(pos.lat,pos.lon)) return [];
       if (seen.some(s => s.name === name && haversine(s,pos) < .04)) return [];
       const store = {id:`osm:${e.type}/${e.id}`,osmId:`${e.type}/${e.id}`,name,chain:t.brand || name,
         address:[t['addr:street'],t['addr:housenumber'],t['addr:city']].filter(Boolean).join(' ') || 'Indirizzo non presente su OpenStreetMap',
-        lat:pos.lat,lon:pos.lon,initial:name.slice(0,1).toUpperCase(),color:'#48745e',catalogStatus:'not_connected',offers:{},demo:false};
+        lat:pos.lat,lon:pos.lon,storeType:t.shop,initial:name.slice(0,1).toUpperCase(),color:'#48745e',catalogStatus:'not_connected',offers:{},demo:false};
       seen.push(store); return [store];
     });
   });
@@ -174,7 +176,8 @@ export async function buildLiveCatalog(location, radius, configs) {
     } else warnings.push(`Catalogo di ${store.name} non disponibile. I prezzi non sono stati stimati.`);
     if (match>=0) stores[match]=store;else stores.push(store);
   });
-  if (!configs.length) warnings.push('Nessun fornitore prezzi collegato. I negozi provengono da OpenStreetMap: prezzi e disponibilità richiedono un feed per punto vendita.');
+  if (!configs.length) warnings.push('Nessun catalogo prezzi collegato. I negozi provengono da OpenStreetMap; i collegamenti ai siti ufficiali non importano automaticamente prezzi e disponibilità.');
   const catalog=[...products.values()];
-  return {mode:'live',products:catalog,stores,categories:[{id:'all',name:'Tutti',icon:'grid'},...[...new Set(catalog.map(p=>p.category))].map(id=>({id,name:id,icon:'grid'}))],warnings:[...new Set(warnings)],generatedAt:new Date().toISOString(),attribution:'© OpenStreetMap contributors · ODbL. La copertura dei negozi può essere incompleta. Prezzi riferiti ai cataloghi online collegati: possono differire da quelli in negozio.'};
+  const linkedStores=stores.map(enrichStore);
+  return {mode:'live',products:catalog,stores:linkedStores,retailerSources:sourceCoverage(linkedStores),coverage:{foundStores:linkedStores.length,priceConnectedStores:linkedStores.filter(s=>s.catalogStatus==='connected').length,exhaustive:false},categories:[{id:'all',name:'Tutti',icon:'grid'},...[...new Set(catalog.map(p=>p.category))].map(id=>({id,name:id,icon:'grid'}))],warnings:[...new Set(warnings)],generatedAt:new Date().toISOString(),attribution:'© OpenStreetMap contributors · ODbL. Ricerca di supermercati, discount e piccoli alimentari senza filtro di insegna. La copertura può essere incompleta. Collegamenti ufficiali distinti dai cataloghi prezzi. Prezzi online e prezzi in negozio possono differire.'};
 }

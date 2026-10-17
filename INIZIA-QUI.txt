@@ -1,10 +1,8 @@
-SPESINA — PRIMA VERSIONE
+SPESINA / LA MIA SPESA — VERSIONE 1.1 CAGLIARI
 
-Per provare subito: apri dist/index.html e usa la lista di esempio.
-
-Per avviare il server: installa Node.js 24, apri un terminale in questa cartella, esegui npm ci --ignore-scripts e npm start. Apri http://localhost:3000.
-
-Leggi README.md per GitHub, URL pubblica e cataloghi dei supermercati.
-Leggi VALIDAZIONE.md per i controlli effettuati e quelli ancora da eseguire.
-
-I prezzi della demo sono fittizi. Nessun feed reale è collegato e nessun sito pubblico è stato creato.
+Se hai già il sito su Render: leggi AGGIORNAMENTO-CAGLIARI.txt.
+Per provare la demo: apri dist/index.html. Negozi e prezzi sono fittizi.
+Per avviare il server: Node.js 24, npm ci --ignore-scripts, npm start. Apri http://localhost:3000.
+Raggio: da 500 metri a 6 km, ogni 500 metri. Distanze in linea d’aria.
+Per lo stato delle integrazioni reali: docs/CAGLIARI.md.
+Per i test: VALIDAZIONE.md.

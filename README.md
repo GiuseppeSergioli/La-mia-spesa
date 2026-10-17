@@ -2,7 +2,7 @@
 
 Un’app in italiano per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
 
-**Stato della consegna:** codice eseguibile e demo pronti. Nessun repository remoto e nessun sito pubblico sono stati creati da questa sessione. Nessuna catena è attualmente collegata a un feed di prezzi. La demo usa cinque negozi fittizi, 24 prodotti illustrati e prezzi interamente inventati. Il backend implementa la ricerca geografica e l’importazione di feed per punto vendita, ma le integrazioni con cataloghi di catene reali vanno configurate e verificate con i rispettivi fornitori.
+**Versione 1.1 — Cagliari:** indirizzo iniziale Cagliari, raggio da 0,5 a 6 km ogni 500 metri, ricerca di supermercati/discount/alimentari senza filtro di insegna e directory di collegamenti verificati per 10 insegne. Il sito iniziale è stato pubblicato dall’utente; questo aggiornamento non è ancora applicato al repository GitHub o a Render da questa chat. Nessuna catena è attualmente collegata a un feed di prezzi. La demo usa cinque negozi fittizi, 24 prodotti illustrati e prezzi inventati. Vedi `AGGIORNAMENTO-CAGLIARI.txt` e `docs/CAGLIARI.md` per lo stato esatto delle integrazioni.
 
 ## Avvio
 
@@ -26,8 +26,8 @@ L’ultimo comando genera `dist/index.html`: una demo autonoma, apribile anche c
 ## Cosa è implementato
 
 - Indirizzo con scelta esplicita del risultato geografico, oppure geolocalizzazione su consenso.
-- Raggio da 1 a 25 km, espresso in **linea d’aria**. Non è una distanza stradale e non stima il tempo di viaggio.
-- Ricerca reale dei supermercati presenti in OpenStreetMap. La copertura può essere incompleta; il fatto che un negozio esista sulla mappa non implica che il suo catalogo sia accessibile.
+- Raggio da 0,5 a 6 km, con incrementi di 0,5 km e pulsanti +/− per aggiustamenti di 500 metri, espresso in **linea d’aria**. Non è una distanza stradale e non stima il tempo di viaggio.
+- Ricerca reale di supermercati, discount e piccoli alimentari presenti in OpenStreetMap, compresi i negozi indipendenti. La copertura può essere incompleta; il fatto che un negozio esista sulla mappa non implica che il suo catalogo sia accessibile.
 - Categorie cliccabili, ricerca per prodotto e marca, selezione di confezioni e quantità da 1 a 99.
 - Lista salvata nel browser; pulsante per eliminare lista e zona.
 - Prezzo minimo indicativo nel catalogo e confronto della lista completa per singolo negozio.
@@ -40,7 +40,7 @@ L’ultimo comando genera `dist/index.html`: una demo autonoma, apribile anche c
 
 ## Pubblicare su GitHub e ottenere una URL pubblica
 
-Le connessioni GitHub e hosting non erano utilizzabili nella sessione di creazione. I seguenti passaggi devono essere eseguiti con il proprio account. Non ci sono URL inventati nel progetto.
+La chat non dispone di una connessione GitHub utilizzabile. Il sito iniziale è stato pubblicato manualmente dall’utente; per aggiornare quel sito segui AGGIORNAMENTO-CAGLIARI.txt. I passaggi sotto servono per una nuova installazione. I seguenti passaggi devono essere eseguiti con il proprio account. Non ci sono URL inventati nel progetto.
 
 1. Crea un nuovo repository su GitHub e carica **il contenuto di questa cartella**, inclusa `.github`, mantenendo `package.json` alla radice. Puoi anche inizializzare la cartella con Git e collegarla al tuo repository:
 
@@ -81,11 +81,11 @@ Riavvia il server dopo le modifiche alla configurazione. Un catalogo invalido o 
 | --- | --- |
 | `GET /api/health` | Health check |
 | `GET /api/status` | Capacità server e numero di negozi configurati |
-| `GET /api/geocode?q=Milano` | Risultati geografici Photon filtrati per Italia |
-| `GET /api/catalog?lat=45.4642&lon=9.19&radius=5` | Negozi, prodotti e offerte dei feed in zona |
+| `GET /api/geocode?q=Cagliari` | Risultati geografici Photon filtrati per Italia |
+| `GET /api/catalog?lat=39.2238&lon=9.1217&radius=3` | Negozi, prodotti e offerte dei feed in zona |
 | `POST /api/compare` | Confronto con prezzi ricaricati dalla cache server o dal fornitore |
 
-Il POST accetta `{ "lat": 45.4642, "lon": 9.19, "radius": 5, "list": [{ "productId": "id-canonico", "quantity": 2 }] }`. Non accetta prezzi dal client. Risponde 409 se un prodotto non è più nel catalogo. Il catalogo in memoria non contiene dati di listini non collegati.
+Il POST accetta `{ "lat": 39.2238, "lon": 9.1217, "radius": 3, "list": [{ "productId": "id-canonico", "quantity": 2 }] }`. Non accetta prezzi dal client. Risponde 409 se un prodotto non è più nel catalogo. Il catalogo in memoria non contiene dati di listini non collegati.
 
 ## Limiti pratici e messa in produzione
 

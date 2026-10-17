@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 const read = path => readFile(new URL(`../${path}`,import.meta.url),'utf8');
 const modules=[
-  ['Core','public/core.mjs','MAX_QUANTITY, MAX_PRICE_CENTS, haversine, validCoordinates, nearbyStores, normalizeList, offerStatus, compareBasket, savingsBetweenComplete, money, distance, lowestPrice'],
+  ['Core','public/core.mjs','MAX_QUANTITY, MAX_PRICE_CENTS, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, validRadius, normalizeRadius, haversine, validCoordinates, nearbyStores, normalizeList, offerStatus, compareBasket, savingsBetweenComplete, money, distance, lowestPrice'],
   ['Demo','public/demo.mjs','categories, products, demoLocation, sampleList, createDemoData'],
   ['Art','public/art.mjs','icon, productArt, heroArt']
 ];

@@ -37,7 +37,7 @@ export const products = [
   { id:'demo-tonno-1', name:'Tonno all’olio di oliva', brand:'Rio Mare', size:'3 × 80 g', category:'dispensa', art:'tuna', color:'#cd9b92', label:'TONNO', base:399 }
 ];
 
-export const demoLocation = { label: 'Milano, centro · zona dimostrativa', lat:45.4642, lon:9.1900 };
+export const demoLocation = { label: 'Cagliari, centro · zona dimostrativa', lat:39.2238, lon:9.1217 };
 export const sampleList = [
   {productId:'demo-pasta-1',quantity:2}, {productId:'demo-biscotti-1',quantity:1},
   {productId:'demo-latte-1',quantity:2}, {productId:'demo-passata-1',quantity:1},
@@ -52,7 +52,7 @@ export function createDemoData() {
     {id:'demo-quartiere',name:'La Bottega',chain:'La Bottega',initial:'B',color:'#817143',address:'Negozio fittizio · zona nord',lat:45.4880,lon:9.1780,factor:1.16},
     {id:'demo-insieme',name:'Spesa Insieme',chain:'Spesa Insieme',initial:'S',color:'#617d9c',address:'Negozio fittizio · zona ovest',lat:45.4570,lon:9.1470,factor:0.93},
     {id:'demo-vicino',name:'Vicino a Te',chain:'Vicino a Te',initial:'v',color:'#94729a',address:'Negozio fittizio · zona sud',lat:45.4260,lon:9.2000,factor:1.02}
-  ].map((s,si) => ({...s, demo:true, catalogStatus:'connected', offers:Object.fromEntries(products.map((p,pi)=>[p.id,{
+  ].map((s,si) => ({...s, lat:demoLocation.lat+(s.lat-45.4642), lon:demoLocation.lon+(s.lon-9.19), demo:true, catalogStatus:'connected', offers:Object.fromEntries(products.map((p,pi)=>[p.id,{
     priceCents:Math.round(p.base*s.factor) + ((pi+si)%3)*5,
     availability:si===3 && [2,7,9].includes(pi) || si===4 && [3,4,10].includes(pi) ? 'out_of_stock':'in_stock',
     observedAt,maxAgeMinutes:1440,currency:'EUR',sourceLabel:'Dato dimostrativo',sourceUrl:null,

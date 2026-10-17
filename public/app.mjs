@@ -1,11 +1,11 @@
-import { compareBasket, nearbyStores, normalizeList, lowestPrice, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates } from './core.mjs';
+import { compareBasket, nearbyStores, normalizeList, lowestPrice, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, normalizeRadius } from './core.mjs';
 import { createDemoData, demoLocation, sampleList } from './demo.mjs';
 import { icon, productArt, heroArt } from './art.mjs';
 
 const $ = (selector,root=document) => root.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='spesina:v1';
-const state={page:'location',mode:'live',radius:5,location:null,data:null,list:[],category:'all',search:'',live:false,busy:false,cartOpen:false,completeOnly:false,results:null};
+const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],category:'all',search:'',live:false,busy:false,cartOpen:false,completeOnly:false,results:null};
 let toastTimer, requestId=0;
 let saved=null;
 try {saved=JSON.parse(localStorage.getItem(KEY));} catch {}
@@ -54,14 +54,24 @@ function render() {
   document.title=state.page==='compare' ? 'Il tuo confronto — Spesina':state.page==='catalog' ? 'La tua lista — Spesina':'Spesina — La tua spesa, al prezzo giusto.';
 }
 
+function radiusControl(id) {
+  return `<div class="radius-heading"><label class="field-label" for="${id}">Quanto vuoi spostarti?</label><output class="radius-output" for="${id}">${distance(state.radius)}</output></div><div class="radius-control"><button type="button" class="radius-adjust" data-radius-adjust="-0.5" aria-label="Riduci il raggio di 500 metri" ${state.radius<=MIN_RADIUS_KM?'disabled':''}>${icon('minus')}</button><input class="radius-slider" id="${id}" name="radius" type="range" min="${MIN_RADIUS_KM}" max="${MAX_RADIUS_KM}" value="${state.radius}" step="${RADIUS_STEP_KM}" aria-valuetext="${distance(state.radius)}"><button type="button" class="radius-adjust" data-radius-adjust="0.5" aria-label="Aumenta il raggio di 500 metri" ${state.radius>=MAX_RADIUS_KM?'disabled':''}>${icon('plus')}</button></div><div class="range-labels"><span>500 m</span><span>6 km massimo</span></div>`;
+}
+function updateRadiusControl(form,value) {
+  const input=$('.radius-slider',form);
+  input.value=normalizeRadius(value);input.setAttribute('aria-valuetext',distance(Number(input.value)));
+  $('output',form).value=distance(Number(input.value));
+  $('[data-radius-adjust="-0.5"]',form).disabled=Number(input.value)<=MIN_RADIUS_KM;
+  $('[data-radius-adjust="0.5"]',form).disabled=Number(input.value)>=MAX_RADIUS_KM;
+}
+
 function locationFields(modal=false) {
   return `<form id="${modal?'location-modal-form':'location-form'}" class="location-form">
     <label class="field-label" for="${modal?'modal-address':'address'}">Da dove partiamo?</label>
-    <div class="address-field">${icon('pin')}<input id="${modal?'modal-address':'address'}" name="address" autocomplete="street-address" maxlength="200" minlength="3" placeholder="Città, CAP o indirizzo" value="${esc(state.mode==='live' ? state.location?.label || saved?.mode==='live' && saved?.location?.label || '':'')}" required></div>
+    <div class="address-field">${icon('pin')}<input id="${modal?'modal-address':'address'}" name="address" autocomplete="street-address" maxlength="200" minlength="3" placeholder="Città, CAP o indirizzo" value="${esc(state.mode==='live' ? state.location?.label || saved?.mode==='live' && saved?.location?.label || 'Cagliari':'')}" required></div>
     <button class="text-button geolocation" type="button" data-action="geolocate">${icon('target')} Usa la mia posizione</button>
-    <div class="radius-heading"><label class="field-label" for="${modal?'modal-radius':'radius'}">Quanto vuoi spostarti?</label><output class="radius-output" for="${modal?'modal-radius':'radius'}">${state.radius} km</output></div>
-    <input class="radius-slider" id="${modal?'modal-radius':'radius'}" name="radius" type="range" min="1" max="25" value="${state.radius}" step="1"><div class="range-labels"><span>1 km</span><span>25 km</span></div>
-    <p class="field-hint">Raggio in linea d’aria dalla posizione scelta.</p>
+    ${radiusControl(modal?'modal-radius':'radius')}
+    <p class="field-hint">Da 500 m a 6 km, a passi di 500 m. Distanza in linea d’aria.</p>
     <button class="button primary full" type="submit" ${state.busy?'disabled':''}>${state.busy?'<span class="spinner"></span> Ricerca in corso…':`Cerca supermercati ${icon('arrow')}`}</button>
     <div class="form-feedback" role="status"></div><div class="location-candidates"></div>
   </form>`;
@@ -71,7 +81,7 @@ function locationPage() {
   return `<section class="welcome"><div class="welcome-copy"><div class="eyebrow"><span class="eyebrow-line"></span>LA TUA SPESA, PIÙ LEGGERA</div>
     <h1>Stessa spesa.<br><em>Una scelta migliore.</em></h1><p class="welcome-description">Scegli cosa mettere nel carrello.<br>Scopri dove conviene comprarlo, vicino a te.</p>
     <div class="welcome-art">${heroArt()}</div><div class="welcome-note">${icon('check')} Stessi prodotti e formati ${icon('check')} Totali trasparenti</div>
-    </div><div class="location-card"><span class="little-label">COMINCIAMO DA QUI</span><h2>La convenienza è vicina.</h2><p>Troviamo i supermercati nella tua zona.</p>${locationFields()}
+    </div><div class="location-card"><span class="little-label">COMINCIAMO DA QUI</span><h2>La convenienza è vicina.</h2><p>Partiamo da Cagliari. Inserisci il tuo indirizzo per una ricerca precisa.</p>${locationFields()}
     <div class="demo-entry"><span>Vuoi prima dare un’occhiata?</span><button data-action="demo">Prova la demo ${icon('arrow')}</button></div>
     ${!state.live?'<p class="static-note">In questa anteprima puoi provare la demo. La ricerca reale si attiva avviando il server.</p>':''}</div></section>
     <section class="how-strip"><div><span class="how-number">01</span><div><h3>Scegli la tua zona</h3><p>Tu decidi quanto allontanarti.</p></div></div><div><span class="how-number">02</span><div><h3>Componi la tua lista</h3><p>I prodotti che ami, per categoria.</p></div></div><div><span class="how-number">03</span><div><h3>Confronta tutta la spesa</h3><p>Un totale chiaro per ogni negozio.</p></div></div></section>
@@ -79,10 +89,11 @@ function locationPage() {
 }
 
 function locationStrip() {
-  return `<div class="location-strip"><div>${icon('pin')}<div><strong>${esc(state.location?.label)}</strong><span>Entro ${state.radius} km in linea d’aria</span></div><button class="text-button" data-action="edit-location">Modifica</button></div><button class="store-count" data-action="stores">${icon('store')}<span><strong>${stores().length}</strong> supermercati ${state.mode==='demo'?'demo':'trovati'}</span>${icon('chevron')}</button></div>`;
+  return `<div class="location-strip"><div>${icon('pin')}<div><strong>${esc(state.location?.label)}</strong><span>Entro ${distance(state.radius)} in linea d’aria</span></div><button class="text-button" data-action="edit-location">Modifica</button></div><button class="store-count" data-action="stores">${icon('store')}<span><strong>${stores().length}</strong> supermercati ${state.mode==='demo'?'demo':'trovati'}</span>${icon('chevron')}</button></div>`;
 }
 
 function catalogPage() {
+  if(state.mode==='live' && !products().length) return liveDirectoryPage();
   const p=products();
   return `<section class="page-intro"><div><div class="eyebrow">PICCOLE SCELTE, UNA BELLA DIFFERENZA</div><h1>La tua lista. <em>Il prezzo giusto.</em></h1><p>Aggiungi quello che ti serve. Al resto ci pensiamo noi.</p></div><span class="section-doodle">${icon('bag')}<span>La spesa di sempre,<br>con un po’ più di cura.</span></span></section>
     ${locationStrip()}${state.mode==='live' && state.data.warnings.length?`<div class="data-notice">${icon('info')}<div>${state.data.warnings.map(w=>`<p>${esc(w)}</p>`).join('')}</div></div>`:''}
@@ -163,7 +174,7 @@ function changeQuantity(id,delta) {
 }
 
 function startDemo(withSample=false) {
-  requestId++;state.busy=false;state.mode='demo';state.location={...demoLocation};state.data=createDemoData();state.radius=5;state.list=withSample?structuredClone(sampleList):[];state.page='catalog';state.category='all';state.search='';state.results=null;state.cartOpen=false;
+  requestId++;state.busy=false;state.mode='demo';state.location={...demoLocation};state.data=createDemoData();state.radius=DEFAULT_RADIUS_KM;state.list=withSample?structuredClone(sampleList):[];state.page='catalog';state.category='all';state.search='';state.results=null;state.cartOpen=false;
   closeModal();persist();render();announcePage();
 }
 function exitDemo() {
@@ -221,7 +232,7 @@ async function showComparison() {
       state.results=response.results;
       if(response.warnings.length) toast(response.warnings[0]);
     } catch(e){toast(e.message);return;}
-    finally {state.busy=false;if(state.page==='catalog') {$('#cart-area').innerHTML=cart();updateHeader();}}
+    finally {state.busy=false;if(state.page==='catalog' && $('#cart-area')) {$('#cart-area').innerHTML=cart();updateHeader();}}
   } else {state.data=createDemoData();state.results=compareBasket(state.list,products(),stores());}
   state.page='compare';state.cartOpen=false;render();announcePage();
 }
@@ -236,8 +247,18 @@ function closeModal() {$('#modal').close();}
 function showHelp() {
   showModal('La spesa, in tre piccoli passi.',`<div class="help-steps"><div><span>1</span><div><h3>Dicci dove cercare</h3><p>Inserisci la tua zona e un raggio massimo. Le distanze sono in linea d’aria.</p></div></div><div><span>2</span><div><h3>Scegli i tuoi prodotti</h3><p>Sfoglia le categorie, cerca una marca e aggiungi le quantità. Confrontiamo sempre lo stesso prodotto e formato.</p></div></div><div><span>3</span><div><h3>Trova il totale più basso</h3><p>Prima trovi le liste complete, in ordine di prezzo. Poi i subtotali, con ogni prodotto mancante o non verificato segnalato.</p></div></div></div><div class="modal-note">${icon('info')}<p>La demo usa negozi e prezzi fittizi. Nella ricerca reale servono feed dei singoli negozi: la presenza sulla mappa non garantisce l’accesso ai prezzi. I totali non includono viaggio o consegna.</p></div><button class="button primary full" data-action="close-modal">Tutto chiaro ${icon('check')}</button>`);
 }
+function storeDirectoryRows() {
+  return stores().map(s=>`<div class="nearby-store"><span class="store-logo">${esc(s.initial || s.name[0])}</span><div><strong>${esc(s.name)}</strong><span>${esc(s.address)}</span><small>${s.catalogStatus==='connected'?'Prezzi collegati al confronto':s.catalogStatus==='error'?'Catalogo temporaneamente non disponibile':'Prezzi non collegati al confronto'}</small>${state.mode==='live'?`<div class="store-link-actions">${s.officialUrl?`<a href="${esc(safeLink(s.officialUrl))}" target="_blank" rel="noopener noreferrer">${esc(s.officialLinkLabel || 'Sito ufficiale')} ${icon('external')}</a>`:''}${s.onlineUrl?`<a href="${esc(safeLink(s.onlineUrl))}" target="_blank" rel="noopener noreferrer">Spesa online ${icon('external')}</a>`:''}<a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}" target="_blank" rel="noopener noreferrer">Mappa ${icon('external')}</a></div>${s.linkScope==='chain'?'<span class="source-scope-note">Il link è dell’insegna: sul sito seleziona il negozio corretto.</span>':''}`:''}</div><b>${distance(s.distanceKm)}</b></div>`).join('');
+}
+function retailerSourceNotes() {
+  const sources=state.data?.retailerSources || [];
+  return sources.length?`<section class="retailer-source-list"><h3>Fonti delle insegne trovate</h3><p class="modal-description">Un collegamento al sito non equivale a un catalogo prezzi importato.</p>${sources.map(source=>`<details><summary>${esc(source.name)}</summary><p>${esc(source.note)}</p><p>Fonte verificata il ${esc(source.checkedOn)}. Prezzi per il confronto: non collegati automaticamente.</p></details>`).join('')}</section>`:'';
+}
+function liveDirectoryPage() {
+  return `<section class="page-intro"><div><div class="eyebrow">LA SPESA NEL TUO QUARTIERE</div><h1>I supermercati <em>vicino a te.</em></h1><p>Supermercati, discount e piccoli alimentari entro ${distance(state.radius)}.</p></div></section>${locationStrip()}<div class="coverage-summary"><strong>${stores().length} negozi trovati · ${stores().filter(s=>s.catalogStatus==='connected').length} cataloghi prezzi collegati</strong><br>Le liste complete saranno confrontabili quando i prezzi dei singoli negozi saranno disponibili. La ricerca sulla mappa può essere incompleta.</div>${state.data.warnings.map(w=>`<div class="data-notice">${icon('info')}<p>${esc(w)}</p></div>`).join('')}<section class="live-directory"><h2>Negozi e collegamenti disponibili</h2><div class="nearby-list">${stores().length?storeDirectoryRows():'<p class="modal-description">Nessun negozio trovato. Prova un altro indirizzo o amplia il raggio fino a 6 km.</p>'}</div></section>${retailerSourceNotes()}<div class="directory-demo-note"><p>Vuoi provare come funzionerà il confronto?</p><button class="button secondary" data-action="demo">Apri la demo con prezzi fittizi ${icon('arrow')}</button></div><div class="source-note">${icon('info')}<span>${esc(state.data.attribution)}</span></div>`;
+}
 function showStores() {
-  showModal(`I supermercati nella tua zona <span class="muted">(${stores().length})</span>`,`<p class="modal-description">Entro ${state.radius} km in linea d’aria. ${state.mode==='demo'?'Questi negozi sono fittizi.':'Dati cartografici OpenStreetMap; la copertura può essere incompleta.'}</p><div class="nearby-list">${stores().length?stores().map(s=>`<div class="nearby-store"><span class="store-logo">${esc(s.initial || s.name[0])}</span><div><strong>${esc(s.name)}</strong><span>${esc(s.address)}</span><small>${s.catalogStatus==='connected'?'Catalogo collegato':s.catalogStatus==='error'?'Catalogo non disponibile':'Prezzi non collegati'}</small></div><b>${distance(s.distanceKm)}</b>${state.mode==='live'?`<a class="icon-button" aria-label="Apri ${esc(s.name)} su OpenStreetMap" href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}" target="_blank" rel="noopener noreferrer">${icon('external')}</a>`:''}</div>`).join(''):'<p>Nessun supermercato trovato. Prova un raggio più ampio.</p>'}</div>`,true);
+  showModal(`I negozi nella tua zona <span class="muted">(${stores().length})</span>`,`<p class="modal-description">Entro ${distance(state.radius)} in linea d’aria. ${state.mode==='demo'?'Questi negozi sono fittizi.':'Supermercati, discount e piccoli alimentari presenti su OpenStreetMap, senza filtro di insegna. Copertura non garantita come esaustiva.'}</p>${state.mode==='live'?`<div class="coverage-summary">${stores().filter(s=>s.catalogStatus==='connected').length} negozi con prezzi collegati su ${stores().length} negozi trovati.</div>`:''}<div class="nearby-list">${stores().length?storeDirectoryRows():'<p>Nessun negozio trovato. Prova un raggio più ampio, fino a 6 km.</p>'}</div>${state.mode==='live'?retailerSourceNotes():''}`,true);
 }
 
 function showDetail(id) {
@@ -248,7 +269,7 @@ function showDetail(id) {
 }
 function safeLink(value) {try {const u=new URL(value);return u.protocol==='https:'?u.href:'#';}catch{return '#';}}
 function editLocation() {
-  if(state.mode==='demo') return showModal('La tua zona di esempio',`<p class="modal-description">Nella demo usiamo il centro di Milano e negozi fittizi. Puoi cambiare il raggio per vedere come cambia il confronto.</p><form id="demo-radius-form"><div class="radius-heading"><label class="field-label" for="demo-radius">Raggio massimo</label><output class="radius-output" for="demo-radius">${state.radius} km</output></div><input id="demo-radius" class="radius-slider" name="radius" type="range" min="1" max="25" step="1" value="${state.radius}"><div class="range-labels"><span>1 km</span><span>25 km</span></div><button class="button primary full" type="submit">Aggiorna la zona ${icon('check')}</button></form><button class="text-button modal-real-search" data-action="exit-demo">Cerca un indirizzo reale ${icon('arrow')}</button>`);
+  if(state.mode==='demo') return showModal('La tua zona di esempio',`<p class="modal-description">Nella demo usiamo il centro di Cagliari e negozi fittizi. Puoi cambiare il raggio per vedere come cambia il confronto.</p><form id="demo-radius-form">${radiusControl('demo-radius')}<button class="button primary full" type="submit">Aggiorna la zona ${icon('check')}</button></form><button class="text-button modal-real-search" data-action="exit-demo">Cerca un indirizzo reale ${icon('arrow')}</button>`);
   showModal('Cambiamo zona?',`<p class="modal-description">Aggiorneremo negozi e cataloghi. I prodotti assenti nel nuovo catalogo verranno rimossi dalla lista.</p>${locationFields(true)}`);
 }
 function privacy() {
@@ -256,13 +277,14 @@ function privacy() {
 }
 function exportList() {
   const results=state.results || compareBasket(state.list,products(),stores());
-  const lines=['SPESINA — LA TUA LISTA',state.mode==='demo'?'DEMO — negozi, prezzi e disponibilità fittizi':'Prezzi dei cataloghi online collegati',`${state.location.label} · raggio ${state.radius} km in linea d’aria`,'',...state.list.map(i=>{const p=product(i.productId);return `${i.quantity} × ${p.brand} ${p.name} — ${p.size}`;}),'','CONFRONTO',...results.map(r=>`${r.store.name}: ${r.availableCount?money(r.totalCents):'non calcolabile'} — ${r.complete?'totale completo':`subtotale parziale (${r.availableCount}/${r.rows.length} prodotti)`}${r.complete?'':'; '+r.rows.filter(row=>row.status!=='available').map(row=>`${row.product.name}: ${statusLabels[row.status]}`).join(', ')}`),'','Totali dei prodotti. Viaggio e consegna esclusi. Disponibilità soggetta a variazioni.'];
+  const lines=['SPESINA — LA TUA LISTA',state.mode==='demo'?'DEMO — negozi, prezzi e disponibilità fittizi':'Prezzi dei cataloghi online collegati',`${state.location.label} · raggio ${distance(state.radius)} in linea d’aria`,'',...state.list.map(i=>{const p=product(i.productId);return `${i.quantity} × ${p.brand} ${p.name} — ${p.size}`;}),'','CONFRONTO',...results.map(r=>`${r.store.name}: ${r.availableCount?money(r.totalCents):'non calcolabile'} — ${r.complete?'totale completo':`subtotale parziale (${r.availableCount}/${r.rows.length} prodotti)`}${r.complete?'':'; '+r.rows.filter(row=>row.status!=='available').map(row=>`${row.product.name}: ${statusLabels[row.status]}`).join(', ')}`),'','Totali dei prodotti. Viaggio e consegna esclusi. Disponibilità soggetta a variazioni.'];
   const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='spesina-lista.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Lista esportata. Buona spesa!');
 }
 
 document.addEventListener('click',event=> {
   if(event.target.closest('.brand,.footer-brand')){event.preventDefault();state.page=state.data?'catalog':'location';state.cartOpen=false;render();announcePage();return;}
   const button=event.target.closest('button');if(!button || button.disabled)return;
+  if(button.dataset.radiusAdjust){const form=button.closest('form');const input=$('.radius-slider',form);updateRadiusControl(form,Math.max(MIN_RADIUS_KM,Math.min(MAX_RADIUS_KM,Number(input.value)+Number(button.dataset.radiusAdjust))));return;}
   if(button.dataset.add)return changeQuantity(button.dataset.add,1);
   if(button.dataset.delta)return changeQuantity(button.dataset.product,Number(button.dataset.delta));
   if(button.dataset.category) {state.category=button.dataset.category;render();$('#product-search').focus({preventScroll:true});return;}
@@ -289,7 +311,7 @@ document.addEventListener('click',event=> {
 });
 document.addEventListener('input',event=> {
   if(event.target.id==='product-search'){state.search=event.target.value;$('#product-grid').innerHTML=productGrid();}
-  if(event.target.classList.contains('radius-slider')){const form=event.target.closest('form');$('output',form).value=`${event.target.value} km`;}
+  if(event.target.classList.contains('radius-slider')){updateRadiusControl(event.target.closest('form'),Number(event.target.value));}
 });
 document.addEventListener('change',event=>{if(event.target.id==='hide-incomplete'){state.completeOnly=event.target.checked;$('#incomplete-results').hidden=state.completeOnly;}});
 document.addEventListener('submit',event=> {
@@ -302,9 +324,9 @@ $('#modal').addEventListener('click',event=> {if(event.target===$('#modal')){con
 async function init() {
   hydrateIcons();
   if(saved?.version===1 && saved.mode==='demo') {
-    state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.radius=Number.isInteger(saved.radius) && saved.radius>=1 && saved.radius<=25?saved.radius:5;state.list=normalizeList(saved.list,products());state.page='catalog';
+    state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.radius=normalizeRadius(saved.radius);state.list=normalizeList(saved.list,products());state.page='catalog';
   } else if(saved?.version===1 && saved.mode==='live' && validCoordinates(saved.location?.lat,saved.location?.lon)) {
-    state.location=saved.location;state.radius=Number.isInteger(saved.radius) && saved.radius>=1 && saved.radius<=25?saved.radius:5;state.list=Array.isArray(saved.list)?saved.list:[];
+    state.location=saved.location;state.radius=normalizeRadius(saved.radius);state.list=Array.isArray(saved.list)?saved.list:[];
   }
   if(window.SPESINA_STATIC && state.mode!=='demo'){state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.list=[];state.page='catalog';}
   render();

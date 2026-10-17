@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateCatalog, validateFeedConfig, publicIPv4, safeSourceUrl, cached } from '../server/providers.mjs';
+import { validateCatalog, validateFeedConfig, publicIPv4, safeSourceUrl, cached, geocode, buildLiveCatalog } from '../server/providers.mjs';
 const now=Date.parse('2026-10-17T12:00:00Z');
 const config={id:'store',url:'https://feed.example.com/catalog.json',allowedHosts:['feed.example.com','shop.example.com'],store:{name:'Supermarket',address:'Milano',lat:45,lon:9},maxAgeMinutes:120};
 const p={id:'sku:pasta-500',name:'Pasta',brand:'Marca',size:'500 g',category:'Pasta e riso',priceCents:119,availability:'in_stock',observedAt:'2026-10-17T11:00:00Z',sourceUrl:'https://shop.example.com/store/pasta',conditions:'none'};
@@ -41,4 +41,24 @@ test('cache coalesces concurrent lookups and protects its stored data',async()=>
   const work=async()=>{calls++;await new Promise(r=>setTimeout(r,5));return {items:[1]};};
   const [a,b]=await Promise.all([cached('unit:cache',1000,work),cached('unit:cache',1000,work)]);
   a.items.push(2);assert.equal(calls,1);assert.deepEqual(b.items,[1]);assert.deepEqual((await cached('unit:cache',1000,work)).items,[1]);
+});
+test('live discovery includes independent shops and convenience stores, but no invented price coverage',async()=>{
+  const original=globalThis.fetch;let query='';
+  globalThis.fetch=async(_url,options)=>{query=options.body.get('data');return Response.json({elements:[
+    {type:'node',id:1,lat:39.2238,lon:9.1217,tags:{name:'SuperPan',shop:'supermarket','addr:street':'Viale La Plaia','addr:housenumber':'19'}},
+    {type:'node',id:2,lat:39.225,lon:9.122,tags:{name:'Alimentari del quartiere',shop:'convenience'}},
+    {type:'node',id:3,lat:39.224,lon:9.12,tags:{name:'Chiuso',shop:'supermarket',disused:'yes'}}
+  ]});};
+  try{
+    const data=await buildLiveCatalog({lat:39.2238,lon:9.1217},2.5,[]);
+    assert.match(query,/convenience/);assert.match(query,/around:2500/);assert.equal(data.stores.length,2);
+    assert.equal(data.stores.some(s=>s.name==='Alimentari del quartiere'),true);
+    assert.equal(data.stores[0].onlineUrl,'https://www.cosicomodo.it/pan/cagliari-plaia');
+    assert.equal(data.coverage.priceConnectedStores,0);assert.equal(data.coverage.exhaustive,false);assert.deepEqual(data.products,[]);assert.equal(data.retailerSources.length,1);
+  }finally{globalThis.fetch=original;}
+});
+test('geocoding is biased to Cagliari and keeps the explicit address selection',async()=>{
+  const original=globalThis.fetch;let requested;
+  globalThis.fetch=async url=>{requested=new URL(url);return Response.json({features:[{geometry:{coordinates:[9.1217,39.2238]},properties:{name:'Via di test',city:'Cagliari',countrycode:'IT'}}]});};
+  try{const results=await geocode('indirizzo-test-cagliari');assert.equal(requested.searchParams.get('lat'),'39.2238');assert.equal(requested.searchParams.get('lon'),'9.1217');assert.match(results[0].label,/Cagliari/);assert.equal(results.length,1);}finally{globalThis.fetch=original;}
 });
