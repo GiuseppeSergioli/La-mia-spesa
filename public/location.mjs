@@ -1,4 +1,23 @@
 import {validCoordinates,haversine,DEFAULT_LOCATION} from './core.mjs';
+
+// Indicative public landmarks, not a claim about the device's location.
+// Sources and coordinate precision are documented in docs/CAGLIARI.md.
+export const CAGLIARI_STARTS=Object.freeze([
+  Object.freeze({id:'via-roma',name:'Via Roma',label:'Via Roma, Cagliari · Palazzo Civico',lat:39.21533,lon:9.11056,source:'preset'}),
+  Object.freeze({id:'piazza-yenne',name:'Piazza Yenne',label:'Piazza Yenne, Cagliari',lat:39.21773,lon:9.11347,source:'preset'}),
+  Object.freeze({id:'piazza-garibaldi',name:'Piazza Garibaldi',label:'Piazza Garibaldi, Cagliari',lat:39.21908,lon:9.12133,source:'preset'}),
+  Object.freeze({id:'piazza-repubblica',name:'Piazza Repubblica',label:'Piazza Repubblica, Cagliari · fermata metro',lat:39.21733,lon:9.12525,source:'preset'})
+]);
+export const DEFAULT_START=CAGLIARI_STARTS[0];
+const normalizedAddress=value=>String(value ?? '').trim().toLocaleLowerCase('it').replace(/\s+/g,' ');
+export function knownStart(value,selected=null) {
+  const text=normalizedAddress(value);
+  if(!text)return {...DEFAULT_START};
+  if(selected && validCoordinates(selected.lat,selected.lon) && text===normalizedAddress(selected.label))return {...selected};
+  const match=CAGLIARI_STARTS.find(place=>[place.name,`${place.name}, Cagliari`,place.label].some(label=>normalizedAddress(label)===text));
+  return match?{...match}:null;
+}
+
 export const GPS_OPTIONS={enableHighAccuracy:true,timeout:20_000,maximumAge:0};
 export function accuracyLabel(metres) {
   if(!Number.isFinite(metres) || metres<=0)return 'precisione non comunicata';
@@ -20,5 +39,5 @@ export function geolocationError(error) {
   if(error?.code===1)return 'Accesso alla posizione negato. Abilita la posizione precisa per questo sito nelle impostazioni del browser e del dispositivo, oppure inserisci il tuo indirizzo.';
   if(error?.code===2)return 'Il dispositivo non riesce a determinare la posizione. Attiva i servizi di localizzazione oppure inserisci via, numero e città.';
   if(error?.code===3)return 'La ricerca della posizione è scaduta dopo 20 secondi. Puoi riprovare oppure inserire il tuo indirizzo.';
-  return 'Posizione non disponibile. Puoi inserire il tuo indirizzo o partire esplicitamente dal centro di Cagliari.';
+  return 'Posizione non disponibile. Puoi inserire il tuo indirizzo o scegliere una delle quattro zone rapide di Cagliari.';
 }

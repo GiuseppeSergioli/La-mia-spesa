@@ -1,12 +1,12 @@
-import { compareBasket, comparisonSummary, priceForProduct, nearbyStores, normalizeList, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, normalizeRadius } from './core.mjs';
+import { compareBasket, comparisonSummary, priceForProduct, nearbyStores, normalizeList, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, normalizeRadius } from './core.mjs';
 import { createDemoData, demoLocation, sampleList, sampleLists, migrateDemoList } from './demo.mjs';
 import { icon, productArt, heroArt } from './art.mjs';
-import { GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError } from './location.mjs';
+import { CAGLIARI_STARTS, knownStart, GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError } from './location.mjs';
 
 const $ = (selector,root=document) => root.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='spesina:v1';
-const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],category:'all',search:'',live:false,busy:false,cartOpen:false,completeOnly:false,results:null,visibleLimit:24};
+const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],category:'all',categoriesExpanded:false,search:'',live:false,busy:false,cartOpen:false,completeOnly:false,results:null,visibleLimit:24};
 let toastTimer, requestId=0, pendingGps=null;
 let saved=null;
 try {saved=JSON.parse(localStorage.getItem(KEY));} catch {}
@@ -71,15 +71,17 @@ function updateRadiusControl(form,value) {
 
 function locationFields(modal=false) {
   const selected=state.location || (saved?.mode==='live'?saved.location:null);
-  const address=state.mode==='live' && selected?.source==='gps'?'':state.mode==='live'?selected?.label || 'Cagliari':'Cagliari';
+  const address=state.mode==='live' && selected?.source!=='gps'?selected?.label || '':'';
+  const activeStart=knownStart(address,selected);
   return `<form id="${modal?'location-modal-form':'location-form'}" class="location-form">
     <label class="field-label" for="${modal?'modal-address':'address'}">Da dove partiamo?</label>
-    <div class="address-field">${icon('pin')}<input id="${modal?'modal-address':'address'}" name="address" autocomplete="street-address" maxlength="200" minlength="3" placeholder="Città, CAP o indirizzo" value="${esc(address)}" required></div>
-    <div class="location-alternatives"><button class="text-button geolocation" type="button" data-action="geolocate">${icon('target')} Usa la mia posizione</button><button class="text-button geolocation" type="button" data-action="cagliari-centre">${icon('pin')} Parti dal centro di Cagliari</button></div>
-    <p class="centre-hint">La posizione del dispositivo va confermata. Se è imprecisa, inserisci via, numero e città. Il centro è un’alternativa indicativa.</p>
+    <div class="address-field">${icon('pin')}<input id="${modal?'modal-address':'address'}" name="address" autocomplete="street-address" maxlength="200" minlength="3" placeholder="Via Roma, Cagliari (predefinita)" value="${esc(address)}" aria-describedby="${modal?'modal-':''}start-hint"></div>
+    <p class="centre-hint" id="${modal?'modal-':''}start-hint">Se lasci vuoto, partiamo da Via Roma, Cagliari, vicino al Palazzo Civico.</p>
+    <div class="quick-starts" role="group" aria-label="Zone rapide di Cagliari">${CAGLIARI_STARTS.map(place=>`<button type="button" data-start="${place.id}" aria-pressed="${place.id===activeStart?.id}">${icon('pin')}<span>${esc(place.name)}</span></button>`).join('')}</div>
+    <div class="location-alternatives"><button class="text-button geolocation" type="button" data-action="geolocate">${icon('target')} Usa la mia posizione</button></div>
     ${radiusControl(modal?'modal-radius':'radius')}
     <p class="field-hint">Da 500 m a 6 km, a passi di 500 m. Distanza in linea d’aria.</p>
-    <button class="button primary full" type="submit" ${state.busy?'disabled':''}>${state.busy?'<span class="spinner"></span> Ricerca in corso…':`Cerca supermercati ${icon('arrow')}`}</button>
+    <div class="location-actions"><button class="button primary full" type="submit" name="destination" value="catalog" ${state.busy?'disabled':''}>Riempi il tuo carrello ${icon('arrow')}</button><p>Scegli i prodotti, poi confronteremo i totali dei negozi nella zona.</p><button class="button secondary full" type="submit" name="destination" value="stores" ${state.busy?'disabled':''}>${icon('search')} Cerca supermercati</button><span>Facoltativo: consulta prima i negozi vicini.</span></div>
     <div class="form-feedback" role="status"></div><div class="location-candidates"></div>
   </form>`;
 }
@@ -117,8 +119,15 @@ function catalogPage() {
 
 function categoryNavigation() {
   const categories=state.data.categories || [];
+  const choices=categories.filter(c=>c.id!=='all');
+  const featured=['pasta','biscotti','latte','pane','frutta','verdura','carne','pesce','surgelati','bevande','casa','persona'];
+  const preferred=choices.filter(c=>featured.includes(c.id));
+  const visible=state.categoriesExpanded?choices:[...preferred,...choices.filter(c=>!featured.includes(c.id))].slice(0,12);
+  if(!state.categoriesExpanded && state.category!=='all' && !visible.some(c=>c.id===state.category)) {
+    const selected=choices.find(c=>c.id===state.category);if(selected)visible.splice(visible.length-1,1,selected);
+  }
   const counts=Object.fromEntries(categories.map(c=>[c.id,c.id==='all'?products().length:products().filter(p=>p.category===c.id).length]));
-  return `<div class="category-picker"><label for="category-select">Scegli una categoria<span>${categories.length-1} categorie da esplorare</span></label><select id="category-select" aria-label="Scegli una categoria">${categories.map(c=>`<option value="${esc(c.id)}" ${state.category===c.id?'selected':''}>${esc(c.name)} · ${counts[c.id]} prodotti</option>`).join('')}</select></div><div class="categories" role="group" aria-label="Categorie prodotti">${categories.map(c=>`<button class="category ${state.category===c.id?'selected':''}" data-category="${esc(c.id)}" aria-label="${esc(c.name)}" aria-pressed="${state.category===c.id}">${icon(c.icon)}${esc(c.name)}<span class="category-count" aria-hidden="true">${counts[c.id]}</span></button>`).join('')}</div>`;
+  return `<div class="category-picker"><label for="category-select">Scegli una categoria<span>${choices.length} categorie · ${products().length} prodotti</span></label><select id="category-select" aria-label="Scegli una categoria">${categories.map(c=>`<option value="${esc(c.id)}" ${state.category===c.id?'selected':''}>${esc(c.name)} · ${counts[c.id]} prodotti</option>`).join('')}</select></div><div class="category-overview"><button class="category all-category ${state.category==='all'?'selected':''}" data-category="all" aria-label="Tutti" aria-pressed="${state.category==='all'}">${icon('grid')} Tutti i prodotti <span class="category-count">${counts.all || 0}</span></button><span>${visible.length} di ${choices.length} categorie</span></div><div id="category-grid" class="categories" role="group" aria-label="Categorie prodotti">${visible.map(c=>`<button class="category ${state.category===c.id?'selected':''}" data-category="${esc(c.id)}" aria-label="${esc(c.name)}" aria-pressed="${state.category===c.id}">${icon(c.icon)}<span class="category-copy"><span class="category-name">${esc(c.name)}</span><span class="category-count" aria-hidden="true">${counts[c.id]} prodotti</span></span></button>`).join('')}</div>${choices.length>12?`<button class="text-button category-expand" data-action="toggle-categories" aria-expanded="${state.categoriesExpanded}" aria-controls="category-grid">${state.categoriesExpanded?'Mostra meno categorie':`Mostra tutte le ${choices.length} categorie`} ${icon('chevron')}</button>`:''}`;
 }
 
 function productGrid() {
@@ -208,34 +217,50 @@ function exitDemo() {
   requestId++;state.busy=false;state.mode='live';state.data=null;state.list=[];state.location=null;state.results=null;state.page='location';state.cartOpen=false;saved=null;persist();closeModal();render();announcePage();
 }
 
-async function findLocation(form) {
+async function findLocation(form,destination='catalog') {
   if (state.busy) return;
-  const feedback=$('.form-feedback',form),candidates=$('.location-candidates',form),submit=$('[type=submit]',form);
+  const feedback=$('.form-feedback',form),candidates=$('.location-candidates',form);
   if (!state.live) {feedback.textContent='La ricerca reale richiede il server. Per esplorare l’app scegli “Prova la demo”.';return;}
-  const id=++requestId;state.busy=true;submit.disabled=true;submit.innerHTML='<span class="spinner"></span> Cerco il tuo indirizzo…';feedback.textContent='';candidates.innerHTML='';
+  const q=String(new FormData(form).get('address') || '').trim();
+  const selected=knownStart(q,state.mode==='live'?state.location:null);
+  form._destination=destination;
+  if(selected)return loadLocation(selected,Number(new FormData(form).get('radius')),feedback,destination);
+  const id=++requestId;state.busy=true;setLocationButtons(true);feedback.innerHTML='<span class="spinner dark"></span> Cerco il tuo indirizzo…';candidates.innerHTML='';updateHeader();
   try {
-    const q=new FormData(form).get('address').trim();
     const data=await api(`geocode?q=${encodeURIComponent(q)}`);if (id!==requestId) return;
     if (!data.results.length) {feedback.textContent='Nessun indirizzo trovato in Italia. Prova “via, numero, città” o il nome del comune.';return;}
+    feedback.textContent=destination==='stores'?'Scegli il punto da cui cercare i supermercati.':'Conferma l’indirizzo per passare direttamente ai prodotti.';
     candidates.innerHTML='<span class="field-label">Scegli la posizione corretta</span>'+data.results.map((loc,i)=>`<button type="button" data-location-index="${i}">${icon('pin')}<span>${esc(loc.label)}</span>${icon('arrow')}</button>`).join('');
     form._locations=data.results;
     $('[data-location-index]',candidates)?.focus();
   } catch(e) {if(id===requestId) feedback.textContent=e.message;}
-  finally {if(id===requestId) {state.busy=false;submit.disabled=false;submit.innerHTML=`Cerca supermercati ${icon('arrow')}`;updateHeader();}}
+  finally {if(id===requestId) {state.busy=false;setLocationButtons(false);updateHeader();}}
 }
 
-async function loadLocation(loc,radius,feedback) {
+function setLocationButtons(disabled) {
+  document.querySelectorAll('[data-location-index],.location-form [type=submit],.location-form [data-start],.location-form [data-action="geolocate"]').forEach(el=>el.disabled=disabled);
+}
+
+function chooseStart(id,form) {
+  const place=CAGLIARI_STARTS.find(place=>place.id===id);if(!place || !form || state.busy)return;
+  $('[name="address"]',form).value=place.label;
+  form.querySelectorAll('[data-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.start===id)));
+  $('.location-candidates',form).innerHTML='';
+  $('.form-feedback',form).textContent=`Partenza: ${place.name}. Premi “Riempi il tuo carrello” per scegliere i prodotti.`;
+}
+
+async function loadLocation(loc,radius,feedback,destination='catalog') {
   if(state.busy) return;const id=++requestId;state.busy=true;updateHeader();
-  if(feedback) feedback.innerHTML='<span class="spinner dark"></span> Cerco i supermercati e i cataloghi nella tua zona…';
-  document.querySelectorAll('[data-location-index],#location-form [type=submit],#location-modal-form [type=submit]').forEach(el=>el.disabled=true);
+  if(feedback) feedback.innerHTML=`<span class="spinner dark"></span> ${destination==='stores'?'Cerco i supermercati nella tua zona…':'Preparo i prodotti e cerco i negozi per il confronto…'}`;
+  setLocationButtons(true);
   try {
     const data=await api(`catalog?${new URLSearchParams({lat:loc.lat,lon:loc.lon,radius})}`);if(id!==requestId) return;
     const oldCount=state.list.length;
-    state.mode='live';state.location=loc;state.radius=radius;state.data=data;state.list=normalizeList(state.list,data.products);state.page='stores';state.category='all';state.search='';state.results=null;state.visibleLimit=24;state.cartOpen=false;
+    state.mode='live';state.location=loc;state.radius=radius;state.data=data;state.list=normalizeList(state.list,data.products);state.page=destination==='stores'?'stores':'catalog';state.category='all';state.search='';state.results=null;state.visibleLimit=24;state.cartOpen=false;
     if(state.list.length<oldCount) toast('Alcuni prodotti non sono presenti nel nuovo catalogo e sono stati rimossi dalla lista.');
     pendingGps=null;closeModal();persist();render();announcePage();
   } catch(e) {if(id===requestId){if(feedback)feedback.textContent=e.message;if(['catalog','stores'].includes(state.page))toast(e.message);}}
-  finally {if(id===requestId){state.busy=false;document.querySelectorAll('[data-location-index],#location-form [type=submit],#location-modal-form [type=submit]').forEach(el=>el.disabled=false);if(['catalog','stores'].includes(state.page)) render();else updateHeader();}}
+  finally {if(id===requestId){state.busy=false;setLocationButtons(false);if(['catalog','stores'].includes(state.page)) render();else updateHeader();}}
 }
 
 function geolocate(radiusOverride=null) {
@@ -253,21 +278,13 @@ function geolocate(radiusOverride=null) {
     if(id!==requestId)return;finish();
     try {
       const location=gpsLocation(pos);pendingGps={location,radius};
-      showModal('Questo è il tuo punto di partenza?',`<p class="modal-description">Il dispositivo ha rilevato questo punto. Verificalo prima di cercare i supermercati.</p><div class="gps-summary"><strong>Precisione: ${accuracyLabel(location.accuracyMeters)}</strong><span>Latitudine ${location.lat.toFixed(5)} · Longitudine ${location.lon.toFixed(5)}</span><a href="https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lon}#map=17/${location.lat}/${location.lon}" target="_blank" rel="noopener noreferrer">${icon('map')} Controlla il punto sulla mappa ${icon('external')}</a></div><p class="gps-warning">${esc(gpsWarning(location,radius))}</p><div id="gps-feedback" class="form-feedback" role="status"></div><button class="button primary full" data-action="confirm-gps">Usa questo punto e cerca ${icon('arrow')}</button><div class="gps-alternatives"><button class="text-button" data-action="retry-gps">${icon('refresh')} Rileva di nuovo</button><button class="text-button" data-action="gps-address">Inserisci l’indirizzo</button></div>`);
+      showModal('Questo è il tuo punto di partenza?',`<p class="modal-description">Il dispositivo ha rilevato questo punto. Verificalo prima di passare ai prodotti.</p><div class="gps-summary"><strong>Precisione: ${accuracyLabel(location.accuracyMeters)}</strong><span>Latitudine ${location.lat.toFixed(5)} · Longitudine ${location.lon.toFixed(5)}</span><a href="https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lon}#map=17/${location.lat}/${location.lon}" target="_blank" rel="noopener noreferrer">${icon('map')} Controlla il punto sulla mappa ${icon('external')}</a></div><p class="gps-warning">${esc(gpsWarning(location,radius))}</p><div id="gps-feedback" class="form-feedback" role="status"></div><button class="button primary full" data-action="confirm-gps">Usa questo punto e riempi il carrello ${icon('arrow')}</button><div class="gps-alternatives"><button class="text-button" data-action="retry-gps">${icon('refresh')} Rileva di nuovo</button><button class="text-button" data-action="gps-address">Inserisci l’indirizzo</button></div>`);
     } catch(error){if(feedback)feedback.textContent=error.message;}
   },error=>{if(id!==requestId)return;finish();if(feedback)feedback.textContent=geolocationError(error);},GPS_OPTIONS);
 }
 function correctGpsWithAddress() {
   requestId++;state.busy=false;pendingGps=null;closeModal();
   if(state.page==='location'){render();$('#address').focus();}else editLocation();
-}
-
-function useCagliariCentre() {
-  if(state.busy)return;
-  const form=$('#location-modal-form') || $('#location-form');
-  const feedback=$('.form-feedback',form);
-  if(!state.live){feedback.textContent='Per cercare i negozi reali serve il server dell’app attivo.';return;}
-  return loadLocation({...DEFAULT_LOCATION},Number(new FormData(form).get('radius')),feedback);
 }
 
 async function showComparison() {
@@ -361,13 +378,14 @@ document.addEventListener('click',event=> {
   if(event.target.closest('.brand,.footer-brand')){event.preventDefault();goHome();return;}
   const button=event.target.closest('button');if(!button || button.disabled)return;
   if(button.dataset.radiusAdjust){const form=button.closest('form');const input=$('.radius-slider',form);updateRadiusControl(form,Math.max(MIN_RADIUS_KM,Math.min(MAX_RADIUS_KM,Number(input.value)+Number(button.dataset.radiusAdjust))));return;}
+  if(button.dataset.start)return chooseStart(button.dataset.start,button.closest('form'));
   if(button.dataset.add)return changeQuantity(button.dataset.add,1);
   if(button.dataset.delta)return changeQuantity(button.dataset.product,Number(button.dataset.delta));
   if(button.dataset.sampleList){const list=sampleLists.find(l=>l.id===button.dataset.sampleList);if(list){state.list=structuredClone(list.items);closeModal();refreshListUI();toast(`${list.name}: lista demo caricata.`);}return;}
   if(button.dataset.category) {state.visibleLimit=24;state.category=button.dataset.category;render();$('#product-search').focus({preventScroll:true});return;}
   if(button.dataset.detail)return showDetail(button.dataset.detail);
   if(button.dataset.priceSource)return showPriceSource(button.dataset.priceSource);
-  if(button.dataset.locationIndex!==undefined){const form=button.closest('form');return loadLocation(form._locations[Number(button.dataset.locationIndex)],Number(new FormData(form).get('radius')),$('.form-feedback',form));}
+  if(button.dataset.locationIndex!==undefined){const form=button.closest('form');return loadLocation(form._locations[Number(button.dataset.locationIndex)],Number(new FormData(form).get('radius')),$('.form-feedback',form),form._destination);}
   if(button.dataset.step) {
     if(button.dataset.step==='compare')return showComparison();
     if(button.dataset.step==='location')return goHome();
@@ -378,8 +396,9 @@ document.addEventListener('click',event=> {
     'confirm-gps':()=>{if(pendingGps)loadLocation(pendingGps.location,pendingGps.radius,$('#gps-feedback'));},
     'retry-gps':()=>geolocate(pendingGps?.radius),'gps-address':correctGpsWithAddress,
     'more-products':()=>{state.visibleLimit+=24;$('#product-grid').innerHTML=productGrid();},
-    'retry-stores':()=>loadLocation({...state.location},state.radius,$('#directory-feedback')),
-    demo:()=>startDemo(false),'exit-demo':exitDemo,help:showHelp,privacy,stores:showStores,'edit-location':editLocation,geolocate:()=>geolocate(),'cagliari-centre':useCagliariCentre,compare:showComparison,
+    'toggle-categories':()=>{state.categoriesExpanded=!state.categoriesExpanded;render();$('[data-action="toggle-categories"]')?.focus({preventScroll:true});},
+    'retry-stores':()=>loadLocation({...state.location},state.radius,$('#directory-feedback'),state.page),
+    demo:()=>startDemo(false),'exit-demo':exitDemo,help:showHelp,privacy,stores:showStores,'edit-location':editLocation,geolocate:()=>geolocate(),compare:showComparison,
     catalog:()=>{state.page='catalog';state.results=null;render();announcePage();},
     'sample-list':()=>{state.list=structuredClone(sampleList);refreshListUI();toast('Una lista d’esempio, pronta da modificare.');},
     'clear-search':()=>{state.visibleLimit=24;state.search='';state.category='all';render();},
@@ -393,12 +412,13 @@ document.addEventListener('click',event=> {
   actions[button.dataset.action]?.();
 });
 document.addEventListener('input',event=> {
+  if(event.target.name==='address'){const form=event.target.closest('form'),selected=knownStart(event.target.value);form.querySelectorAll('[data-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.start===selected?.id)));$('.location-candidates',form).innerHTML='';$('.form-feedback',form).textContent='';if(state.busy){requestId++;state.busy=false;setLocationButtons(false);updateHeader();}}
   if(event.target.id==='product-search'){state.visibleLimit=24;state.search=event.target.value;$('#product-grid').innerHTML=productGrid();}
   if(event.target.classList.contains('radius-slider')){updateRadiusControl(event.target.closest('form'),Number(event.target.value));}
 });
 document.addEventListener('change',event=>{if(event.target.id==='category-select'){state.category=event.target.value;state.visibleLimit=24;render();$('#category-select').focus({preventScroll:true});}if(event.target.id==='hide-incomplete'){state.completeOnly=event.target.checked;$('#incomplete-results').hidden=state.completeOnly;}});
 document.addEventListener('submit',event=> {
-  if(['location-form','location-modal-form'].includes(event.target.id)){event.preventDefault();findLocation(event.target);}
+  if(['location-form','location-modal-form'].includes(event.target.id)){event.preventDefault();findLocation(event.target,event.submitter?.value==='stores'?'stores':'catalog');}
   if(event.target.id==='demo-radius-form'){event.preventDefault();state.radius=Number(new FormData(event.target).get('radius'));state.results=null;closeModal();persist();render();toast(`Raggio aggiornato: ${stores().length} negozi demo.`);}
 });
 document.addEventListener('keydown',event=>{if(event.key==='/' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName) && !$('#modal').open && $('#product-search')){event.preventDefault();$('#product-search').focus();}});

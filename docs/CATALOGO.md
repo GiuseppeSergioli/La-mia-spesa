@@ -1,6 +1,6 @@
 # Catalogo condiviso
 
-Versione 1.4.0: 384 prodotti, 24 categorie, 16 scelte per categoria. Stessa selezione nel carrello e nel simulatore. Le voci sono generiche e non confermano assortimento o disponibilità dei supermercati. Prezzi e provenienza: PREZZI-SIMULATI.md.
+Versione 1.5.0: 384 prodotti, 24 categorie, 16 scelte per categoria. Stessa selezione nel carrello e nel simulatore. Le voci sono generiche e non confermano assortimento o disponibilità dei supermercati. Prezzi e provenienza: PREZZI-SIMULATI.md.
 
 ## Pasta e riso
 
@@ -457,3 +457,5 @@ Versione 1.4.0: 384 prodotti, 24 categorie, 16 scelte per categoria. Stessa sele
 - Biscotti per cane — 500 g
 - Snack dentali per cane — 7 pezzi
 - Sacchetti igienici per cane — 60 pezzi
+
+Interfaccia 1.5.0: 12 categorie in una griglia di più righe, più Tutti e Mostra tutte le 24 categorie. Sono subito rappresentate anche frutta, verdura, carne, pesce, bevande, surgelati, casa e persona. Se si seleziona dal menu una categoria inizialmente nascosta, il suo pulsante entra nella griglia. Le 24 categorie e le 384 opzioni sono identiche nella demo e nel catalogo senza feed.

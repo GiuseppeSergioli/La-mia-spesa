@@ -5,7 +5,7 @@ const modules=[
   ['Catalog','public/catalog.mjs','REFERENCE_CHECKED_ON, CATALOG_CATEGORY_COUNT, CATALOG_PRODUCTS_PER_CATEGORY, CATALOG_PRODUCT_COUNT, catalogCategories, catalogProducts, catalogCounts'],
   ['Demo','public/demo.mjs','categories, products, demoLocation, sampleList, sampleLists, createDemoData, migrateDemoList, legacyDemoAliases'],
   ['Art','public/art.mjs','icon, productArt, heroArt'],
-  ['Location','public/location.mjs','GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError']
+  ['Location','public/location.mjs','CAGLIARI_STARTS, DEFAULT_START, knownStart, GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError']
 ];
 let script='window.SPESINA_STATIC=true;\n';
 for(const [name,file,exports] of modules) {

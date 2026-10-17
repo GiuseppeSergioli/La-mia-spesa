@@ -2,13 +2,13 @@
 
 Un’app in italiano per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
 
-**Versione 1.4.0 — catalogo uniforme:** carrello e simulatore condividono **384 prodotti in 24 categorie, con 16 scelte per categoria**. Il selettore mostra i conteggi e la prima pagina propone un articolo di ciascuna categoria. Sono presenti, fra le altre, frutta, verdura, carne, salumi, pesce, surgelati, pane, snack, igiene, bucato, infanzia e animali. Il percorso resta zona → supermercati → Componi il carrello → confronto. Le vecchie liste demo vengono migrate ai nuovi esempi generici conservando le quantità; gli ID dei 30 riferimenti già disponibili nella versione precedente restano invariati.
+**Versione 1.5.0 — carrello subito:** il pulsante principale **Riempi il tuo carrello** apre direttamente la scelta dei prodotti. **Cerca supermercati** resta un’azione secondaria, facoltativa e informativa. Lasciando vuoto l’indirizzo si parte da **Via Roma, Cagliari**, vicino al Palazzo Civico. Quattro pulsanti permettono di scegliere Via Roma, Piazza Yenne, Piazza Garibaldi o Piazza Repubblica senza dipendere dal geocodificatore. Le categorie sono in una griglia su più righe: **12 subito visibili**, più il filtro Tutti e il pulsante per espandere le **24 categorie**. La categoria selezionata resta visibile anche quando si richiude la griglia. Il catalogo condiviso con il simulatore conserva **384 prodotti, 16 per categoria**, e le liste già salvate.
 
 I prezzi senza listino locale sono indicati come **Prezzo simulato**. Le 30 voci fondate sui riferimenti pubblici precedenti mantengono fonte e data di consultazione; le altre 354 hanno una **stima indicativa definita nel catalogo**, con data e metodo, senza attribuire a un sito prezzi che non sono stati rilevati. Le stime non sono una media di mercato e non confermano assortimento o disponibilità. Il simulatore usa gli stessi prodotti e categorie, con 8 negozi, prezzi e scorte fittizi per esercitare il confronto.
 
-**Nessun feed prezzi locale è collegato.** La ricerca dei negozi e l’elenco parziale di 8 punti reali Eurospin/Lidl restano disponibili. Dove tutti i prezzi sono simulati si usa lo stesso riferimento per lo stesso prodotto nei diversi negozi e il risultato è una parità. Raggio 0,5–6 km, GPS con conferma e ritorno alla home restano presenti. Vedi `docs/CATALOGO.md` e `docs/PREZZI-SIMULATI.md`.
+**Nessun feed prezzi locale è collegato.** La ricerca dei negozi e l’elenco parziale di 9 punti reali Eurospin/Lidl/Carrefour restano disponibili. Dove tutti i prezzi sono simulati si usa lo stesso riferimento per lo stesso prodotto nei diversi negozi e il risultato è una parità. Raggio 0,5–6 km, GPS con conferma e ritorno alla home restano presenti. Vedi `docs/CATALOGO.md` e `docs/PREZZI-SIMULATI.md`.
 
-Il sito esistente deve ancora essere aggiornato con questi file su GitHub e Render; questa chat non ha distribuito la versione 1.4.0.
+Il sito esistente deve ancora essere aggiornato con questi file su GitHub e Render; questa chat non ha distribuito la versione 1.5.0.
 
 ## Avvio
 
@@ -31,16 +31,18 @@ L’ultimo comando genera `dist/index.html`: una demo autonoma, apribile anche c
 
 ## Cosa è implementato
 
-- Indirizzo con scelta esplicita del risultato geografico, oppure geolocalizzazione su consenso.
+- Percorso principale: zona → Riempi il tuo carrello → prodotti e quantità → Confronta la spesa.
+- Quattro zone rapide; indirizzo vuoto = Via Roma. Per un indirizzo diverso si conferma il risultato geografico; GPS su richiesta e con conferma.
+- Griglia di 12 categorie subito visibili, espandibile a 24, identica nella demo.
 - Raggio da 0,5 a 6 km, con incrementi di 0,5 km e pulsanti +/− per aggiustamenti di 500 metri, espresso in **linea d’aria**. Non è una distanza stradale e non stima il tempo di viaggio.
 - Ricerca reale di supermercati, discount e piccoli alimentari presenti in OpenStreetMap, compresi i negozi indipendenti. La copertura può essere incompleta; il fatto che un negozio esista sulla mappa non implica che il suo catalogo sia accessibile.
 - Catalogo condiviso fra carrello e demo: 384 prodotti, 24 categorie, 16 prodotti per categoria. Il caricamento procede a gruppi di 24, con selettore e conteggi per categoria. Gli 8 negozi demo sono fittizi e filtrati per raggio; quattro liste pronte: veloce, settimana, casa e colazione.
 - Categorie cliccabili, ricerca per prodotto e marca, selezione di confezioni e quantità da 1 a 99.
 - Pulsante **Torna alla home** nelle pagine di lista e confronto; anche il logo e il passo 1 portano alla home. Il ritorno conserva la lista. Dalla home si può riprendere la demo o la lista già caricata.
 - Lista salvata nel browser; pulsante per eliminare lista e zona.
-- Elenco locale datato 17/10/2026 di 8 punti vendita reali di due catene, con link alla scheda ufficiale e coordinate tratte dai link di indicazioni delle catene. Copertura parziale, nessun prezzo o scorta incluso.
+- Elenco locale datato 17/10/2026 di 9 punti vendita reali di tre catene, con link alla scheda ufficiale e coordinate tratte dai link di indicazioni delle catene. Copertura parziale, nessun prezzo o scorta incluso.
 - Errore del servizio mappa distinto da zero risultati: elenco locale quando presente, altrimenti numero di negozi non verificabile e pulsante per riprovare.
-- Passaggio esplicito negozi → composizione del carrello → confronto. Se non ci sono negozi si può preparare la lista; il confronto richiede almeno un punto nel raggio.
+- Accesso diretto al carrello; elenco dei negozi consultabile separatamente. Se non ci sono negozi si può preparare la lista; il confronto richiede almeno un punto nel raggio.
 - 384 prodotti generici sempre selezionabili. I 30 precedenti riferimenti pubblici restano distinguibili dalle 354 nuove stime indicative. Il catalogo non è presentato come assortimento delle catene.
 - Prezzi simulati distinti da prezzi verificati in schede prodotto, carrello, totali, dettaglio, esportazione e stampa. Fonte e data consultabili.
 - Confronto della lista e quantità per singolo negozio; riferimenti uguali fra negozi per lo stesso prodotto senza prezzi verificati.
@@ -135,7 +137,7 @@ I nomi dei prodotti dimostrativi identificano esempi di selezione, non partnersh
 
 ## Ricerca indirizzi: correzione 1.1.1
 
-Photon viene interrogato senza forzare una lingua: il nome locale può essere restituito senza quel parametro. Eventuali errori non diventano una posizione inventata e non vengono conservati in cache. Il pulsante “Parti dal centro di Cagliari” è un’alternativa esplicita: non usa il servizio di geocodifica e cerca negozi dal punto indicativo del centro; “Usa la mia posizione” usa invece le coordinate consentite dal browser. Entrambi tentano la ricerca dei negozi tramite Overpass; in caso di errore vengono mostrati i punti dell’elenco locale compresi nel raggio, quando presenti.
+Photon viene interrogato senza forzare una lingua: il nome locale può essere restituito senza quel parametro. Eventuali errori non diventano una posizione inventata e non vengono conservati in cache. Le quattro zone rapide non usano il servizio di geocodifica e indicano punti pubblici del centro. Se l’indirizzo è vuoto si sceglie Via Roma; un indirizzo personalizzato non trovato non viene sostituito da Via Roma. I suggerimenti con identica etichetta vengono deduplicati; numeri civici diversi restano distinti; “Usa la mia posizione” usa invece le coordinate consentite dal browser. Entrambi tentano la ricerca dei negozi tramite Overpass; in caso di errore vengono mostrati i punti dell’elenco locale compresi nel raggio, quando presenti.
 
 Per usare una propria istanza Photon compatibile, imposta PHOTON_SEARCH_URL sull’endpoint HTTPS di ricerca nella configurazione del server. Non è una URL ricevuta dal browser. I log della ricerca fallita riportano solo tipo di errore e stato HTTP, senza indirizzo o URL completa.
 
@@ -167,3 +169,8 @@ Il browser riceve `enableHighAccuracy: true`, `maximumAge: 0` e timeout di 20 se
 `public/catalog.mjs` è la fonte comune di categorie, ID, descrizioni, formati e riferimenti. `public/demo.mjs` aggiunge soltanto i negozi e le loro offerte fittizie; `server/shopping.mjs` integra eventuali prodotti e offerte dei feed. Senza feed, nomi, formati, categorie e ID dei 384 prodotti coincidono esattamente nelle due modalità, mentre i prezzi del simulatore restano esempi.
 
 La prima pagina contiene un prodotto per ciascuna delle 24 categorie e “Mostra altri prodotti” amplia la selezione. Il menu categorie permette di raggiungerle tutte anche da mobile. Le vecchie 96 selezioni demo hanno un percorso di migrazione agli esempi generici nuovi: le quantità rimangono, eventuali righe confluenti si sommano fino a 99. Questa migrazione riguarda solo dati demo; non sostituisce articoli di marca provenienti da feed reali. La lista del confronto accetta fino a 500 prodotti distinti, così comprende l’intero catalogo di 384 articoli.
+
+
+## Navigazione 1.5.0
+
+Il form distingue la destinazione tramite il pulsante premuto: catalog per il carrello, stores per l’elenco informativo. Il risultato geografico mantiene quella destinazione. La conferma GPS e il cambio zona portano ai prodotti. La ricerca facoltativa dei negozi conserva il comando per proseguire al carrello. Il carrello è compilabile anche quando le fonti non individuano negozi: il confronto si abilita solo quando ce n’è almeno uno nel raggio. Non sono stati collegati nuovi feed prezzi. Il negozio Carrefour Express di via Manno 10 è stato aggiunto all’elenco datato di riserva per coprire anche la nuova partenza Via Roma, rispettando il raggio minimo di 500 metri. Fonti dei punti rapidi in docs/CAGLIARI.md.

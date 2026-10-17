@@ -1,6 +1,6 @@
 {
   "name": "spesina",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Confronta la stessa lista della spesa nei supermercati vicini.",
   "type": "module",

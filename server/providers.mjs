@@ -7,7 +7,7 @@ import { enrichStore, sourceCoverage } from './retailers.mjs';
 import { supplementStores } from './local-stores.mjs';
 import { shoppingCatalog } from './shopping.mjs';
 
-const UA = `LaMiaSpesa/1.4 (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
+const UA = `LaMiaSpesa/1.5 (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
 const MAX_BYTES = 4 * 1024 * 1024;
 const cache = new Map();
 const pending = new Map();
@@ -56,17 +56,17 @@ export async function geocode(query) {
     } catch(error) {
       // Log only a status/type, never the address or the full request URL.
       console.warn('Address lookup unavailable', {status:error.status || null,reason:error.name});
-      throw new UpstreamError('La ricerca degli indirizzi non è disponibile. Puoi usare la tua posizione oppure il pulsante “Parti dal centro di Cagliari”.',error.status || null);
+      throw new UpstreamError('La ricerca degli indirizzi non è disponibile. Puoi usare la tua posizione oppure scegliere una delle quattro zone rapide di Cagliari.',error.status || null);
     }
-    const seen = new Set();
+    const seen = new Set(),labels = new Set();
     return (data.features ?? []).flatMap(f => {
       const [lon,lat] = f.geometry?.coordinates ?? [], p = f.properties ?? {};
       if (!validCoordinates(lat,lon) || p.countrycode && p.countrycode.toUpperCase() !== 'IT') return [];
       const street = [p.street,p.housenumber].filter(Boolean).join(' ');
       const parts = [...new Set([street || p.name,p.postcode,p.city || p.town || p.village,p.state].filter(Boolean))];
-      const label = parts.join(', '), key = `${lat}:${lon}`;
-      if (!label || seen.has(key)) return [];
-      seen.add(key); return [{lat,lon,label}];
+      const label = parts.join(', '), key = `${lat}:${lon}`,labelKey=label.toLocaleLowerCase('it').replace(/\s+/g,' ').trim();
+      if (!label || seen.has(key) || labels.has(labelKey)) return [];
+      seen.add(key);labels.add(labelKey); return [{lat,lon,label}];
     });
   });
 }

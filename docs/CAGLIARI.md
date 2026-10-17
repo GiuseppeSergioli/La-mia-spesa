@@ -1,23 +1,24 @@
 # Cagliari: copertura e integrazioni
 
-Verifica delle fonti: 17 ottobre 2026. Versione 1.4.0.
+Verifica delle fonti: 17 ottobre 2026. Versione 1.5.0.
 
 ## Cosa è effettivamente attivo
 
-L’app ricerca su OpenStreetMap supermercati, discount e piccoli alimentari nel raggio scelto, compresi gli indipendenti. Non applica una lista chiusa di marchi. I negozi sono filtrati per distanza dalla posizione scelta; il raggio massimo è 6 km in linea d’aria, con passi di 500 metri. Non sono 6 km dal confine di Cagliari e non è un raggio stradale: un indirizzo a Quartu, Selargius o un altro comune avrà il proprio centro di ricerca. Cagliari è precompilata ma serve scegliere il risultato geografico o inserire l’indirizzo preciso.
+L’app ricerca su OpenStreetMap supermercati, discount e piccoli alimentari nel raggio scelto, compresi gli indipendenti. Non applica una lista chiusa di marchi. I negozi sono filtrati per distanza dalla posizione scelta; il raggio massimo è 6 km in linea d’aria, con passi di 500 metri. Non sono 6 km dal confine di Cagliari e non è un raggio stradale: un indirizzo a Quartu, Selargius o un altro comune avrà il proprio centro di ricerca. Se l’indirizzo è vuoto, la partenza è Via Roma, presso il Palazzo Civico. Quattro zone rapide permettono di cambiare punto. Per un indirizzo personalizzato serve confermare il risultato geografico.
 
 L’API segnala `coverage.exhaustive: false`: la mappa non garantisce un censimento di tutti i supermercati esistenti. Un negozio non riconosciuto come insegna rimane comunque nei risultati. Negozi indicati esplicitamente come dismessi o abbandonati vengono esclusi. Non abbiamo inserito punti vendita con coordinate inventate.
 
-I link ai siti ufficiali vengono associati ai negozi trovati. L’app mostra separatamente quanti negozi sono stati trovati e quanti hanno un catalogo prezzi effettivamente collegato. Il pulsante Componi il carrello consente di proseguire anche senza cataloghi locali usando il catalogo condiviso di 384 articoli generici in 24 categorie e prezzi marcati come simulati; i totali risultanti non certificano la convenienza reale delle catene. Fonti e metodo in `PREZZI-SIMULATI.md`. **Questo aggiornamento non attiva alcun nuovo feed prezzi.** La demo è centrata su Cagliari e contiene 384 prodotti, 24 categorie, 8 negozi fittizi e 4 liste pronte, con prezzi e disponibilità inventati.
+I link ai siti ufficiali vengono associati ai negozi trovati. L’app mostra separatamente quanti negozi sono stati trovati e quanti hanno un catalogo prezzi effettivamente collegato. Il pulsante principale Riempi il tuo carrello porta direttamente ai prodotti, senza passare dall’elenco informativo dei supermercati. Consente di proseguire anche senza cataloghi locali usando il catalogo condiviso di 384 articoli generici in 24 categorie e prezzi marcati come simulati; i totali risultanti non certificano la convenienza reale delle catene. Fonti e metodo in `PREZZI-SIMULATI.md`. **Questo aggiornamento non attiva alcun nuovo feed prezzi.** La demo è centrata su Cagliari e contiene 384 prodotti, 24 categorie, 8 negozi fittizi e 4 liste pronte, con prezzi e disponibilità inventati.
 
 ## Elenco locale di riserva
 
-La ricerca Overpass predefinita usa Private.coffee. Un timeout o una risposta incompleta vengono segnalati come guasto. Se il servizio non risponde, l’app può mostrare gli 8 punti seguenti, filtrati per la distanza dalla posizione scelta: un raggio di 3 km dal centro non li comprende tutti. Se nessuna voce locale rientra nel raggio, il numero dei negozi viene dichiarato non verificabile, anziché zero.
+La ricerca Overpass predefinita usa Private.coffee. Un timeout o una risposta incompleta vengono segnalati come guasto. Se il servizio non risponde, l’app può mostrare i 9 punti seguenti, filtrati per la distanza dalla posizione scelta: un raggio di 3 km dal centro non li comprende tutti. Se nessuna voce locale rientra nel raggio, il numero dei negozi viene dichiarato non verificabile, anziché zero.
 
-Questo elenco di due catene è parziale, verificato il 17/10/2026. Non indica prezzi, scorte o apertura in tempo reale. Le coordinate sono tratte dai link di indicazioni stradali presenti nelle schede ufficiali, non da indirizzi geocodificati a intuito. I dettagli sono in `server/local-stores.mjs`; quando la mappa risponde l’elenco integra i risultati, evitando duplicati della stessa catena entro 100 metri.
+Questo elenco di tre catene è parziale, verificato il 17/10/2026. Non indica prezzi, scorte o apertura in tempo reale. Le coordinate sono tratte dai link di indicazioni stradali presenti nelle schede ufficiali, non da indirizzi geocodificati a intuito. I dettagli sono in `server/local-stores.mjs`; quando la mappa risponde l’elenco integra i risultati, evitando duplicati della stessa catena entro 100 metri.
 
 | Punto vendita | Fonte ufficiale |
 | --- | --- |
+| Carrefour Express, via Manno 10, Cagliari | [Scheda con link percorso](https://www.carrefour.it/punti-vendita/carrefour-express-cagliari-via-manno-10-4997.html) |
 | Eurospin, viale Marconi 215, Cagliari | [Scheda](https://www.eurospin.com/it-it/punti-vendita/cagliari-viale-marconi/) |
 | Eurospin, via Stamira, Cagliari | [Scheda](https://www.eurospin.com/it-it/punti-vendita/cagliari-via-stamira/) |
 | Eurospin, S.S. 130 c/o ex F.A.S., Elmas | [Scheda](https://www.eurospin.com/it-it/punti-vendita/elmas-s-s-130/) |
@@ -57,3 +58,17 @@ Le prime fonti da approfondire per un connettore effettivo sono Pan/CosìComodo 
 ## Pubblicazione dell’aggiornamento
 
 La chat non ha accesso a GitHub: l’integrazione risulta disabilitata dall’amministrazione. I file modificati sono inclusi nel pacchetto. Caricali nel repository esistente La-mia-spesa seguendo AGGIORNAMENTO-CAGLIARI.txt; non creare un nuovo servizio e non modificare le altre applicazioni Render. L’esecuzione dei test locali non prova che questi file siano già online.
+
+
+## Quattro zone rapide — 1.5.0
+
+I punti sono indicativi, arrotondati a cinque decimali, e non rappresentano una posizione GPS. Una scelta rapida compila il campo; il pulsante principale apre il catalogo. Lasciando il campo vuoto si usa Via Roma. Nessuna ricerca di un indirizzo personalizzato fallita viene sostituita silenziosamente con una zona rapida. La demo mantiene la propria area fittizia per conservare gli scenari di prezzo e disponibilità.
+
+| Scelta | Punto usato | Coordinate | Riferimenti consultati il 17/10/2026 |
+| --- | --- | --- | --- |
+| Via Roma (predefinita) | Palazzo Civico | 39.21533, 9.11056 | [Comune: Via Roma 145](https://cagliariturismo.comune.cagliari.it/it/vivicagliari/palazzo-civico), [coordinate del Palazzo](https://it.wikipedia.org/wiki/Palazzo_Civico_(Cagliari)) |
+| Piazza Yenne | Piazza | 39.21773, 9.11347 | [Comune](https://cagliariturismo.comune.cagliari.it/it/vivicagliari/piazza-yenne), [geodati Commons](https://commons.wikimedia.org/wiki/Category:Piazza_Yenne) |
+| Piazza Garibaldi | Piazza Giuseppe Garibaldi | 39.21908, 9.12133 | [Comune](https://cagliariturismo.comune.cagliari.it/it/vivicagliari/piazza-giuseppe-garibaldi), [geodati Commons](https://commons.wikimedia.org/wiki/Category:Piazza_Giuseppe_Garibaldi_(Cagliari)) |
+| Piazza Repubblica | Fermata metro | 39.21733, 9.12525 | [Comune: piazza Repubblica](https://cagliariturismo.comune.cagliari.it/it/vivicagliari/palazzo-di-giustizia), [coordinate della stazione](https://it.wikipedia.org/wiki/Stazione_di_Cagliari_Piazza_Repubblica) |
+
+Il Carrefour di via Manno ha coordinate 39.21571, 9.11574 copiate dal collegamento “Calcola il percorso” della scheda ufficiale: [destinazione pubblicata](https://www.google.com/maps/dir/?api=1&destination=39.21571,9.11574). È presente entro 500 metri dal punto di Via Roma e rimane privo di prezzi o disponibilità verificati. Questo evita che il precedente elenco locale, concentrato soprattutto a nord, risulti vuoto dalla nuova partenza in caso di guasto della mappa.

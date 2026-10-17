@@ -7,6 +7,7 @@ import { createDemoData, demoLocation } from '../public/demo.mjs';
 import { compareBasket, nearbyStores } from '../public/core.mjs';
 import {shoppingCatalog} from '../server/shopping.mjs';
 import {localStoresNear} from '../server/local-stores.mjs';
+import {CAGLIARI_STARTS,DEFAULT_START} from '../public/location.mjs';
 const require=createRequire(import.meta.url);
 let chromium;
 try {({chromium}=require('playwright'));}
@@ -19,12 +20,18 @@ try {
   const page=await browser.newPage({viewport:{width:1440,height:1100}});
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base);await page.getByRole('button',{name:'Prova la demo'}).waitFor();
+  assert.equal(await page.locator('#location-form .primary[type="submit"]').getAttribute('value'),'catalog');
+  assert.deepEqual(await page.locator('#location-form [data-start] span').allTextContents(),CAGLIARI_STARTS.map(place=>place.name));
   await page.screenshot({path:resolve(output,'location-desktop.png'),fullPage:true});
   await page.getByRole('button',{name:'Prova la demo'}).click();
   assert.equal(await page.locator('.product-card').count(),24);
+  assert.equal(await page.locator('#category-grid [data-category]').count(),12);
+  await page.getByRole('button',{name:'Mostra tutte le 24 categorie'}).click();assert.equal(await page.locator('#category-grid [data-category]').count(),24);
+  await page.getByRole('button',{name:'Mostra meno categorie'}).click();assert.equal(await page.locator('#category-grid [data-category]').count(),12);
   await page.getByRole('button',{name:'Mostra altri prodotti'}).click();assert.equal(await page.locator('.product-card').count(),48);
   await page.getByRole('button',{name:'Pasta e riso',exact:true}).click();assert.equal(await page.locator('.product-card').count(),16);
   await page.locator('#category-select').selectOption('animali');assert.equal(await page.locator('.product-card').count(),16);
+  assert.equal(await page.getByRole('button',{name:'Alimenti e cura animali',exact:true}).getAttribute('aria-pressed'),'true');
   await page.getByRole('button',{name:'Tutti',exact:true}).click();
   await page.locator('#product-search').fill('Latte UHT intero');assert.equal(await page.locator('.product-card').count(),2);
   await page.locator('#product-search').fill('');
@@ -81,17 +88,24 @@ try {
   // Full live flow with real store identities and explicitly simulated references.
   await page.getByRole('button',{name:'Torna alla home',exact:true}).click();
   await page.setViewportSize({width:1440,height:1000});
-  const realStores=localStoresNear(demoLocation,3).slice(0,2);
+  await page.locator('#address').fill('');
+  const blankStart=page.waitForRequest('**/api/catalog?*');
+  await page.getByRole('button',{name:'Riempi il tuo carrello',exact:false}).click();
+  const blankUrl=new URL((await blankStart).url());assert.equal(Number(blankUrl.searchParams.get('lat')),DEFAULT_START.lat);assert.equal(Number(blankUrl.searchParams.get('lon')),DEFAULT_START.lon);
+  await page.locator('.product-card').first().waitFor();assert.equal(await page.locator('.shopping-next').count(),0);
+  await page.getByRole('button',{name:'Torna alla home',exact:true}).click();
+  const start=CAGLIARI_STARTS.find(place=>place.id==='piazza-yenne'),realStores=localStoresNear(start,3).slice(0,2);
   const estimated={mode:'live',...shoppingCatalog([],realStores),stores:realStores,warnings:[],retailerSources:[],storeDiscovery:{status:'local_directory',mapAvailable:false,localStoreCount:realStores.length},attribution:'Test: dated public references'};
   await page.route('**/api/catalog?*',route=>route.fulfill({json:estimated}));
   await page.locator('#radius').fill('3');
   await page.route('**/api/compare',route=>{
     const body=route.request().postDataJSON();
-    return route.fulfill({json:{results:compareBasket(body.list,estimated.products,nearbyStores(realStores,demoLocation,body.radius),Date.now(),{allowEstimates:true}),warnings:[],generatedAt:new Date().toISOString()}});
+    return route.fulfill({json:{results:compareBasket(body.list,estimated.products,nearbyStores(realStores,start,body.radius),Date.now(),{allowEstimates:true}),warnings:[],generatedAt:new Date().toISOString()}});
   });
-  await page.getByRole('button',{name:'Parti dal centro di Cagliari',exact:true}).click();
-  assert.equal(await page.getByRole('button',{name:'Componi il carrello',exact:true}).isVisible(),true);
-  await page.getByRole('button',{name:'Componi il carrello',exact:true}).click();
+  await page.locator('[data-start="piazza-yenne"]').click();
+  await page.getByRole('button',{name:'Riempi il tuo carrello',exact:false}).click();await page.locator('.product-card').first().waitFor();
+  assert.equal(await page.locator('.shopping-next').count(),0);
+  if(await page.locator('.cart-item').count()){await page.getByRole('button',{name:'Svuota la lista',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Svuota la lista',exact:true}).click();}
   assert.equal(await page.locator('.product-card').count(),24);
   assert.match(await page.locator('.product-card').first().innerText(),/Prezzo simulato/);
   await page.locator('#category-select').selectOption('animali');assert.equal(await page.locator('.product-card').count(),16);
@@ -120,13 +134,13 @@ try {
   await page.getByRole('button',{name:'Usa la mia posizione',exact:true}).click();
   assert.match(await page.locator('.gps-summary').innerText(),/1,8 km/);assert.match(await page.locator('.gps-warning').innerText(),/approssimativo/);assert.equal(gpsSearches,0);
   assert.deepEqual(await page.evaluate(()=>({accurate:window.__gpsOptions.enableHighAccuracy,age:window.__gpsOptions.maximumAge})),{accurate:true,age:0});
-  await page.getByRole('button',{name:'Usa questo punto e cerca',exact:false}).click();await page.getByRole('button',{name:'Componi il carrello',exact:true}).waitFor();assert.equal(gpsSearches,1);
+  await page.getByRole('button',{name:'Usa questo punto e riempi il carrello',exact:false}).click();await page.locator('.product-card').first().waitFor();assert.equal(gpsSearches,1);
   await page.getByRole('button',{name:'Torna alla home',exact:true}).click();
   await page.evaluate(()=>Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition(_success,error){error({code:1});}}}));
   await page.getByRole('button',{name:'Usa la mia posizione',exact:true}).click();assert.match(await page.locator('#location-form .form-feedback').innerText(),/negato/);
   // A map error must not turn into a claim that no supermarkets exist.
   await page.route('**/api/catalog?*',route=>route.fulfill({json:{mode:'live',...shoppingCatalog([],[]),stores:[],warnings:['La ricerca sulla mappa non risponde.'],retailerSources:[],storeDiscovery:{status:'unavailable',mapAvailable:false,localStoreCount:0},attribution:'Test fixture'}}));
-  await page.getByRole('button',{name:'Parti dal centro di Cagliari',exact:true}).click();
+  await page.locator('[data-start="via-roma"]').click();await page.getByRole('button',{name:'Cerca supermercati',exact:false}).click();
   assert.match(await page.locator('h1').innerText(),/da riprovare/);assert.equal((await page.locator('.coverage-summary').innerText()).includes('0 negozi trovati'),false);assert.equal(await page.getByRole('button',{name:'Riprova la ricerca sulla mappa'}).isVisible(),true);
   await page.getByRole('button',{name:'Componi il carrello',exact:true}).click();assert.equal(await page.locator('.product-card').count(),24);assert.equal(await page.getByRole('button',{name:'Confronta la spesa',exact:false}).isDisabled(),true);
   await page.getByRole('button',{name:'Torna alla home',exact:true}).click();assert.equal(await page.locator('#location-form').isVisible(),true);

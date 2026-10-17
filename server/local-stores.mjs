@@ -3,6 +3,7 @@ import { haversine } from '../public/core.mjs';
 // Coordinates copied from the directions links published by each retailer.
 // This small dated directory contains NO prices, stock, or claim of completeness.
 export const verifiedLocalStores = [
+  {id:'local:carrefour-cagliari-manno',name:'Carrefour Express · Via Manno',chain:'Carrefour',address:'Via Manno 10, Cagliari',lat:39.21571,lon:9.11574,officialUrl:'https://www.carrefour.it/punti-vendita/carrefour-express-cagliari-via-manno-10-4997.html'},
   {id:'local:eurospin-cagliari-marconi',name:'Eurospin · Viale Marconi',chain:'Eurospin',address:'Viale Marconi 215, Cagliari',lat:39.24098837732278,lon:9.14937777980432,officialUrl:'https://www.eurospin.com/it-it/punti-vendita/cagliari-viale-marconi/'},
   {id:'local:eurospin-cagliari-stamira',name:'Eurospin · Via Stamira',chain:'Eurospin',address:'Via Stamira, Cagliari',lat:39.24992941,lon:9.116578967,officialUrl:'https://www.eurospin.com/it-it/punti-vendita/cagliari-via-stamira/'},
   {id:'local:eurospin-elmas',name:'Eurospin · Elmas',chain:'Eurospin',address:'S.S. 130, c/o ex F.A.S., Elmas',lat:39.26015552155916,lon:9.064522337825329,officialUrl:'https://www.eurospin.com/it-it/punti-vendita/elmas-s-s-130/'},

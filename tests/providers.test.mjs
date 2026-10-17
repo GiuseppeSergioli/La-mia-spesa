@@ -66,9 +66,16 @@ test('geocoding HTTP errors provide a usable alternative and are not cached',asy
   const original=globalThis.fetch,oldWarn=console.warn;let calls=0;const logs=[];
   globalThis.fetch=async()=>{calls++;return new Response('Unsupported language',{status:400});};console.warn=(...args)=>logs.push(args);
   try{
-    for(let i=0;i<2;i++)await assert.rejects(geocode('private-address-http-error'),error=>error.status===400 && error.message.includes('centro di Cagliari'));
+    for(let i=0;i<2;i++)await assert.rejects(geocode('private-address-http-error'),error=>error.status===400 && error.message.includes('quattro zone rapide'));
     assert.equal(calls,2);assert.equal(logs[0][1].status,400);assert.equal(JSON.stringify(logs).includes('private-address'),false);
   }finally{globalThis.fetch=original;console.warn=oldWarn;}
+});
+test('geocoding hides duplicate address labels while retaining different house numbers',async()=>{
+  const original=globalThis.fetch;
+  const feature=(lon,street='Via Roma',number)=>({geometry:{coordinates:[lon,39.215]},properties:{street,housenumber:number,city:'Cagliari',countrycode:'IT'}});
+  globalThis.fetch=async()=>Response.json({features:[feature(9.11),feature(9.111),feature(9.112,'Via Roma','167'),feature(9.113,'Via Roma','145')]});
+  try{const results=await geocode('distinct-labels-regression');assert.equal(results.length,3);assert.match(results[1].label,/167/);assert.match(results[2].label,/145/);}
+  finally{globalThis.fetch=original;}
 });
 test('geocoding network failure does not fabricate coordinates or return the city centre',async()=>{
   const original=globalThis.fetch,oldWarn=console.warn;globalThis.fetch=async()=>{throw new TypeError('fetch failed');};console.warn=()=>{};

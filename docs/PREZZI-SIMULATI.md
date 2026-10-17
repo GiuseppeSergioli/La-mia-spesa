@@ -1,6 +1,6 @@
 # Prezzi simulati e prodotti di riferimento
 
-Versione 1.4.0 · Fonti consultate il 17 ottobre 2026.
+Versione 1.5.0 · Fonti consultate il 17 ottobre 2026.
 
 Il catalogo condiviso fra carrello e demo comprende 384 prodotti generici in 24 categorie, con 16 scelte per categoria. Le 30 voci elencate nella tabella mantengono i precedenti riferimenti pubblici; le altre 354 hanno stime indicative definite nel catalogo. Consente di scegliere prodotti e quantità e calcolare i totali anche se il negozio non fornisce un listino. Non è una copia dell’assortimento locale: la presenza di un articolo non significa che Eurospin, Lidl o un altro negozio lo venda.
 

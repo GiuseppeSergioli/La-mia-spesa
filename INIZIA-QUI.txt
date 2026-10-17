@@ -1,10 +1,13 @@
-LA MIA SPESA — VERSIONE 1.4.0
+LA MIA SPESA — VERSIONE 1.5.0
 
 Per aggiornare Render: AGGIORNAMENTO-CAGLIARI.txt.
-Carrello e simulatore: stesso catalogo di 384 prodotti in 24 categorie, 16 scelte per categoria.
-Percorso: zona > negozi > Componi il carrello > prodotti e quantità > Confronta la spesa.
-Sfoglia dal menu categorie o con i pulsanti; Mostra altri prodotti ne carica 24 per volta.
-I prezzi simulati distinguono riferimenti pubblici e stime indicative. Scorte locali non confermate. Nessun feed prezzi locale collegato.
-Demo autonoma: apri dist/index.html. Stessi prodotti, con negozi, prezzi e scorte fittizi e 4 liste pronte.
+Percorso: zona > Riempi il tuo carrello > prodotti e quantità > Confronta la spesa.
+Cerca supermercati è secondario e facoltativo: apre l’elenco informativo.
+Indirizzo vuoto: Via Roma, Cagliari, presso il Palazzo Civico.
+Zone rapide: Via Roma, Piazza Yenne, Piazza Garibaldi, Piazza Repubblica.
+Categorie: griglia di 12 scelte subito visibili, più Tutti e Mostra tutte le 24 categorie.
+Carrello e simulatore: stessi 384 prodotti, 24 categorie, 16 scelte per categoria.
+I prezzi simulati distinguono riferimenti pubblici e stime indicative. Scorte locali non confermate. Nessun nuovo feed prezzi collegato.
+Demo autonoma: apri dist/index.html. Stessi prodotti, con 8 negozi, prezzi e scorte fittizi e 4 liste pronte.
 Server: Node.js 24, npm ci --ignore-scripts, npm start; http://localhost:3000.
-Categorie: docs/CATALOGO.md. Stime e fonti: docs/PREZZI-SIMULATI.md. Verifiche: VALIDAZIONE.md.
+Categorie: docs/CATALOGO.md. Stime: docs/PREZZI-SIMULATI.md. Verifiche: VALIDAZIONE.md.

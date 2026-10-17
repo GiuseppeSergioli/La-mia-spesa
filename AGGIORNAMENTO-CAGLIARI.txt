@@ -1,27 +1,22 @@
-LA MIA SPESA — AGGIORNAMENTO 1.4.0
+LA MIA SPESA — AGGIORNAMENTO 1.5.0
 
-CATALOGO AMPLIATO E UNIFORME
-- 24 categorie, 16 prodotti per categoria: 384 scelte complessive.
-- Stesse categorie, nomi, formati e prodotti nel carrello e nel simulatore.
-- Menu di scelta categoria con conteggi; la prima pagina mostra un prodotto per ciascuna categoria. Mostra altri prodotti ne carica altri 24.
-- Le vecchie liste demo vengono aggiornate agli esempi generici nuovi conservando le quantità. Gli ID dei 30 prodotti del precedente carrello rimangono validi.
-- Il confronto accetta anche un carrello contenente tutti i 384 prodotti.
+LE TRE MODIFICHE
+1. Riempi il tuo carrello è il pulsante principale: apre direttamente i prodotti. Cerca supermercati è secondario e facoltativo; l’elenco conserva il comando per proseguire.
+2. Categorie su più righe: 12 subito visibili, con icone, nomi e conteggi. Mostra tutte le 24 categorie espande la griglia. Il menu permette di raggiungerle tutte; la selezione rimane visibile anche nella griglia richiusa. Stessa interfaccia nella demo.
+3. Indirizzo vuoto: Via Roma, presso il Palazzo Civico. Quattro pulsanti distinti: Via Roma, Piazza Yenne, Piazza Garibaldi, Piazza Repubblica. Non dipendono dalla ricerca esterna degli indirizzi. I suggerimenti duplicati della ricerca geografica vengono rimossi senza perdere i diversi numeri civici.
 
-CATEGORIE
-Pasta e riso; biscotti; cereali e colazione; latte e bevande vegetali; yogurt e dessert; formaggi e uova; pane e prodotti da forno; snack e aperitivi; conserve e legumi; sughi e condimenti; farine e ingredienti; frutta fresca; verdura fresca; carne; salumi e affettati; pesce; surgelati e gelati; acqua e bevande; caffè e tisane; pulizia casa; bucato e carta; cura della persona; prima infanzia; alimenti e cura animali.
-
-PREZZI
-Rimane la dicitura Prezzo simulato quando manca il prezzo locale. I 30 precedenti riferimenti pubblici mantengono fonte e data. Le altre 354 voci hanno valori indicativi definiti per il catalogo: nella finestra Fonte della stima viene indicato che non sono prezzi rilevati né una media di mercato. Nessuna URL di prezzo inventata per questi valori. Non è stato attivato un nuovo feed prezzi delle catene. Anche la disponibilità rimane da verificare.
+Rimangono 384 prodotti, 24 categorie e 16 scelte per categoria; quantità e liste salvate vengono conservate. Raggio massimo 6 km. GPS con conferma e ritorno alla home sempre disponibili. Nessun nuovo feed prezzi collegato: le stime restano marcate Prezzo simulato.
+L’elenco di riserva include anche Carrefour Express via Manno 10, con coordinate dal sito ufficiale: copre la partenza Via Roma anche entro 500 metri. L’elenco di 9 punti è parziale e non indica scorte o prezzi verificati.
 
 AGGIORNARE IL SITO
 1. Estrai lo ZIP e apri la cartella spesina.
 2. Su GitHub apri GiuseppeSergioli/La-mia-spesa.
-3. Add file > Upload files: carica il CONTENUTO di spesina, mantenendo le sottocartelle. package.json deve restare nella radice del repository. È indispensabile il nuovo public/catalog.mjs, insieme ai file demo, app e server aggiornati.
+3. Add file > Upload files: carica il CONTENUTO di spesina, mantenendo le sottocartelle. package.json deve restare nella radice del repository. Aggiorna anche public/location.mjs, app.mjs, styles.css, server e package-lock.json insieme agli altri file del pacchetto.
 4. Conferma Commit changes.
 5. Su Render, nel servizio esistente: Manual Deploy > Deploy latest commit, oppure attendi il deploy automatico.
-6. /api/status deve mostrare version 1.4.0. Dopo il deploy, nel carrello e nella demo devono comparire 384 prodotti e 24 categorie; scegli una categoria per vedere le sue 16 opzioni.
+6. /api/status deve mostrare version 1.5.0. Riapri la URL già usata e aggiorna la pagina. Verifica il pulsante Riempi il tuo carrello, le quattro zone e la griglia categorie.
 
-La URL rimane la stessa. L’aggiornamento non è stato distribuito automaticamente da questa chat. Le altre applicazioni Render non sono state modificate.
+La URL rimane la stessa. Questa chat non ha eseguito il deploy.
 
 VERIFICA
-92 test automatici superati: cataloghi identici, 16 prodotti per categoria, compatibilità delle liste, prezzi, disponibilità e confronto completo dei 384 articoli. Controllo visuale nel browser non eseguito qui. Vedi VALIDAZIONE.md.
+97 test automatici superati; moduli e demo compilati. Controllo visuale nel browser non eseguito qui. Vedi VALIDAZIONE.md.
