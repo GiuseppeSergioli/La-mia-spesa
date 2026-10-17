@@ -1,17 +1,18 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 const read = path => readFile(new URL(`../${path}`,import.meta.url),'utf8');
 const modules=[
-  ['Core','public/core.mjs','MAX_QUANTITY, MAX_PRICE_CENTS, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, validRadius, normalizeRadius, haversine, validCoordinates, nearbyStores, normalizeList, offerStatus, compareBasket, savingsBetweenComplete, money, distance, lowestPrice'],
+  ['Core','public/core.mjs','MAX_QUANTITY, MAX_PRICE_CENTS, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, validRadius, normalizeRadius, haversine, validCoordinates, nearbyStores, normalizeList, offerStatus, referencePrice, priceForProduct, compareBasket, comparisonSummary, savingsBetweenComplete, money, distance, lowestPrice'],
   ['Demo','public/demo.mjs','categories, products, demoLocation, sampleList, sampleLists, createDemoData'],
-  ['Art','public/art.mjs','icon, productArt, heroArt']
+  ['Art','public/art.mjs','icon, productArt, heroArt'],
+  ['Location','public/location.mjs','GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError']
 ];
 let script='window.SPESINA_STATIC=true;\n';
 for(const [name,file,exports] of modules) {
-  const source=(await read(file)).replace(/\bexport\s+(?=(?:async\s+)?(?:const|function|class))/g,'');
+  const source=(await read(file)).replace(/\bexport\s+(?=(?:async\s+)?(?:const|function|class))/g,'').replace(/^import \{([^}]+)\} from '\.\/core\.mjs';/m,'const {$1}=Core;');
   script+=`const ${name}=(()=>{\n${source}\nreturn {${exports}};\n})();\n`;
 }
 let app=await read('public/app.mjs');
-app=app.replace(/^import \{([^}]+)\} from '\.\/core\.mjs';/m,'const {$1}=Core;').replace(/^import \{([^}]+)\} from '\.\/demo\.mjs';/m,'const {$1}=Demo;').replace(/^import \{([^}]+)\} from '\.\/art\.mjs';/m,'const {$1}=Art;');
+app=app.replace(/^import \{([^}]+)\} from '\.\/core\.mjs';/m,'const {$1}=Core;').replace(/^import \{([^}]+)\} from '\.\/demo\.mjs';/m,'const {$1}=Demo;').replace(/^import \{([^}]+)\} from '\.\/art\.mjs';/m,'const {$1}=Art;').replace(/^import \{([^}]+)\} from '\.\/location\.mjs';/m,'const {$1}=Location;');
 script+=`(()=>{\n${app}\n})();`;
 const css=await read('public/styles.css'),favicon=await read('public/icon.svg');
 let html=await read('public/index.html');

@@ -1,10 +1,11 @@
-LA MIA SPESA — VERSIONE 1.2.0 CAGLIARI
+LA MIA SPESA — VERSIONE 1.3.0 CAGLIARI
 
-Se hai già il sito su Render: leggi AGGIORNAMENTO-CAGLIARI.txt.
-Per provare la demo: apri dist/index.html. 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte. Prezzi e scorte sono inventati.
-Per avviare il server: Node.js 24, npm ci --ignore-scripts, npm start. Apri http://localhost:3000.
-Raggio: da 500 metri a 6 km, ogni 500 metri. Distanze in linea d’aria.
-La lista e il confronto hanno un pulsante Torna alla home che conserva la lista.
-La directory reale include un elenco locale parziale di 8 punti Eurospin/Lidl; nessun catalogo prezzi reale è collegato.
-Per fonti e stato delle integrazioni: docs/CAGLIARI.md.
-Per test e limiti della verifica: VALIDAZIONE.md.
+Per aggiornare il tuo sito Render: AGGIORNAMENTO-CAGLIARI.txt.
+Percorso: zona > negozi > Componi il carrello > prodotti e quantità > Confronta la spesa.
+Catalogo di riferimento: 30 prodotti, 8 categorie. Prezzi simulati con fonte e data; scorte locali non confermate. A parità di prezzi simulati il risultato è una parità.
+Demo separata: dist/index.html, 96 prodotti, 14 categorie, 8 negozi e prezzi fittizi, 4 liste pronte.
+Server: Node.js 24, npm ci --ignore-scripts, npm start; poi http://localhost:3000.
+Raggio: 500 m–6 km a passi di 500 m, in linea d’aria.
+GPS: controlla la precisione e conferma il punto, oppure inserisci l’indirizzo.
+Fonti e limiti delle stime: docs/PREZZI-SIMULATI.md.
+Negozi reali: docs/CAGLIARI.md. Verifiche: VALIDAZIONE.md.

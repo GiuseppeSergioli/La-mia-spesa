@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { createDemoData, demoLocation } from '../public/demo.mjs';
 import { compareBasket, nearbyStores } from '../public/core.mjs';
+import {shoppingCatalog} from '../server/shopping.mjs';
+import {localStoresNear} from '../server/local-stores.mjs';
 const require=createRequire(import.meta.url);
 let chromium;
 try {({chromium}=require('playwright'));}
@@ -70,15 +72,58 @@ try {
   });
   await page.locator('#address').fill('Cagliari');await page.getByRole('button',{name:'Cerca supermercati',exact:false}).click();
   await page.getByRole('button',{name:'Indirizzo di test'}).click();
+  await page.getByRole('button',{name:'Componi il carrello',exact:true}).click();
   await page.getByRole('button',{name:'Aggiungi Spaghetti n. 5 alla lista',exact:true}).click();
   await page.getByRole('button',{name:'La tua lista ·'}).click();
   await page.getByRole('button',{name:'Confronta la spesa',exact:false}).click();
   assert.match(await page.locator('.winner-price>strong').innerText(),/77,77/);
-  // A map error must not turn into a claim that no supermarkets exist.
+  // Full live flow with real store identities and explicitly simulated references.
   await page.getByRole('button',{name:'Torna alla home',exact:true}).click();
-  await page.route('**/api/catalog?*',route=>route.fulfill({json:{mode:'live',products:[],stores:[],categories:[{id:'all',name:'Tutti',icon:'grid'}],warnings:['La ricerca sulla mappa non risponde.'],retailerSources:[],storeDiscovery:{status:'unavailable',mapAvailable:false,localStoreCount:0},attribution:'Test fixture'}}));
+  await page.setViewportSize({width:1440,height:1000});
+  const realStores=localStoresNear(demoLocation,3).slice(0,2);
+  const estimated={mode:'live',...shoppingCatalog([],realStores),stores:realStores,warnings:[],retailerSources:[],storeDiscovery:{status:'local_directory',mapAvailable:false,localStoreCount:realStores.length},attribution:'Test: dated public references'};
+  await page.route('**/api/catalog?*',route=>route.fulfill({json:estimated}));
+  await page.locator('#radius').fill('3');
+  await page.route('**/api/compare',route=>{
+    const body=route.request().postDataJSON();
+    return route.fulfill({json:{results:compareBasket(body.list,estimated.products,nearbyStores(realStores,demoLocation,body.radius),Date.now(),{allowEstimates:true}),warnings:[],generatedAt:new Date().toISOString()}});
+  });
+  await page.getByRole('button',{name:'Parti dal centro di Cagliari',exact:true}).click();
+  assert.equal(await page.getByRole('button',{name:'Componi il carrello',exact:true}).isVisible(),true);
+  await page.getByRole('button',{name:'Componi il carrello',exact:true}).click();
+  assert.equal(await page.locator('.product-card').count(),24);
+  assert.match(await page.locator('.product-card').first().innerText(),/Prezzo simulato/);
+  await page.getByRole('button',{name:'Fonte della stima',exact:true}).first().click();
+  assert.match(await page.locator('#modal-content').innerText(),/2026-10-17/);await page.getByRole('button',{name:'Torna ai prodotti',exact:true}).click();
+  await page.getByRole('button',{name:'Aggiungi Spaghetti 500 g alla lista',exact:true}).click();
+  await page.getByRole('button',{name:'Aumenta quantità di Spaghetti',exact:true}).first().click();
+  await page.getByRole('button',{name:'Aggiungi Latte UHT parzialmente scremato 1 l alla lista',exact:true}).click();
+  await page.getByRole('button',{name:'Confronta la spesa',exact:false}).click();
+  assert.equal(await page.locator('.complete-results .store-result').count(),2);
+  assert.match(await page.locator('.winner h2').innerText(),/Stesso totale stimato/);assert.match(await page.locator('.winner-price>strong').innerText(),/2,48/);
+  assert.equal((await page.locator('.winner').innerText()).includes('Risparmi'),false);
+  await page.getByRole('button',{name:'Vedi il dettaglio',exact:true}).click();
+  assert.equal(await page.locator('.detail-table tbody tr').count(),2);assert.match(await page.locator('.detail-price-split').innerText(),/Parte simulata/);
+  await page.getByRole('button',{name:'Torna al confronto',exact:true}).click();
+  await page.screenshot({path:resolve(output,'estimated-comparison-desktop.png'),fullPage:true});
+  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`estimated comparison overflow at ${width}`);}
+  await page.getByRole('button',{name:'Torna alla home',exact:true}).click();
+  // Device responses are mocked: this checks confirmation/precision UX, not hardware GPS.
+  await page.addInitScript(()=>Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition(success,_error,options){window.__gpsOptions=options;success({coords:{latitude:39.2238,longitude:9.1217,accuracy:1800}});}}}));
+  const ready=page.waitForResponse('**/api/status');await page.reload();await ready;await page.locator('.static-note').waitFor({state:'detached'});
+  let gpsSearches=0;page.on('request',request=>{if(request.url().includes('/api/catalog?'))gpsSearches++;});
+  await page.getByRole('button',{name:'Usa la mia posizione',exact:true}).click();
+  assert.match(await page.locator('.gps-summary').innerText(),/1,8 km/);assert.match(await page.locator('.gps-warning').innerText(),/approssimativo/);assert.equal(gpsSearches,0);
+  assert.deepEqual(await page.evaluate(()=>({accurate:window.__gpsOptions.enableHighAccuracy,age:window.__gpsOptions.maximumAge})),{accurate:true,age:0});
+  await page.getByRole('button',{name:'Usa questo punto e cerca',exact:false}).click();await page.getByRole('button',{name:'Componi il carrello',exact:true}).waitFor();assert.equal(gpsSearches,1);
+  await page.getByRole('button',{name:'Torna alla home',exact:true}).click();
+  await page.evaluate(()=>Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition(_success,error){error({code:1});}}}));
+  await page.getByRole('button',{name:'Usa la mia posizione',exact:true}).click();assert.match(await page.locator('#location-form .form-feedback').innerText(),/negato/);
+  // A map error must not turn into a claim that no supermarkets exist.
+  await page.route('**/api/catalog?*',route=>route.fulfill({json:{mode:'live',...shoppingCatalog([],[]),stores:[],warnings:['La ricerca sulla mappa non risponde.'],retailerSources:[],storeDiscovery:{status:'unavailable',mapAvailable:false,localStoreCount:0},attribution:'Test fixture'}}));
   await page.getByRole('button',{name:'Parti dal centro di Cagliari',exact:true}).click();
   assert.match(await page.locator('h1').innerText(),/da riprovare/);assert.equal((await page.locator('.coverage-summary').innerText()).includes('0 negozi trovati'),false);assert.equal(await page.getByRole('button',{name:'Riprova la ricerca sulla mappa'}).isVisible(),true);
+  await page.getByRole('button',{name:'Componi il carrello',exact:true}).click();assert.equal(await page.locator('.product-card').count(),24);assert.equal(await page.getByRole('button',{name:'Confronta la spesa',exact:false}).isDisabled(),true);
   await page.getByRole('button',{name:'Torna alla home',exact:true}).click();assert.equal(await page.locator('#location-form').isVisible(),true);
-  assert.deepEqual(errors,[]);console.log('Browser checks passed: navigation, filters, quantities, persistence, comparison, export, mobile widths and live API rendering.');
+  assert.deepEqual(errors,[]);console.log('Browser checks passed: navigation, products, estimated and verified comparisons, ties, sources, GPS confirmation/errors, export and responsive widths.');
 } finally {await browser.close();}

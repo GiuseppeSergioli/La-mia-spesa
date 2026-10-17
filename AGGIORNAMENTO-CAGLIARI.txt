@@ -1,29 +1,32 @@
-LA MIA SPESA — AGGIORNAMENTO 1.2.0 CAGLIARI
+LA MIA SPESA — AGGIORNAMENTO 1.3.0
 
-LE CORREZIONI
-- Pulsante ben visibile “Torna alla home” dalla lista e dal confronto.
-- Anche logo e passo 1 tornano alla home. La lista resta salvata e puoi riprenderla.
-- Demo ampliata: 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte. I negozi visibili dipendono dal raggio scelto.
-- Ricerca cartografica con un altro servizio Overpass; timeout, risposte incomplete ed errori non vengono più presentati come zero negozi trovati.
-- Elenco locale di riserva con 8 punti vendita reali Eurospin e Lidl nel Cagliaritano, verificati il 17/10/2026. Vengono mostrati soltanto quelli nel raggio indicato. È un elenco parziale, non tutti i supermercati.
-- Pulsante per riprovare la ricerca se la mappa non risponde. Se non esistono voci locali nella tua zona, viene indicato che il numero dei negozi non è verificabile.
-- Nome visibile dell’app: La mia spesa.
-- Raggio sempre 500 m–6 km, a passi di 500 m, in linea d’aria.
+IL NUOVO PERCORSO
+1. Scegli indirizzo o posizione e raggio (500 m–6 km).
+2. Guarda i negozi trovati e premi Componi il carrello.
+3. Sfoglia le categorie, scegli prodotti e quantità.
+4. Premi Confronta la spesa per i totali dei supermercati della zona.
 
-STATO DEI PREZZI REALI
-Nessun catalogo prezzi reale è collegato. Le schede ufficiali degli 8 negozi e i link delle 10 insegne non importano prezzi o scorte. Il confronto funziona con i dati fittizi della demo; non è ancora un servizio operativo di confronto prezzi fra supermercati reali. Dettagli e fonti in docs/CAGLIARI.md.
+ANCHE SENZA LISTINI LOCALI
+Sono disponibili 30 prodotti generici in 8 categorie, con Prezzo simulato, riferimento pubblico e data consultabili. Il costo viene sommato al carrello e distinto dai prezzi verificati nel dettaglio. Non è un assortimento confermato dei supermercati. Se non si trova alcun negozio puoi preparare la lista, ma il confronto richiede almeno un punto nel raggio.
 
-COME AGGIORNARE IL SITO GIÀ PUBBLICATO
+Lo stesso prodotto senza prezzo locale ha lo stesso riferimento in tutti i negozi: se tutti i valori sono simulati, l’app mostra la parità. Non viene inventato un vincitore o un risparmio reale. I prodotti indicati esplicitamente come esauriti o con scorte insufficienti restano mancanti. I riferimenti non sono una media statistica di mercato e non si aggiornano automaticamente. Dettagli in docs/PREZZI-SIMULATI.md.
+
+NEGOZI E PREZZI
+Restano attivi la ricerca cartografica e l’elenco parziale di riserva di 8 punti reali Eurospin/Lidl. Nessun feed prezzi locale è ancora configurato. Il confronto usa quindi riferimenti simulati, salvo futuri prezzi verificati dei feed. La demo separata conserva 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte.
+
+POSIZIONE
+Usa la mia posizione richiede una misura aggiornata ad alta precisione. Mostra il margine d’errore e chiede di confermare il punto prima della ricerca. Se il punto non corrisponde o la precisione è scarsa, premi Inserisci l’indirizzo. Abilita la posizione precisa per il sito sul dispositivo. Il pulsante Parti dal centro di Cagliari resta un’alternativa esplicita e indicativa.
+
+AGGIORNARE IL SITO ESISTENTE
 1. Estrai lo ZIP e apri la cartella spesina.
 2. Su GitHub apri GiuseppeSergioli/La-mia-spesa, ramo main.
-3. Add file > Upload files: trascina i file e le cartelle CONTENUTI in spesina, mantenendo le sottocartelle. package.json deve rimanere nella radice del repository. Carica i file estratti, non lo ZIP e non un ulteriore livello spesina/. Sono necessari anche il nuovo server/local-stores.mjs e il public/demo.mjs ampliato.
-4. Conferma il commit. Attendi il nuovo deploy automatico del servizio Render esistente; se disabilitato usa Manual Deploy > Deploy latest commit.
-5. Riapri la tua URL Render. /api/status deve indicare versione 1.2.0 e radius.max uguale a 6. configuredStores resterà 0 finché non vengono configurati veri feed prezzi.
-6. Prova la demo, aggiungi un prodotto, premi Torna alla home e poi Riprendi la demo: il prodotto deve essere ancora in lista. Con Prova una lista pronta puoi esplorare quattro esempi.
-7. Per i negozi reali prova Parti dal centro di Cagliari. Anche se la mappa non risponde, vedrai le voci locali comprese nel raggio. Con 3 km dal centro non vedrai tutti gli 8 punti dell’elenco, perché alcuni sono più lontani.
-8. Se la versione è corretta ma la pagina sembra vecchia, ricarica forzando l’aggiornamento del browser.
+3. Add file > Upload files: carica il CONTENUTO della cartella, mantenendo tutte le sottocartelle. package.json deve essere nella radice del repository. Sono necessari anche public/location.mjs, server/reference-catalog.mjs e server/shopping.mjs. Carica i file estratti, non lo ZIP.
+4. Conferma Commit changes.
+5. Sul servizio Render già esistente: Manual Deploy > Deploy latest commit, oppure attendi il deploy automatico.
+6. /api/status deve indicare version 1.3.0 ed estimatedShopping true. configuredStores 0 indica l’assenza dei feed verificati e non blocca più la scelta dei prodotti.
+7. Riapri il sito, prova Parti dal centro di Cagliari > Componi il carrello > scegli prodotti > Confronta la spesa. Controlla Prezzo simulato e la parità fra negozi senza prezzi locali.
 
-Non serve cambiare le autorizzazioni GitHub o creare un nuovo servizio Render. Questo pacchetto aggiorna soltanto La-mia-spesa e non cambia le altre applicazioni. La URL del sito esistente rimane la stessa. La chat non ha caricato o distribuito automaticamente questo aggiornamento.
+La URL del sito resta la stessa. Questa chat non ha caricato o distribuito automaticamente l’aggiornamento. Nessuna modifica alle altre applicazioni Render.
 
 VERIFICA
-66 test automatici superati; verifica visuale con Chromium non eseguita. Vedi VALIDAZIONE.md. È disponibile anche il workflow GitHub manuale Browser checks, non ancora eseguito.
+85 test automatici superati; controllo visuale con Chromium e GPS fisico non eseguiti qui. Il workflow manuale GitHub Browser checks comprende il nuovo percorso e il GPS simulato. Vedi VALIDAZIONE.md.

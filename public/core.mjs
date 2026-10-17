@@ -50,20 +50,48 @@ export function offerStatus(offer, quantity = 1, now = Date.now()) {
   return 'available';
 }
 
-export function compareBasket(list, products, stores, now = Date.now()) {
+export function referencePrice(product) {
+  const ref=product?.reference;
+  if(!ref || !Number.isSafeInteger(ref.priceCents) || ref.priceCents<=0 || ref.priceCents>MAX_PRICE_CENTS || !/^\d{4}-\d{2}-\d{2}$/.test(ref.checkedOn || '') || !Number.isFinite(Date.parse(ref.checkedOn))) return null;
+  try {if(new URL(ref.sourceUrl).protocol!=='https:')return null;} catch {return null;}
+  return ref;
+}
+
+function basketRow(product, quantity, store, now, allowEstimates) {
+  const offer=store.offers?.[product.id],availabilityStatus=offerStatus(offer,quantity,now);
+  const reference=allowEstimates?referencePrice(product):null;
+  const explicitlyMissing=offer?.availability==='out_of_stock' || Number.isInteger(offer?.quantityAvailable) && offer.quantityAvailable<quantity;
+  const simulated=Boolean(reference && !explicitlyMissing && ['unknown','stale'].includes(availabilityStatus));
+  const status=simulated?'estimated':availabilityStatus;
+  const unitPriceCents=simulated?reference.priceCents:status==='available'?offer.priceCents:null;
+  return {product,quantity,offer:offer ?? null,status,availabilityStatus,simulated,reference:simulated?reference:null,unitPriceCents,lineTotalCents:unitPriceCents===null?null:unitPriceCents*quantity};
+}
+
+export function priceForProduct(product, stores, quantity=1, now=Date.now(), allowEstimates=false) {
+  const rows=stores.map(store=>basketRow(product,quantity,store,now,allowEstimates));
+  const priced=rows.filter(row=>row.lineTotalCents!==null).sort((a,b)=>a.unitPriceCents-b.unitPriceCents || Number(a.simulated)-Number(b.simulated));
+  const best=priced[0];
+  if(best)return {priceCents:best.unitPriceCents,simulated:best.simulated,availableCount:rows.filter(r=>r.status==='available').length,reference:best.reference};
+  const reference=!stores.length && allowEstimates?referencePrice(product):null;
+  return {priceCents:reference?.priceCents ?? null,simulated:Boolean(reference),availableCount:0,reference};
+}
+
+export function compareBasket(list, products, stores, now = Date.now(), {allowEstimates=false}={}) {
   const basket = normalizeList(list, products);
   if (!basket.length) return [];
   const index = new Map(products.map(p => [p.id, p]));
   return stores.map(store => {
-    const rows = basket.map(item => {
-      const product = index.get(item.productId);
-      const offer = store.offers?.[item.productId];
-      const status = offerStatus(offer, item.quantity, now);
-      return { product, quantity: item.quantity, offer: offer ?? null, status, lineTotalCents: status === 'available' ? offer.priceCents * item.quantity : null };
-    });
+    const rows = basket.map(item => basketRow(index.get(item.productId),item.quantity,store,now,allowEstimates));
     const available = rows.filter(row => row.status === 'available');
-    return { store, rows, complete: rows.length > 0 && available.length === rows.length, availableCount: available.length, missingCount: rows.length - available.length, totalCents: available.reduce((sum, row) => sum + row.lineTotalCents, 0) };
-  }).sort((a, b) => Number(b.complete) - Number(a.complete) || (a.complete ? a.totalCents - b.totalCents : b.availableCount - a.availableCount || a.totalCents - b.totalCents) || a.store.distanceKm - b.store.distanceKm || a.store.name.localeCompare(b.store.name));
+    const simulated=rows.filter(row=>row.simulated),priced=rows.filter(row=>row.lineTotalCents!==null);
+    return {store,rows,complete:rows.length>0 && available.length===rows.length,priceComplete:rows.length>0 && priced.length===rows.length,availableCount:available.length,verifiedCount:available.length,simulatedCount:simulated.length,pricedCount:priced.length,unpricedCount:rows.length-priced.length,missingCount:rows.length-available.length,verifiedTotalCents:available.reduce((sum,row)=>sum+row.lineTotalCents,0),simulatedTotalCents:simulated.reduce((sum,row)=>sum+row.lineTotalCents,0),totalCents:priced.reduce((sum,row)=>sum+row.lineTotalCents,0)};
+  }).sort((a, b) => Number(b.priceComplete) - Number(a.priceComplete) || (a.priceComplete ? a.totalCents - b.totalCents : b.pricedCount - a.pricedCount || a.totalCents - b.totalCents) || a.store.distanceKm - b.store.distanceKm || a.store.name.localeCompare(b.store.name));
+}
+
+export function comparisonSummary(results) {
+  const priced=results.filter(r=>r.priceComplete ?? r.complete),partial=results.filter(r=>!(r.priceComplete ?? r.complete));
+  const best=priced[0] ?? null,ties=best?priced.filter(r=>r.totalCents===best.totalCents):[];
+  return {priced,partial,best,ties,hasEstimates:results.some(r=>r.simulatedCount>0),verifiedWinner:Boolean(best && ties.length===1 && priced.every(r=>r.complete))};
 }
 
 export function savingsBetweenComplete(results) {

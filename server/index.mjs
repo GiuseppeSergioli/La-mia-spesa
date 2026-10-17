@@ -49,7 +49,7 @@ export function createApp() {
       if (req.method==='GET' && url.pathname==='/api/health') return send(res,200,{ok:true,service:'spesina'});
       if (api) {
         if (rateLimited(req)) {res.setHeader('Retry-After','60');return send(res,429,{error:'Troppe richieste. Attendi un minuto e riprova.'});}
-        if (req.method==='GET' && url.pathname==='/api/status') return send(res,200,{live:true,configuredStores:feedConfig.length,version:'1.2.0',region:'Cagliari',radius:{min:0.5,max:6,step:0.5}});
+        if (req.method==='GET' && url.pathname==='/api/status') return send(res,200,{live:true,configuredStores:feedConfig.length,version:'1.3.0',estimatedShopping:true,region:'Cagliari',radius:{min:0.5,max:6,step:0.5}});
         if (!['GET','POST'].includes(req.method)) return send(res,405,{error:'Metodo non supportato.'});
         if (active>=8) return send(res,503,{error:'Il servizio è occupato. Riprova tra poco.'});
         active++;acquired=true;
@@ -71,7 +71,7 @@ export function createApp() {
           const catalog=await buildLiveCatalog(location,radius,feedConfig);
           const ids=new Set(catalog.products.map(p=>p.id));
           if (body.list.some(x=>!ids.has(x.productId))) return send(res,409,{error:'Il catalogo è cambiato. Aggiorna i prodotti prima del confronto.'});
-          return send(res,200,{results:compareBasket(body.list,catalog.products,nearbyStores(catalog.stores,location,radius)),warnings:catalog.warnings,generatedAt:catalog.generatedAt});
+          return send(res,200,{results:compareBasket(body.list,catalog.products,nearbyStores(catalog.stores,location,radius),Date.now(),{allowEstimates:true}),warnings:catalog.warnings,generatedAt:catalog.generatedAt});
         }
         return send(res,404,{error:'API non trovata.'});
       }

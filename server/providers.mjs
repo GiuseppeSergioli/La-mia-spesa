@@ -5,8 +5,9 @@ import { isIP } from 'node:net';
 import { haversine, validCoordinates, MAX_PRICE_CENTS, DEFAULT_LOCATION } from '../public/core.mjs';
 import { enrichStore, sourceCoverage } from './retailers.mjs';
 import { supplementStores } from './local-stores.mjs';
+import { shoppingCatalog } from './shopping.mjs';
 
-const UA = `LaMiaSpesa/1.2 (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
+const UA = `LaMiaSpesa/1.3 (+${process.env.RENDER_EXTERNAL_URL || 'https://github.com/GiuseppeSergioli/La-mia-spesa'})`;
 const MAX_BYTES = 4 * 1024 * 1024;
 const cache = new Map();
 const pending = new Map();
@@ -204,10 +205,10 @@ export async function buildLiveCatalog(location, radius, configs) {
     } else warnings.push(`Catalogo di ${store.name} non disponibile. I prezzi non sono stati stimati.`);
     if (match>=0) stores[match]=store;else stores.push(store);
   });
-  if (!configs.length) warnings.push('Nessun catalogo prezzi collegato. I negozi provengono dalla ricerca cartografica e da un elenco locale parziale; i collegamenti ai siti ufficiali non importano automaticamente prezzi e disponibilità.');
+  if (!configs.length) warnings.push('Nessun catalogo prezzi collegato. Puoi comporre il carrello con prodotti di riferimento e prezzi simulati, uguali per tutti i negozi. Disponibilità non verificata.');
   const catalog=[...products.values()];
   const linkedStores=stores.map(enrichStore);
   const localStoreCount=linkedStores.filter(s=>s.discoverySource==='verified_directory').length;
   if(!mapAvailable)warnings.unshift(localStoreCount?'La ricerca sulla mappa non risponde. Mostriamo un elenco locale parziale, verificato il 17/10/2026, filtrato per distanza.':'La ricerca sulla mappa non risponde. Non possiamo stabilire quanti negozi siano presenti: riprova tra poco.');
-  return {mode:'live',products:catalog,stores:linkedStores,storeDiscovery:{status:mapAvailable?'online':localStoreCount?'local_directory':'unavailable',mapAvailable,localStoreCount,verifiedOn:'2026-10-17'},retailerSources:sourceCoverage(linkedStores),coverage:{foundStores:linkedStores.length,priceConnectedStores:linkedStores.filter(s=>s.catalogStatus==='connected').length,exhaustive:false,mapAvailable},categories:[{id:'all',name:'Tutti',icon:'grid'},...[...new Set(catalog.map(p=>p.category))].map(id=>({id,name:id,icon:'grid'}))],warnings:[...new Set(warnings)],generatedAt:new Date().toISOString(),attribution:'© OpenStreetMap contributors · ODbL. Elenco locale integrativo: indirizzi e coordinate dalle schede ufficiali dei punti vendita, verificati il 17/10/2026. Copertura parziale. Collegamenti ufficiali distinti dai cataloghi prezzi. Prezzi online e prezzi in negozio possono differire.'};
+  return {mode:'live',...shoppingCatalog(catalog,linkedStores),stores:linkedStores,storeDiscovery:{status:mapAvailable?'online':localStoreCount?'local_directory':'unavailable',mapAvailable,localStoreCount,verifiedOn:'2026-10-17'},retailerSources:sourceCoverage(linkedStores),coverage:{foundStores:linkedStores.length,priceConnectedStores:linkedStores.filter(s=>s.catalogStatus==='connected').length,exhaustive:false,mapAvailable},warnings:[...new Set(warnings)],generatedAt:new Date().toISOString(),attribution:'© OpenStreetMap contributors · ODbL. Elenco locale integrativo da schede ufficiali, verifica 17/10/2026. Copertura parziale. Prezzi simulati: riferimenti pubblici datati di prodotti comparabili; disponibilità locale non verificata. Prezzi online e in negozio possono differire.'};
 }

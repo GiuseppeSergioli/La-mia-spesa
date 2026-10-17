@@ -2,9 +2,11 @@
 
 Un’app in italiano per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
 
-**Versione 1.2.0 — Cagliari:** ritorno alla home da lista e confronto senza cancellare la lista, demo con 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte. Raggio da 0,5 a 6 km ogni 500 metri. La ricerca cartografica è integrata con un elenco locale parziale di 8 punti vendita reali Eurospin/Lidl: possono essere mostrati anche se il servizio mappa non risponde, sempre rispettando il raggio scelto. Un guasto viene distinto da una ricerca riuscita senza risultati.
+**Versione 1.3.0 — Cagliari:** il flusso reale continua dai negozi al pulsante **Componi il carrello**, poi al confronto dei totali. Anche senza feed sono disponibili **30 prodotti generici in 8 categorie**, con prezzi indicati come **Prezzo simulato** e fonte/data consultabili. La demo separata conserva 96 prodotti, 14 categorie, 8 negozi fittizi e 4 liste pronte. Raggio da 0,5 a 6 km ogni 500 metri; ritorno alla home senza cancellare la lista.
 
-**Prezzi reali: nessun catalogo collegato.** I negozi reali sono una directory, non un confronto prezzi operativo. La demo usa prezzi e disponibilità inventati. Il sito iniziale è stato pubblicato dall’utente; questa versione deve ancora essere caricata nel repository e distribuita su Render. Vedi `AGGIORNAMENTO-CAGLIARI.txt` e `docs/CAGLIARI.md`.
+**Nessun feed prezzi locale è collegato.** I negozi fisici vengono ricercati sulla mappa e integrati con un elenco locale parziale di 8 punti Eurospin/Lidl. Il carrello e il confronto sono utilizzabili con riferimenti indicativi: se tutti i prezzi sono simulati, i negozi avranno lo stesso totale e l’app mostrerà la parità. Non viene inventato un supermercato più conveniente. I riferimenti non confermano assortimento e scorte e non sono una media statistica del mercato. Vedi `docs/PREZZI-SIMULATI.md`.
+
+La localizzazione richiede una misura aggiornata e precisa, ne mostra l’incertezza e chiede la conferma del punto prima di cercare i negozi. Si può correggere con un indirizzo. Il sito iniziale è già pubblicato dall’utente; questo aggiornamento deve ancora essere caricato su GitHub e distribuito su Render.
 
 ## Avvio
 
@@ -36,10 +38,13 @@ L’ultimo comando genera `dist/index.html`: una demo autonoma, apribile anche c
 - Lista salvata nel browser; pulsante per eliminare lista e zona.
 - Elenco locale datato 17/10/2026 di 8 punti vendita reali di due catene, con link alla scheda ufficiale e coordinate tratte dai link di indicazioni delle catene. Copertura parziale, nessun prezzo o scorta incluso.
 - Errore del servizio mappa distinto da zero risultati: elenco locale quando presente, altrimenti numero di negozi non verificabile e pulsante per riprovare.
-- Prezzo minimo indicativo nel catalogo e confronto della lista completa per singolo negozio.
-- Totali completi ordinati dal più basso al più alto; liste incomplete in una sezione separata, per copertura e poi subtotale. Nessun risparmio calcolato confrontando un subtotale con una lista completa.
-- Stati distinti: disponibile, esaurito, quantità insufficiente, disponibilità sconosciuta e prezzo scaduto.
-- Dettaglio con quantità, prezzo, totale riga, fonte e data di osservazione. Un prezzo vecchio o non verificato non entra nel totale.
+- Passaggio esplicito negozi → composizione del carrello → confronto. Se non ci sono negozi si può preparare la lista; il confronto richiede almeno un punto nel raggio.
+- 30 prodotti generici di riferimento in 8 categorie sempre selezionabili. Non sono presentati come assortimento delle catene.
+- Prezzi simulati distinti da prezzi verificati in schede prodotto, carrello, totali, dettaglio, esportazione e stampa. Fonte e data consultabili.
+- Confronto della lista e quantità per singolo negozio; riferimenti uguali fra negozi per lo stesso prodotto senza prezzi verificati.
+- Totali calcolabili, verificati o stimati, ordinati dal più basso al più alto. Parità esplicita quando i valori sono uguali; ordinamento per distanza a parità di totale. Subtotali incompleti separati per copertura e importo. Il risparmio verificato non viene calcolato sulle stime.
+- Stati distinti: disponibile, esaurito, quantità insufficiente, disponibilità sconosciuta, prezzo scaduto e prezzo simulato. Una stima non conferma la disponibilità. Esaurimenti e quantità insufficienti espliciti non vengono riempiti con stime.
+- Dettaglio con quantità, prezzo, totale riga, fonte e data di osservazione. Un prezzo non verificato può essere sostituito nel calcolo da un riferimento distinto e marcato come simulato; il prezzo originale scaduto non viene aggiornato fittiziamente.
 - Esportazione della lista in testo e stampa del confronto.
 - Interfaccia desktop e mobile, tastiera, dialoghi nativi e movimento ridotto.
 - Backend Node, validazione dei feed, cache temporanea, limiti alle richieste e destinazioni feed HTTPS validate.
@@ -66,7 +71,7 @@ In alternativa è incluso un `Dockerfile`. Non inserire credenziali nel reposito
 
 ## Collegare prezzi reali
 
-**L’app non effettua scraping generico delle catene e non inventa prezzi quando il catalogo manca.** I siti possono richiedere selezione del punto vendita, sessione, indirizzo e accordi di accesso. Il solo HTML di un volantino non dimostra l’assortimento completo o le scorte attuali. Un feed è un catalogo JSON esposto da un fornitore; un’integrazione con un sito o un’API specifica deve trasformare quei dati nello schema descritto qui.
+**L’app non effettua scraping generico delle catene. Dove manca un prezzo locale verificato può usare un riferimento separato, indicato come simulato.** I siti possono richiedere selezione del punto vendita, sessione, indirizzo e accordi di accesso. Il solo HTML di un volantino non dimostra l’assortimento completo o le scorte attuali. Un feed è un catalogo JSON esposto da un fornitore; un’integrazione con un sito o un’API specifica deve trasformare quei dati nello schema descritto qui.
 
 Per ogni catena da attivare occorrono un’API o un flusso dati utilizzabile, il negozio preciso, l’identificazione coerente dei prodotti, prezzi base accessibili a tutti e disponibilità effettiva. Collegare semplicemente il sito web del supermercato non soddisfa questi requisiti.
 
@@ -79,7 +84,7 @@ Per ogni catena da attivare occorrono un’API o un flusso dati utilizzabile, il
 7. `sourceUrl` deve puntare alla fonte reale del prezzo nel punto vendita specificato. Ogni prezzo ha la propria data; il timeout di validità `maxAgeMinutes` è al massimo 1440 minuti. La cache di download dura 5 minuti e non rinnova la data del prezzo.
 8. Le offerte con `conditions` diverso da `none` vengono escluse: tessere, coupon, multiacquisto e sconti personali devono essere normalizzati a un prezzo base non condizionato dal connettore. Il sistema non simula promozioni complesse.
 
-Riavvia il server dopo le modifiche alla configurazione. Un catalogo invalido o irraggiungibile non viene sostituito con dati di esempio. Se un fornitore fallisce, gli altri possono continuare a essere confrontati, mostrando il problema al cliente.
+Riavvia il server dopo le modifiche alla configurazione. Un catalogo invalido o irraggiungibile non viene sostituito da offerte inventate del negozio. Il catalogo generico e le stime restano distinti dalle offerte reali. Se un fornitore fallisce, gli altri possono continuare a essere confrontati, mostrando il problema al cliente.
 
 ## API
 
@@ -91,15 +96,15 @@ Riavvia il server dopo le modifiche alla configurazione. Un catalogo invalido o 
 | `GET /api/catalog?lat=39.2238&lon=9.1217&radius=3` | Negozi, prodotti e offerte dei feed in zona |
 | `POST /api/compare` | Confronto con prezzi ricaricati dalla cache server o dal fornitore |
 
-Il POST accetta `{ "lat": 39.2238, "lon": 9.1217, "radius": 3, "list": [{ "productId": "id-canonico", "quantity": 2 }] }`. Non accetta prezzi dal client. Risponde 409 se un prodotto non è più nel catalogo. Il catalogo in memoria non contiene dati di listini non collegati.
+Il POST accetta `{ "lat": 39.2238, "lon": 9.1217, "radius": 3, "list": [{ "productId": "id-canonico", "quantity": 2 }] }`. Non accetta prezzi dal client. Risponde 409 se un prodotto non è più nel catalogo. Il catalogo contiene sia prodotti verificati dei feed sia prodotti generici con riferimenti esplicitamente simulati. `estimatedShopping: true` in `/api/status` segnala questa modalità. Prezzi inviati dal client non vengono utilizzati.
 
 ## Limiti pratici e messa in produzione
 
-Questa è una prima versione funzionante, con predisposizione alle integrazioni. Nessun collegamento a prezzi di supermercati reali è stato attivato o verificato. Le API geografiche pubbliche non offrono una garanzia di disponibilità. Per traffico pubblico significativo, configura servizi geografici dedicati nel provider, monitoraggio, cache condivisa e limiti distribuiti. Il limite locale di 60 richieste API al minuto usa l’IP di connessione; con un reverse proxy può essere condiviso fra utenti. L’app non si fida automaticamente di header IP provenienti dal client.
+Questa è una prima versione funzionante, con predisposizione alle integrazioni. Nessun feed di prezzi dei punti vendita locali è stato attivato o verificato; i riferimenti pubblici del catalogo generico restano separati. Le API geografiche pubbliche non offrono una garanzia di disponibilità. Per traffico pubblico significativo, configura servizi geografici dedicati nel provider, monitoraggio, cache condivisa e limiti distribuiti. Il limite locale di 60 richieste API al minuto usa l’IP di connessione; con un reverse proxy può essere condiviso fra utenti. L’app non si fida automaticamente di header IP provenienti dal client.
 
 Il server non salva gli indirizzi su disco e non stampa le URL di ricerca. La cache contiene temporaneamente coordinate e risultati. L’hosting o il reverse proxy possono invece conservare query e IP nei log: configura durata, accessi e informativa adeguati all’uso effettivo prima del lancio.
 
-I totali coprono i soli articoli, escludono costi di viaggio e consegna e si riferiscono ai prezzi online forniti. Non garantiscono che il prezzo sullo scaffale sia uguale. Il raggio geografico non garantisce che il negozio sia raggiungibile su strada entro lo stesso numero di chilometri.
+I totali coprono i soli articoli, escludono costi di viaggio e consegna e possono comprendere prezzi verificati e riferimenti simulati, esplicitamente distinti. Non garantiscono che il prezzo sullo scaffale sia uguale. Il raggio geografico non garantisce che il negozio sia raggiungibile su strada entro lo stesso numero di chilometri.
 
 ## Verifica dell’interfaccia
 
@@ -140,3 +145,16 @@ Documentazione: https://github.com/komoot/photon/blob/master/docs/api-v1.md
 Il servizio Overpass predefinito è `https://overpass.private.coffee/api/interpreter`. Timeout e risposte incomplete generano uno stato di errore, non una falsa ricerca riuscita con zero negozi. Dopo un guasto il server attende 30 secondi prima di ritentare lo stesso servizio; le ricerche riuscite sono in cache per 15 minuti. L’elenco locale viene filtrato per distanza e integrato evitando duplicati vicini della stessa catena.
 
 Per un’istanza dedicata, configura `OVERPASS_SEARCH_URL` con un endpoint HTTPS compatibile. Il provider usa POST; passa a GET solo se il server risponde 405 o 501. I log non includono l’indirizzo o le coordinate cercate. Un servizio cartografico pubblico non garantisce disponibilità né copertura completa.
+
+
+## Prezzi simulati: comportamento 1.3.0
+
+Il catalogo generico è in `server/reference-catalog.mjs`: 30 articoli di riferimento e 16 osservazioni di prezzo pubbliche Conad, consultate il 17/10/2026. I valori si riferiscono a prodotti comparabili online, non ai negozi Eurospin/Lidl trovati sulla mappa. Per formati diversi viene indicata la proporzione usata; non si assume che il prezzo reale di un multipacco sia la somma dei pezzi. Nessun aggiornamento automatico delle osservazioni è attivo e la data non viene rinnovata da una visita o da un riavvio.
+
+Per prodotti esatti provenienti da feed, `server/shopping.mjs` può ricavare un riferimento dal valore centrale dei prezzi validi disponibili per lo stesso ID. Se non esiste un riferimento attendibile per un prodotto specifico, il prezzo resta non calcolabile; non si assegna un prezzo arbitrario a un articolo non riconosciuto.
+
+In `compareBasket`, `complete` continua a significare disponibilità e prezzi tutti verificati. `priceComplete` significa che tutte le righe hanno un importo, anche se simulato. `simulatedCount`, `simulatedTotalCents`, `verifiedTotalCents` e lo stato `estimated` espongono la differenza. Gli esaurimenti espliciti e le quantità insufficienti non vengono sostituiti da stime. I dati della demo restano fittizi e separati dal catalogo di riferimento.
+
+## Localizzazione 1.3.0
+
+Il browser riceve `enableHighAccuracy: true`, `maximumAge: 0` e timeout di 20 secondi. Prima della ricerca dei negozi vengono mostrati coordinate, precisione dichiarata e collegamento per controllare il punto sulla mappa. La conferma non rende il punto infallibile: su alcuni dispositivi la posizione può essere molto approssimativa. L’app lo segnala rispetto al raggio scelto e permette di rilevare di nuovo o scrivere via, numero e città. Errori di permesso, disponibilità e timeout hanno messaggi distinti. Non viene attribuito un indirizzo fittizio alle coordinate GPS.

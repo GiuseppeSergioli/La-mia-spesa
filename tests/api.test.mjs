@@ -24,7 +24,18 @@ test('server rejects radius above 6 km or outside half-kilometre increments',asy
 });
 test('catalog accepts fractional radius and advertises incomplete map coverage',async()=>{
   for(const radius of [.5,1.5,6]){
-    const res=await fetch(`${base}/api/catalog?lat=39.2238&lon=9.1217&radius=${radius}`);assert.equal(res.status,200);const data=await res.json();assert.equal(data.coverage.exhaustive,false);assert.equal(data.coverage.priceConnectedStores,0);assert.deepEqual(data.products,[]);
+    const res=await fetch(`${base}/api/catalog?lat=39.2238&lon=9.1217&radius=${radius}`);assert.equal(res.status,200);const data=await res.json();assert.equal(data.coverage.exhaustive,false);assert.equal(data.coverage.priceConnectedStores,0);assert.equal(data.referenceCatalog.enabled,true);assert.equal(data.products.length,30);assert.ok(data.products.every(p=>p.reference));assert.ok(data.stores.every(s=>Object.keys(s.offers).length===0));
   }
 });
 test('status identifies Cagliari and the 6-km limit',async()=>{const data=await(await fetch(`${base}/api/status`)).json();assert.equal(data.region,'Cagliari');assert.deepEqual(data.radius,{min:.5,max:6,step:.5});});
+
+test('real nearby supermarkets can be compared with estimated reference products',async()=>{
+  const catalog=await(await fetch(`${base}/api/catalog?lat=39.2238&lon=9.1217&radius=3`)).json();
+  assert.ok(catalog.stores.length>=2);const p=catalog.products.find(p=>p.id==='reference:spaghetti-500');assert.ok(p);
+  const response=await fetch(`${base}/api/compare`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:39.2238,lon:9.1217,radius:3,list:[{productId:p.id,quantity:3,priceCents:1}],prices:{[p.id]:1}})});
+  assert.equal(response.status,200);const data=await response.json();assert.ok(data.results.length>=2);
+  for(const result of data.results){assert.equal(result.totalCents,177);assert.equal(result.complete,false);assert.equal(result.priceComplete,true);assert.equal(result.simulatedCount,1);assert.equal(result.rows[0].status,'estimated');assert.equal(result.rows[0].availabilityStatus,'unknown');assert.equal(result.rows[0].reference.sourceUrl,p.reference.sourceUrl);}
+});
+test('an unknown product is still rejected instead of receiving an arbitrary estimate',async()=>{
+  const response=await fetch(`${base}/api/compare`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:39.2238,lon:9.1217,radius:3,list:[{productId:'made-up-price',quantity:1}]})});assert.equal(response.status,409);
+});
