@@ -24,6 +24,9 @@ try {
   assert.equal(await page.getByRole('button',{name:'Componi la tua spesa',exact:true}).isVisible(),true);
   assert.equal(await page.locator('#location-form .optional-store-search button').getAttribute('value'),'stores');
   assert.deepEqual(await page.locator('#location-form [data-start] span').allTextContents(),CAGLIARI_STARTS.map(place=>place.name));
+  await page.locator('[data-language="en"]').click();assert.equal(await page.locator('html').getAttribute('lang'),'en');
+  assert.equal(await page.getByRole('button',{name:'Build your shopping list',exact:true}).isVisible(),true);
+  await page.locator('[data-language="it"]').click();assert.equal(await page.locator('html').getAttribute('lang'),'it');
   await page.screenshot({path:resolve(output,'location-desktop.png'),fullPage:true});
   await page.getByRole('button',{name:'Prova la demo'}).click();
   assert.equal(await page.locator('.product-card').count(),24);
@@ -53,6 +56,16 @@ try {
   assert.equal(await page.locator('.incomplete-section .store-result').count(),3);
   assert.match(await page.locator('.winner h2').innerText(),/Mercato Verde/);
   await page.getByRole('button',{name:'Vedi il dettaglio'}).click();assert.equal(await page.locator('.detail-table tbody tr').count(),6);await page.getByRole('button',{name:'Torna al confronto'}).click();
+  const historyBefore=await page.evaluate(()=>localStorage.getItem('la-mia-spesa:history:v1'));
+  assert.equal(JSON.parse(historyBefore).length,1);
+  await page.locator('[data-language="en"]').click();assert.equal(await page.getByRole('button',{name:'Export list',exact:true}).isVisible(),true);
+  await page.locator('.footer [data-action="history"]').click();assert.equal(await page.locator('.history-card').count(),1);
+  await page.locator('.history-card').first().click();assert.equal(await page.locator('.history-detail tbody tr').count(),6);
+  assert.equal(await page.locator('.history-market').count(),5);assert.match(await page.locator('.history-detail thead').innerText(),/Unit price/);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('la-mia-spesa:history:v1')),historyBefore);
+  await page.screenshot({path:resolve(output,'history-english-desktop.png'),fullPage:true});
+  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`history overflow at ${width}`);}
+  await page.locator('[data-step="compare"]').click();await page.locator('[data-language="it"]').click();
   await page.locator('#hide-incomplete').check();assert.equal(await page.locator('#incomplete-results').isVisible(),false);await page.locator('#hide-incomplete').uncheck();
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'Esporta lista'}).click();assert.equal((await download).suggestedFilename(),'la-mia-spesa-lista.txt');
   await page.screenshot({path:resolve(output,'comparison-desktop.png'),fullPage:true});

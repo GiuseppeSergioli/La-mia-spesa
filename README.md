@@ -1,14 +1,16 @@
 # La mia spesa
 
-Un’app in italiano per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
+Un’app in italiano e inglese per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
 
-**Versione 1.6.0 — composizione immediata:** il pulsante principale **Componi la tua spesa** apre direttamente la scelta dei prodotti. **Cerca supermercati** è un piccolo comando testuale facoltativo sotto al pulsante principale. Il catalogo si apre prima della risposta della mappa: puoi aggiungere subito prodotti e quantità. La ricerca negozi continua in sottofondo; un errore consente comunque di continuare la lista e riprovare. Lasciando vuoto l’indirizzo si parte da **Via Roma, Cagliari**, vicino al Palazzo Civico. Quattro pulsanti permettono di scegliere Via Roma, Piazza Yenne, Piazza Garibaldi o Piazza Repubblica senza dipendere dal geocodificatore. Le categorie sono in una griglia su più righe: **12 subito visibili**, più il filtro Tutti e il pulsante per espandere le **24 categorie**. La categoria selezionata resta visibile anche quando si richiude la griglia. Il catalogo condiviso con il simulatore conserva **384 prodotti, 16 per categoria**, e le liste già salvate.
+**Versione 1.7.0 — storico e lingue:** sotto il carrello trovi **Storico delle spese**. Ogni confronto concluso salva una copia con data, prodotti, quantità, costi e market; aprendo una voce puoi consultare il totale e le righe di ciascun supermercato. In alto a destra, su tutte le pagine, trovi **🇮🇹 IT / 🇬🇧 EN**. La prima apertura è in italiano; la lingua scelta viene ricordata. Interfaccia, 384 prodotti, 24 categorie, schede dei prezzi, storico, aiuto, messaggi e demo sono disponibili anche in inglese. Cambiare lingua mantiene identici prodotti selezionati e importi.
+
+Il pulsante principale **Componi la tua spesa** continua ad aprire subito i prodotti, con ricerca negozi in sottofondo. **Cerca supermercati** resta un piccolo comando facoltativo. Quattro zone rapide, Via Roma predefinita, raggio massimo 6 km e griglia 12/24 categorie rimangono disponibili.
 
 I prezzi senza listino locale sono indicati come **Prezzo simulato**. Le 30 voci fondate sui riferimenti pubblici precedenti mantengono fonte e data di consultazione; le altre 354 hanno una **stima indicativa definita nel catalogo**, con data e metodo, senza attribuire a un sito prezzi che non sono stati rilevati. Le stime non sono una media di mercato e non confermano assortimento o disponibilità. Il simulatore usa gli stessi prodotti e categorie, con 8 negozi, prezzi e scorte fittizi per esercitare il confronto.
 
 **Nessun feed prezzi locale è collegato.** La ricerca dei negozi e l’elenco parziale di 9 punti reali Eurospin/Lidl/Carrefour restano disponibili. Dove tutti i prezzi sono simulati si usa lo stesso riferimento per lo stesso prodotto nei diversi negozi e il risultato è una parità. Raggio 0,5–6 km, GPS con conferma e ritorno alla home restano presenti. Vedi `docs/CATALOGO.md` e `docs/PREZZI-SIMULATI.md`.
 
-Il sito esistente deve ancora essere aggiornato con questi file su GitHub e Render; questa chat non ha distribuito la versione 1.6.0.
+Il sito esistente deve ancora essere aggiornato con questi file su GitHub e Render; questa chat non ha distribuito la versione 1.7.0.
 
 ## Avvio
 
@@ -31,6 +33,8 @@ L’ultimo comando genera `dist/index.html`: una demo autonoma, apribile anche c
 
 ## Cosa è implementato
 
+- Storico automatico dei confronti, con copia dei dati della data salvata e dettagli per market; disponibile anche al riavvio nello stesso browser.
+- Selettore IT/EN globale, italiano iniziale, preferenza ricordata; catalogo e contenuti interni tradotti.
 - Percorso principale: zona → Componi la tua spesa → prodotti e quantità → Confronta la spesa.
 - Quattro zone rapide; indirizzo vuoto = Via Roma. Per un indirizzo diverso si conferma il risultato geografico; GPS su richiesta e con conferma.
 - Griglia di 12 categorie subito visibili, espandibile a 24, identica nella demo.
@@ -181,3 +185,12 @@ Il browser importa il catalogo condiviso e apre la pagina prodotti immediatament
 La demo autonoma apre la home e il pulsante Componi la tua spesa funziona senza richieste di rete. In fondo alla pagina compare v1.6.0; la stessa versione è restituita da /api/status per il server. I riferimenti agli asset nella pagina includono la versione per rinnovare le risorse dopo l’aggiornamento.
 
 Il nuovo ZIP ha package.json, public, server e dist direttamente alla radice. Dopo averlo estratto, carica quei file e cartelle nella radice del repository esistente. Non serve creare un’altra cartella spesina nel repository.
+
+
+## Storico e italiano/inglese — 1.7.0
+
+Le spiegazioni di funzionamento, conservazione e traduzione sono in `docs/STORICO-E-LINGUE.md`. Lo storico parte dai confronti eseguiti dopo questo aggiornamento: le vecchie versioni non conservavano questi dati. Registra confronti, senza attestare un acquisto. Sono mantenuti fino a 50 confronti recenti entro il budget di spazio del browser. Lo storico e la preferenza della lingua restano nel browser del dispositivo, senza account o invii al server.
+
+`public/catalog-en.mjs` contiene traduzioni esplicite di tutte le descrizioni e categorie. `public/messages-en.mjs` raccoglie messaggi e contenuti dell’interfaccia. `public/i18n.mjs` localizza testo, accessibilità, numeri e date, conservando gli identificativi, gli indirizzi dei link e i valori digitati. La ricerca riconosce nomi di prodotti in entrambe le lingue. Il testo delle illustrazioni prodotto segue la lingua scelta. Nomi propri di insegne e indirizzi mantengono il loro significato originale.
+
+`public/history.mjs` crea copie indipendenti dei confronti, legge e valida i dati conservati, limita lo spazio e gestisce i duplicati immediati. Nessun nuovo prezzo locale è stato collegato da queste funzioni. Le stime mantengono l’etichetta Prezzo simulato / Simulated price.

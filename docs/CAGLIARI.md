@@ -1,6 +1,6 @@
 # Cagliari: copertura e integrazioni
 
-Verifica delle fonti: 17 ottobre 2026. Versione 1.6.0.
+Verifica delle fonti: 17 ottobre 2026. Versione 1.7.0.
 
 ## Cosa è effettivamente attivo
 

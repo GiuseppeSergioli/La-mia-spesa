@@ -1,15 +1,21 @@
-import { compareBasket, comparisonSummary, priceForProduct, nearbyStores, normalizeList, money, distance, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, normalizeRadius } from './core.mjs';
+import { compareBasket, comparisonSummary, priceForProduct, nearbyStores, normalizeList, savingsBetweenComplete, MAX_QUANTITY, validCoordinates, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, normalizeRadius } from './core.mjs';
 import { createDemoData, demoLocation, sampleList, sampleLists, migrateDemoList } from './demo.mjs';
 import { icon, productArt, heroArt } from './art.mjs';
 import { CAGLIARI_STARTS, knownStart, GPS_OPTIONS, accuracyLabel, gpsLocation, gpsWarning, geolocationError } from './location.mjs';
 import { catalogProducts, catalogCategories, REFERENCE_CHECKED_ON } from './catalog.mjs';
 import { APP_VERSION } from './version.mjs';
+import { HISTORY_KEY, readHistory, createHistoryEntry, appendHistory, writeHistory } from './history.mjs';
+import { LANGUAGE_KEY, normalizeLanguage, localeFor, translateText, localizeMarkup, formatMoney, formatDistance, formatDate, productMatches } from './i18n.mjs';
 
 const $ = (selector,root=document) => root.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='spesina:v1';
-const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],pendingList:[],category:'all',categoriesExpanded:false,search:'',live:false,busy:false,storeSearchPending:false,cartOpen:false,completeOnly:false,results:null,visibleLimit:24};
-let toastTimer, requestId=0, storeRequestId=0, pendingGps=null;
+const state={page:'location',mode:'live',radius:DEFAULT_RADIUS_KM,location:null,data:null,list:[],pendingList:[],category:'all',categoriesExpanded:false,search:'',live:false,busy:false,storeSearchPending:false,cartOpen:false,completeOnly:false,results:null,visibleLimit:24,history:[],historyEntryId:null,historyStoreId:null,language:'it'};
+const t=value=>translateText(value,state.language);
+const html=value=>localizeMarkup(value,state.language);
+const money=value=>formatMoney(value,state.language);
+const distance=value=>formatDistance(value,state.language);
+let toastTimer, requestId=0, storeRequestId=0, pendingGps=null, modalSource=null;
 let saved=null;
 try {saved=JSON.parse(localStorage.getItem(KEY));} catch {}
 const stores = () => state.data && state.location ? nearbyStores(state.data.stores,state.location,state.radius):[];
@@ -25,7 +31,7 @@ function persist() {
   try {localStorage.setItem(KEY,JSON.stringify({version:1,mode:state.mode,page:state.page,location:state.location,radius:state.radius,list:[...state.list,...state.pendingList]}));} catch {}
 }
 function toast(message) {
-  const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),3800);
+  const el=$('#toast');el.textContent=t(message);el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),3800);
 }
 async function api(path,options={}) {
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),35_000);
@@ -40,6 +46,7 @@ function hydrateIcons(root=document) {root.querySelectorAll('[data-icon]').forEa
 function announcePage() {$('#main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'smooth'});}
 
 function updateHeader() {
+  updateLanguageUi();
   const order=['location','catalog','compare'],current=order.indexOf(state.page==='stores'?'location':state.page);
   document.querySelectorAll('[data-step]').forEach(button=> {
     const step=button.dataset.step,i=order.indexOf(step);
@@ -49,16 +56,35 @@ function updateHeader() {
     $('.step-number',button).innerHTML=i<current ? icon('check'):i+1;
   });
   const banner=$('#mode-banner');banner.hidden=state.mode!=='demo';
-  banner.innerHTML=`<span>${icon('info')} <strong>Modalità demo</strong><span class="demo-message">Negozi, prezzi e disponibilità sono fittizi.</span></span><button data-action="exit-demo">Passa alla ricerca reale ${icon('arrow')}</button>`;
+  banner.innerHTML=html(`<span>${icon('info')} <strong>Modalità demo</strong><span class="demo-message">Negozi, prezzi e disponibilità sono fittizi.</span></span><button data-action="exit-demo">Passa alla ricerca reale ${icon('arrow')}</button>`);
+}
+
+function updateLanguageUi() {
+  document.documentElement?.setAttribute('lang',state.language);
+  document.querySelectorAll('[data-i18n]').forEach(element=>element.textContent=t(element.dataset.i18n));
+  document.querySelectorAll('[data-language]').forEach(button=>{const selected=button.dataset.language===state.language;button.setAttribute('aria-pressed',String(selected));button.classList.toggle('selected',selected);});
+  $('.language-picker')?.setAttribute('aria-label',t('Lingua'));
+  document.querySelectorAll('[data-i18n-label]').forEach(element=>element.setAttribute('aria-label',t(element.dataset.i18nLabel)));
+  $('meta[name="description"]')?.setAttribute('content',t('La tua lista, i supermercati vicini, un confronto chiaro. Scopri dove conviene fare tutta la spesa.'));
+}
+function setLanguage(language) {
+  const next=normalizeLanguage(language);if(next===state.language)return;
+  const draft=()=>{const form=$('#location-modal-form') || $('#location-form');return form?{id:form.id,address:$('[name="address"]',form)?.value,radius:Number($('.radius-slider',form)?.value)}:null;};
+  const locationDraft=draft(),modal=$('#modal'),source=modal.open?modalSource:null;
+  if(state.busy && (state.page==='location' || source?.body.includes('location-modal-form'))){requestId++;state.busy=false;}
+  state.language=next;try{localStorage.setItem(LANGUAGE_KEY,next);}catch{}
+  render();
+  if(source){if(source.rebuild)source.rebuild();else showModal(source.title,source.body,source.wide);}
+  if(locationDraft){const form=document.getElementById(locationDraft.id);if(form){const input=$('[name="address"]',form);if(input && typeof locationDraft.address==='string')input.value=locationDraft.address;if(Number.isFinite(locationDraft.radius))updateRadiusControl(form,locationDraft.radius);}}
 }
 
 function render() {
   updateHeader();
-  const content=state.page==='location' ? locationPage():state.page==='stores'?liveDirectoryPage():state.page==='compare' ? comparePage():catalogPage();
-  $('#main').innerHTML=(state.page!=='location'?`<div class="page-toolbar"><button class="button secondary home-button" data-action="home">${icon('back')} Torna alla home</button><span>La tua lista resta salvata</span></div>`:'')+content;
+  const content=state.page==='location' ? locationPage():state.page==='stores'?liveDirectoryPage():state.page==='compare' ? comparePage():state.page==='history'?historyPage():catalogPage();
+  $('#main').innerHTML=html((state.page!=='location'?`<div class="page-toolbar"><button class="button secondary home-button" data-action="home">${icon('back')} Torna alla home</button><span>La tua lista resta salvata</span></div>`:'')+content);
   const version=$('#app-version');if(version)version.textContent=`v${APP_VERSION}`;
   hydrateIcons($('#main'));
-  document.title=state.page==='compare' ? 'Il tuo confronto — La mia spesa':state.page==='catalog' ? 'La tua lista — La mia spesa':'La mia spesa — La tua spesa, al prezzo giusto.';
+  document.title=t(state.page==='history'?'Storico delle spese — La mia spesa':state.page==='compare' ? 'Il tuo confronto — La mia spesa':state.page==='catalog' ? 'La tua lista — La mia spesa':'La mia spesa — La tua spesa, al prezzo giusto.');
 }
 
 function radiusControl(id) {
@@ -134,11 +160,11 @@ function categoryNavigation() {
 }
 
 function productGrid() {
-  const filtered=products().filter(p=>(state.category==='all' || p.category===state.category) && `${p.name} ${p.brand} ${p.size}`.toLocaleLowerCase('it').includes(state.search.toLocaleLowerCase('it')));
+  const filtered=products().filter(p=>(state.category==='all' || p.category===state.category) && productMatches(p,state.search,state.language));
   if (!filtered.length) return `<div class="empty-state"><span class="empty-icon">${icon('search')}</span><h3>Qui non c’è ancora.</h3><p>Prova un’altra parola o scegli una categoria diversa.</p><button class="text-button" data-action="clear-search">Mostra tutti i prodotti</button></div>`;
   return filtered.slice(0,state.visibleLimit).map(p=> {
     const qty=quantity(p.id),info=priceInfo(p,Math.max(qty,1));
-    return `<article class="product-card ${qty?'in-list':''}"><div class="product-visual"><img src="${productArt(p)}" alt="" width="180" height="190" loading="lazy">${qty?`<span class="added-badge">${icon('check')} In lista</span>`:''}</div><div class="product-info"><span class="product-brand">${esc(p.brand)}</span><h4>${esc(p.name)}</h4><span class="product-size">${esc(p.size)}</span><div class="product-bottom"><div><span class="price-label ${info.simulated?'simulated-price-label':''}">${info.simulated?'Prezzo simulato':info.priceCents!==null?'a partire da':'Prezzo non verificato'}</span>${info.priceCents!==null?`<strong class="product-price">${money(info.priceCents)}</strong><span class="available-count">${info.simulated?'Disponibilità da verificare':`in ${info.availableCount} ${info.availableCount===1?'negozio':'negozi'}`}</span>`:''}</div>${qty?quantityControl(p.id,qty):`<button class="add-button" data-add="${esc(p.id)}" aria-label="Aggiungi ${esc(p.name)}${p.generic?' '+esc(p.size):''} alla lista">${icon('plus')}</button>`}</div>${p.reference && state.mode==='live'?`<button class="price-source-button" data-price-source="${esc(p.id)}">Fonte della stima ${icon('info')}</button>`:''}</div></article>`;
+    return `<article class="product-card ${qty?'in-list':''}"><div class="product-visual"><img src="${productArt(p,state.language)}" alt="" width="180" height="190" loading="lazy">${qty?`<span class="added-badge">${icon('check')} In lista</span>`:''}</div><div class="product-info"><span class="product-brand">${esc(p.brand)}</span><h4>${esc(p.name)}</h4><span class="product-size">${esc(p.size)}</span><div class="product-bottom"><div><span class="price-label ${info.simulated?'simulated-price-label':''}">${info.simulated?'Prezzo simulato':info.priceCents!==null?'a partire da':'Prezzo non verificato'}</span>${info.priceCents!==null?`<strong class="product-price">${money(info.priceCents)}</strong><span class="available-count">${info.simulated?'Disponibilità da verificare':`in ${info.availableCount} ${info.availableCount===1?'negozio':'negozi'}`}</span>`:''}</div>${qty?quantityControl(p.id,qty):`<button class="add-button" data-add="${esc(p.id)}" aria-label="Aggiungi ${esc(p.name)}${p.generic?' '+esc(p.size):''} alla lista">${icon('plus')}</button>`}</div>${p.reference && state.mode==='live'?`<button class="price-source-button" data-price-source="${esc(p.id)}">Fonte della stima ${icon('info')}</button>`:''}</div></article>`;
   }).join('')+(filtered.length>state.visibleLimit?`<div class="more-products"><button class="button secondary" data-action="more-products">Mostra altri prodotti ${icon('chevron')}</button><span>${state.visibleLimit} di ${filtered.length} prodotti</span></div>`:'');
 }
 
@@ -153,9 +179,9 @@ function cart() {
   const hasAll=prices.every(item=>item.info.priceCents!==null),hasSome=prices.some(item=>item.info.priceCents!==null),simulated=prices.some(item=>item.info.simulated);
   return `<div class="cart ${state.cartOpen?'cart-open':''}"><div class="cart-heading"><div>${icon('bag')}<h2>Il tuo carrello</h2><span class="count-badge">${count()}</span></div>${state.list.length?'<button class="icon-button" data-action="clear-list" aria-label="Svuota la lista">'+icon('trash')+'</button>':''}<button class="icon-button close-cart" data-action="toggle-cart" aria-label="Chiudi lista">${icon('close')}</button></div>
     ${state.mode==='demo'?`<button class="demo-list-picker" data-action="sample-lists">${icon('list')} Prova una lista pronta ${icon('chevron')}</button>`:''}${state.list.length?`<div class="cart-items">${prices.map(item=> {
-      const p=product(item.productId);return `<div class="cart-item"><img src="${productArt(p)}" alt="" width="42" height="48"><div><strong>${esc(p.name)}</strong><span>${esc(p.brand)} · ${esc(p.size)}</span><small class="cart-price ${item.info.simulated?'simulated-price-label':''}">${item.info.priceCents===null?'Prezzo non verificato':`${money(item.info.priceCents)} / conf. · ${item.info.simulated?'Prezzo simulato':'prezzo minimo verificato'}`}</small>${quantityControl(p.id,item.quantity,true)}</div></div>`;
+      const p=product(item.productId);return `<div class="cart-item"><img src="${productArt(p,state.language)}" alt="" width="42" height="48"><div><strong>${esc(p.name)}</strong><span>${esc(p.brand)} · ${esc(p.size)}</span><small class="cart-price ${item.info.simulated?'simulated-price-label':''}">${item.info.priceCents===null?'Prezzo non verificato':`${money(item.info.priceCents)} / conf. · ${item.info.simulated?'Prezzo simulato':'prezzo minimo verificato'}`}</small>${quantityControl(p.id,item.quantity,true)}</div></div>`;
     }).join('')}</div><div class="cart-estimate"><span>${simulated?(hasAll?'Totale indicativo':'Subtotale indicativo'):hasAll?'Minimo teorico':'Subtotale verificato'}</span><strong>${hasSome?money(total):'—'}</strong></div><p class="cart-disclaimer">${simulated?'Include prezzi simulati; non conferma prezzi o disponibilità nei negozi.':'Somma dei prezzi minimi tra negozi diversi.'} ${!hasAll?'Alcune righe non hanno prezzo. ':''}Il totale di ogni negozio è nel confronto.</p>`:`<div class="empty-cart"><span>${icon('list')}</span><h3>Componi il tuo<br>carrello.</h3><p>Tocca <b>+</b> sui prodotti, poi scegli le quantità.</p>${state.mode==='demo'?'<button class="text-button" data-action="sample-list">Usa una lista d’esempio '+icon('arrow')+'</button>':''}</div>`}
-    ${state.storeSearchPending?'<p class="no-store-cart">Puoi già aggiungere i prodotti. Cerco i negozi per il confronto finale.</p>':!stores().length?'<p class="no-store-cart">Puoi preparare la lista. Per confrontarla serve almeno un negozio nel raggio: modifica la zona.</p>':''}<div class="cart-cta"><button class="button primary full" data-action="compare" ${!state.list.length || !stores().length || state.busy || state.storeSearchPending?'disabled':''}>${state.busy?'<span class="spinner"></span> Calcolo dei totali…':`Confronta la spesa ${icon('arrow')}`}</button><span>${icon('shield')} Prezzi verificati e simulati sempre distinti</span></div></div>`;
+    ${state.storeSearchPending?'<p class="no-store-cart">Puoi già aggiungere i prodotti. Cerco i negozi per il confronto finale.</p>':!stores().length?'<p class="no-store-cart">Puoi preparare la lista. Per confrontarla serve almeno un negozio nel raggio: modifica la zona.</p>':''}<div class="cart-cta"><button class="button primary full" data-action="compare" ${!state.list.length || !stores().length || state.busy || state.storeSearchPending?'disabled':''}>${state.busy?'<span class="spinner"></span> Calcolo dei totali…':`Confronta la spesa ${icon('arrow')}`}</button><span>${icon('shield')} Prezzi verificati e simulati sempre distinti</span></div><div class="cart-history"><button class="button secondary full" data-action="history">${icon('clock')}<span>Storico delle spese</span><b>${state.history.length}</b>${icon('chevron')}</button></div></div>`;
 }
 
 function comparePage() {
@@ -165,7 +191,7 @@ function comparePage() {
   const note=hasEstimates?(tie?'I totali più bassi sono uguali e includono prezzi simulati. Non emerge un supermercato più conveniente sulla base di prezzi locali verificati.':'Il totale più basso è una stima e può cambiare quando si conoscono i prezzi del negozio.'):saving>0?`Risparmi ${money(saving)} rispetto al più caro fra i negozi con lista completa.`:'Il totale include tutte le quantità selezionate.';
   return `<section class="page-intro compare-intro"><div><button class="text-button back-button" data-action="catalog">${icon('back')} Modifica la lista</button><div class="eyebrow">IL CONTO DEL TUO CARRELLO</div><h1>La stessa spesa.<br class="mobile-only"> <em>Tutti i totali.</em></h1><p>${count()} confezioni, ${state.list.length} prodotti distinti. Prezzi e disponibilità sono indicati nel dettaglio.</p></div><div class="compare-actions"><button class="button secondary" data-action="export">${icon('download')} Esporta lista</button><button class="icon-button bordered" data-action="print" aria-label="Stampa confronto">${icon('print')}</button></div></section>${locationStrip()}
     ${hasEstimates?`<div class="estimate-notice">${icon('info')}<div><strong>Il confronto include prezzi simulati</strong><p>Dove manca un prezzo verificato si usa lo stesso riferimento per lo stesso prodotto. Non confermano l’assortimento o la disponibilità. Fonte e data sono nel dettaglio di ogni riga.</p></div></div>`:''}
-    ${best?`<div class="winner ${hasEstimates?'estimated-winner':''}"><div class="winner-info"><span class="winner-label">${icon(tie?'info':'spark')} ${tie?'PARITÀ DI TOTALE':hasEstimates?'TOTALE STIMATO PIÙ BASSO':complete.length>1?'IL TOTALE COMPLETO PIÙ BASSO':'SPESA COMPLETA DISPONIBILE'}</span><h2>${tie?hasEstimates?'Stesso totale stimato':'Stesso totale':esc(best.store.name)}</h2><p>${icon(hasEstimates?'info':'check')} ${tie?`${ties.length} negozi a pari totale`:`${best.pricedCount ?? best.availableCount} prodotti con prezzo · ${distance(best.store.distanceKm)}`}</p><div class="winner-note">${esc(note)}</div></div><div class="winner-price"><span>${hasEstimates?'Totale indicativo del carrello':'Totale della tua spesa'}</span><strong>${money(best.totalCents)}</strong><button class="button winner-button" data-detail="${esc(best.store.id)}">Vedi il dettaglio ${icon('arrow')}</button></div><span class="winner-decoration" aria-hidden="true">${icon('bag')}</span></div>`:`<div class="no-winner">${icon('info')}<div><h2>Nessun totale copre tutto il carrello.</h2><p>Trovi qui i subtotali e i prodotti mancanti. Un subtotale non è il costo della lista completa.</p></div></div>`}
+    ${best?`<div class="winner ${hasEstimates?'estimated-winner':''}"><div class="winner-info"><span class="winner-label">${icon(tie?'info':'spark')} ${tie?'PARITÀ DI TOTALE':hasEstimates?'TOTALE STIMATO PIÙ BASSO':complete.length>1?'IL TOTALE COMPLETO PIÙ BASSO':'SPESA COMPLETA DISPONIBILE'}</span><h2>${tie?hasEstimates?'Stesso totale stimato':'Stesso totale':`<span data-no-translate>${esc(best.store.name)}</span>`}</h2><p>${icon(hasEstimates?'info':'check')} ${tie?`${ties.length} negozi a pari totale`:`${best.pricedCount ?? best.availableCount} prodotti con prezzo · ${distance(best.store.distanceKm)}`}</p><div class="winner-note">${esc(note)}</div></div><div class="winner-price"><span>${hasEstimates?'Totale indicativo del carrello':'Totale della tua spesa'}</span><strong>${money(best.totalCents)}</strong><button class="button winner-button" data-detail="${esc(best.store.id)}">Vedi il dettaglio ${icon('arrow')}</button></div><span class="winner-decoration" aria-hidden="true">${icon('bag')}</span></div>`:`<div class="no-winner">${icon('info')}<div><h2>Nessun totale copre tutto il carrello.</h2><p>Trovi qui i subtotali e i prodotti mancanti. Un subtotale non è il costo della lista completa.</p></div></div>`}
     <div class="results-heading"><h2>Il confronto, negozio per negozio</h2><span>${complete.length} totali calcolabili su ${results.length} negozi</span></div>
     <div class="comparison-legend">${icon('info')} Totali dal meno al più costoso; a parità di totale, ordine per distanza. I subtotali incompleti sono separati.</div>
     <div class="comparison-results">${complete.length?`<div class="complete-results">${complete.map(r=>storeResult(r,1+complete.filter(x=>x.totalCents<r.totalCents).length,best,tie)).join('')}</div>`:''}
@@ -176,7 +202,33 @@ function comparePage() {
 function storeResult(r,rank,best,tie=false) {
   const priced=r.priceComplete ?? r.complete,isBest=priced && best && r.totalCents===best.totalCents,delta=priced && best?r.totalCents-best.totalCents:null;
   const simulated=r.simulatedCount || 0,covered=r.pricedCount ?? r.availableCount,hasSome=covered>0;
-  return `<article class="store-result ${isBest?'is-best':''} ${priced?'':'is-incomplete'}"><div class="store-result-main"><span class="store-rank">${rank ?? '—'}</span><span class="store-logo" style="--store-color:${/^#[\da-f]{6}$/i.test(r.store.color || '')?r.store.color:'#48745e'}">${esc(r.store.initial || r.store.name[0])}</span><div class="store-identification"><h3>${esc(r.store.name)} ${isBest?`<span class="best-badge ${simulated?'estimate-badge':''}">${icon(simulated?'info':'check')} ${tie?'Parità':simulated?'Stima':'Completa'}</span>`:''}</h3><p>${icon('pin')}${distance(r.store.distanceKm)} · ${esc(r.store.address)}</p></div><div class="store-coverage ${priced && !simulated?'good':'partial'}">${icon(simulated || !priced?'info':'check')}<span>${covered}/${r.rows.length} prodotti con prezzo<span>${simulated?`${r.availableCount} verificati · ${simulated} simulati`:r.complete?'Tutta la tua lista verificata':`${r.unpricedCount ?? r.missingCount} senza totale`}</span></span></div><div class="store-total"><span>${priced?simulated?'Totale stimato':'Totale completo':hasSome?'Subtotale parziale':'Totale non calcolabile'}</span><strong>${priced || hasSome?money(r.totalCents):'—'}</strong>${delta>0?`<small>+ ${money(delta)} dal più basso${simulated?' stimato':''}</small>`:''}</div><button class="detail-button" data-detail="${esc(r.store.id)}" aria-label="Dettaglio spesa ${esc(r.store.name)}">${icon('arrow')}</button></div>${!priced?`<div class="missing-preview">${r.rows.filter(row=>row.lineTotalCents===null).map(row=>`<span>${esc(row.product.name)}: ${statusLabels[row.status].toLocaleLowerCase('it')}</span>`).join('')}</div>`:''}${simulated?`<div class="simulation-preview">${simulated} ${simulated===1?'prezzo simulato':'prezzi simulati'} · disponibilità da verificare. Importo simulato: ${money(r.simulatedTotalCents)}.</div>`:''}</article>`;
+  return `<article class="store-result ${isBest?'is-best':''} ${priced?'':'is-incomplete'}"><div class="store-result-main"><span class="store-rank">${rank ?? '—'}</span><span class="store-logo" style="--store-color:${/^#[\da-f]{6}$/i.test(r.store.color || '')?r.store.color:'#48745e'}">${esc(r.store.initial || r.store.name[0])}</span><div class="store-identification"><h3><span data-no-translate>${esc(r.store.name)}</span> ${isBest?`<span class="best-badge ${simulated?'estimate-badge':''}">${icon(simulated?'info':'check')} ${tie?'Parità':simulated?'Stima':'Completa'}</span>`:''}</h3><p>${icon('pin')}${distance(r.store.distanceKm)} · ${esc(r.store.address)}</p></div><div class="store-coverage ${priced && !simulated?'good':'partial'}">${icon(simulated || !priced?'info':'check')}<span>${covered}/${r.rows.length} prodotti con prezzo<span>${simulated?`${r.availableCount} verificati · ${simulated} simulati`:r.complete?'Tutta la tua lista verificata':`${r.unpricedCount ?? r.missingCount} senza totale`}</span></span></div><div class="store-total"><span>${priced?simulated?'Totale stimato':'Totale completo':hasSome?'Subtotale parziale':'Totale non calcolabile'}</span><strong>${priced || hasSome?money(r.totalCents):'—'}</strong>${delta>0?`<small>+ ${money(delta)} dal più basso${simulated?' stimato':''}</small>`:''}</div><button class="detail-button" data-detail="${esc(r.store.id)}" aria-label="Dettaglio spesa ${esc(r.store.name)}">${icon('arrow')}</button></div>${!priced?`<div class="missing-preview">${r.rows.filter(row=>row.lineTotalCents===null).map(row=>`<span>${esc(row.product.name)}: ${statusLabels[row.status].toLocaleLowerCase('it')}</span>`).join('')}</div>`:''}${simulated?`<div class="simulation-preview">${simulated} ${simulated===1?'prezzo simulato':'prezzi simulati'} · disponibilità da verificare. Importo simulato: ${money(r.simulatedTotalCents)}.</div>`:''}</article>`;
+}
+
+function historyDate(value) {
+  return formatDate(value,state.language);
+}
+function saveComparisonHistory() {
+  try{
+    const entry=createHistoryEntry({mode:state.mode,location:state.location,radius:state.radius,list:state.list,products:products(),results:state.results});
+    state.history=writeHistory(localStorage,appendHistory(state.history,entry));
+  }catch{toast('Non è stato possibile salvare questo confronto nello storico del browser.');}
+}
+function openHistory() {
+  requestId++;state.busy=false;pendingGps=null;state.historyEntryId=null;state.historyStoreId=null;state.cartOpen=false;state.page='history';closeModal();render();announcePage();
+}
+function historyPage() {
+  const selected=state.history.find(entry=>entry.id===state.historyEntryId);
+  if(selected)return historyDetail(selected);
+  return `<section class="page-intro"><div><div class="eyebrow">LE TUE SPESE, SEMPRE A PORTATA DI MANO</div><h1>Lo storico <em>delle tue spese.</em></h1><p>I confronti conclusi vengono salvati automaticamente in questo browser, con data, prodotti, costi e supermercati.</p></div>${state.history.length?'<button class="button secondary" data-action="clear-history">'+icon('trash')+' Svuota storico</button>':''}</section>${!state.history.length?`<div class="empty-state history-empty"><span class="empty-icon">${icon('clock')}</span><h2>Qui ritroverai le tue spese.</h2><p>Lo storico inizierà dal prossimo confronto. I prezzi salvati resteranno quelli di quel momento.</p><button class="button primary" data-action="${state.data?'resume-list':'home'}">Componi la tua spesa ${icon('arrow')}</button></div>`:`<div class="history-list">${state.history.map(entry=>{
+    const best=entry.stores.find(store=>store.priceComplete),quantity=entry.products.reduce((sum,p)=>sum+p.quantity,0);
+    return `<button class="history-card" data-history-entry="${esc(entry.id)}"><span class="history-icon">${icon('clock')}</span><span class="history-summary"><strong>${esc(historyDate(entry.savedAt))}</strong><span>${entry.products.length} prodotti · ${quantity} confezioni · ${entry.stores.length} supermercati</span><small>${entry.mode==='demo'?'Demo · dati fittizi':'Confronto salvato'}${best?` · <span data-no-translate>${esc(best.name)}</span>`:''}</small></span><span class="history-amount"><strong>${best?money(best.totalCents):'—'}</strong><small>${best?best.simulatedCount?'Totale stimato più basso':'Totale completo più basso':'Solo subtotali parziali'}</small></span>${icon('arrow')}</button>`;
+  }).join('')}</div>`}<p class="history-note">${icon('info')} Lo storico registra confronti, non conferme di acquisto. I prezzi possono essere simulati e non indicano le offerte di oggi. I dati sono conservati su questo browser. Fino a 50 confronti recenti, secondo lo spazio disponibile.</p>`;
+}
+function historyDetail(entry) {
+  const selected=entry.stores.find(store=>store.id===state.historyStoreId) || entry.stores[0];
+  const byId=new Map(entry.products.map(p=>[p.id,p]));
+  return `<button class="text-button back-button" data-action="history">${icon('back')} Torna allo storico</button><section class="page-intro"><div><div class="eyebrow">DETTAGLIO DELLA SPESA SALVATA</div><h1>La spesa <em>di quel giorno.</em></h1><p>${esc(historyDate(entry.savedAt))} · ${esc(entry.location.label)} · ${distance(entry.radius)}</p></div><span class="history-mode">${entry.mode==='demo'?'Demo · dati fittizi':'Confronto salvato'}</span></section><div class="history-market-picker" role="group" aria-label="Scegli il supermercato della spesa salvata">${entry.stores.map(store=>`<button class="history-market ${store.id===selected.id?'selected':''}" data-history-store="${esc(store.id)}" aria-pressed="${store.id===selected.id}"><strong data-no-translate>${esc(store.name)}</strong><span>${store.pricedCount?money(store.totalCents):'—'}</span><small>${store.priceComplete?store.simulatedCount?'Totale stimato':'Totale completo':'Subtotale parziale'}</small></button>`).join('')}</div><section class="history-detail"><div class="history-store-heading"><div><h2 data-no-translate>${esc(selected.name)}</h2><p>${esc(selected.address)}</p></div><strong>${selected.pricedCount?money(selected.totalCents):'—'}</strong></div><p class="history-price-note">${selected.priceComplete?selected.simulatedCount?'Il totale salvato include prezzi simulati. Disponibilità non verificata.':'Totale completo ai prezzi del confronto salvato.':'Subtotale: i prodotti senza prezzo o indisponibili sono esclusi.'}</p><div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Prodotto</th><th>Quantità</th><th>Prezzo unitario</th><th>Costo</th></tr></thead><tbody>${selected.rows.map(row=>{const p=byId.get(row.productId);return `<tr><td><strong>${esc(p.name)}</strong><span>${esc(p.brand)} · ${esc(p.size)}</span><small class="row-status ${row.status==='available'?'good':'partial'}">${statusLabels[row.status]}</small></td><td>${row.quantity}</td><td>${row.unitPriceCents===null?'—':money(row.unitPriceCents)}</td><td><b>${row.lineTotalCents===null?'—':money(row.lineTotalCents)}</b></td></tr>`;}).join('')}</tbody></table></div></section><p class="history-note">${icon('info')} Questi sono i prodotti e i prezzi registrati alla data indicata. Il cambio di lingua non modifica i dati salvati.</p>`;
 }
 
 function refreshListUI() {
@@ -184,7 +236,7 @@ function refreshListUI() {
   if (state.page!=='catalog') return render();
   const active=document.activeElement;
   const focusId=active?.dataset.product || active?.dataset.add,focusDelta=active?.dataset.delta;
-  $('#product-grid').innerHTML=productGrid();$('#cart-area').innerHTML=cart();$('#mobile-count').textContent=count();updateHeader();
+  $('#product-grid').innerHTML=html(productGrid());$('#cart-area').innerHTML=html(cart());$('#mobile-count').textContent=count();updateHeader();
   if (focusId) {
     const candidates=[...document.querySelectorAll('[data-product],[data-add]')];
     candidates.find(el=>(el.dataset.product || el.dataset.add)===focusId && (!focusDelta || el.dataset.delta===focusDelta))?.focus({preventScroll:true});
@@ -224,20 +276,20 @@ async function findLocation(form,destination='catalog') {
   if (state.busy) return;
   const feedback=$('.form-feedback',form),candidates=$('.location-candidates',form);
   if(destination==='catalog' && state.mode==='demo'){state.radius=normalizeRadius(Number(new FormData(form).get('radius')));state.results=null;return resumeList();}
-  if (!state.live && destination==='stores') {feedback.textContent='La ricerca reale richiede il server. Per esplorare l’app scegli “Prova la demo”.';return;}
+  if (!state.live && destination==='stores') {feedback.textContent=t('La ricerca reale richiede il server. Per esplorare l’app scegli “Prova la demo”.');return;}
   const q=String(new FormData(form).get('address') || '').trim();
   const selected=knownStart(q,state.mode==='live'?state.location:null);
   form._destination=destination;
   if(selected)return loadLocation(selected,Number(new FormData(form).get('radius')),feedback,destination);
-  const id=++requestId;state.busy=true;setLocationButtons(true);feedback.innerHTML='<span class="spinner dark"></span> Cerco il tuo indirizzo…';candidates.innerHTML='';updateHeader();
+  const id=++requestId;state.busy=true;setLocationButtons(true);feedback.innerHTML=html('<span class="spinner dark"></span> Cerco il tuo indirizzo…');candidates.innerHTML='';updateHeader();
   try {
     const data=await api(`geocode?q=${encodeURIComponent(q)}`);if (id!==requestId) return;
-    if (!data.results.length) {feedback.textContent='Nessun indirizzo trovato in Italia. Prova “via, numero, città” o il nome del comune.';return;}
-    feedback.textContent=destination==='stores'?'Scegli il punto da cui cercare i supermercati.':'Conferma l’indirizzo per passare direttamente ai prodotti.';
-    candidates.innerHTML='<span class="field-label">Scegli la posizione corretta</span>'+data.results.map((loc,i)=>`<button type="button" data-location-index="${i}">${icon('pin')}<span>${esc(loc.label)}</span>${icon('arrow')}</button>`).join('');
+    if (!data.results.length) {feedback.textContent=t('Nessun indirizzo trovato in Italia. Prova “via, numero, città” o il nome del comune.');return;}
+    feedback.textContent=t(destination==='stores'?'Scegli il punto da cui cercare i supermercati.':'Conferma l’indirizzo per passare direttamente ai prodotti.');
+    candidates.innerHTML=html('<span class="field-label">Scegli la posizione corretta</span>'+data.results.map((loc,i)=>`<button type="button" data-location-index="${i}">${icon('pin')}<span data-no-translate>${esc(loc.label)}</span>${icon('arrow')}</button>`).join(''));
     form._locations=data.results;
     $('[data-location-index]',candidates)?.focus();
-  } catch(e) {if(id===requestId) feedback.textContent=e.message;}
+  } catch(e) {if(id===requestId) feedback.textContent=t(e.message);}
   finally {if(id===requestId) {state.busy=false;setLocationButtons(false);updateHeader();}}
 }
 
@@ -250,7 +302,7 @@ function chooseStart(id,form) {
   $('[name="address"]',form).value=place.label;
   form.querySelectorAll('[data-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.start===id)));
   $('.location-candidates',form).innerHTML='';
-  $('.form-feedback',form).textContent=`Partenza: ${place.name}. Premi “Componi la tua spesa” per scegliere i prodotti.`;
+  $('.form-feedback',form).textContent=t(`Partenza: ${place.name}. Premi “Componi la tua spesa” per scegliere i prodotti.`);
 }
 
 function shoppingStartData(previousProducts=[]) {
@@ -310,12 +362,12 @@ function loadLocation(loc,radius,_feedback,destination='catalog') {
 
 function geolocate(radiusOverride=null) {
   const form=$('#location-modal-form') || $('#location-form'),feedback=$('#gps-feedback') || (form?$('.form-feedback',form):null);
-  if(!state.live){if(feedback)feedback.textContent='La posizione reale è disponibile avviando il server dell’app.';return;}
-  if(window.isSecureContext===false){if(feedback)feedback.textContent='Apri direttamente il link HTTPS della tua app per usare la posizione, oppure inserisci il tuo indirizzo.';return;}
-  if(!navigator.geolocation){if(feedback)feedback.textContent='Questo browser non supporta la localizzazione. Inserisci il tuo indirizzo.';return;}
+  if(!state.live){if(feedback)feedback.textContent=t('La posizione reale è disponibile avviando il server dell’app.');return;}
+  if(window.isSecureContext===false){if(feedback)feedback.textContent=t('Apri direttamente il link HTTPS della tua app per usare la posizione, oppure inserisci il tuo indirizzo.');return;}
+  if(!navigator.geolocation){if(feedback)feedback.textContent=t('Questo browser non supporta la localizzazione. Inserisci il tuo indirizzo.');return;}
   if(state.busy)return;
   const radius=typeof radiusOverride==='number'?radiusOverride:form?Number(new FormData(form).get('radius')):state.radius;
-  const id=++requestId;state.busy=true;if(feedback)feedback.textContent='Cerco una posizione aggiornata e precisa…';updateHeader();
+  const id=++requestId;state.busy=true;if(feedback)feedback.textContent=t('Cerco una posizione aggiornata e precisa…');updateHeader();
   const buttons=()=>document.querySelectorAll('[data-action="geolocate"],[data-action="retry-gps"],[data-action="confirm-gps"]');
   buttons().forEach(button=>button.disabled=true);
   const finish=()=>{state.busy=false;buttons().forEach(button=>button.disabled=false);updateHeader();};
@@ -324,8 +376,8 @@ function geolocate(radiusOverride=null) {
     try {
       const location=gpsLocation(pos);pendingGps={location,radius};
       showModal('Questo è il tuo punto di partenza?',`<p class="modal-description">Il dispositivo ha rilevato questo punto. Verificalo prima di passare ai prodotti.</p><div class="gps-summary"><strong>Precisione: ${accuracyLabel(location.accuracyMeters)}</strong><span>Latitudine ${location.lat.toFixed(5)} · Longitudine ${location.lon.toFixed(5)}</span><a href="https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lon}#map=17/${location.lat}/${location.lon}" target="_blank" rel="noopener noreferrer">${icon('map')} Controlla il punto sulla mappa ${icon('external')}</a></div><p class="gps-warning">${esc(gpsWarning(location,radius))}</p><div id="gps-feedback" class="form-feedback" role="status"></div><button class="button primary full" data-action="confirm-gps">Usa questo punto e riempi il carrello ${icon('arrow')}</button><div class="gps-alternatives"><button class="text-button" data-action="retry-gps">${icon('refresh')} Rileva di nuovo</button><button class="text-button" data-action="gps-address">Inserisci l’indirizzo</button></div>`);
-    } catch(error){if(feedback)feedback.textContent=error.message;}
-  },error=>{if(id!==requestId)return;finish();if(feedback)feedback.textContent=geolocationError(error);},GPS_OPTIONS);
+    } catch(error){if(feedback)feedback.textContent=t(error.message);}
+  },error=>{if(id!==requestId)return;finish();if(feedback)feedback.textContent=t(geolocationError(error));},GPS_OPTIONS);
 }
 function correctGpsWithAddress() {
   requestId++;state.busy=false;pendingGps=null;closeModal();
@@ -343,23 +395,25 @@ async function showComparison() {
       state.results=response.results;
       if(response.warnings.length) toast(response.warnings[0]);
     } catch(e){if(id===requestId)toast(e.message);return;}
-    finally {if(id===requestId)state.busy=false;if(id===requestId && state.page==='catalog' && $('#cart-area')) {$('#cart-area').innerHTML=cart();updateHeader();}}
+    finally {if(id===requestId)state.busy=false;if(id===requestId && state.page==='catalog' && $('#cart-area')) {$('#cart-area').innerHTML=html(cart());updateHeader();}}
   } else {state.data=createDemoData();state.results=compareBasket(state.list,products(),stores());}
+  saveComparisonHistory();
   state.page='compare';state.cartOpen=false;render();announcePage();
 }
 
-function showModal(title,body,wide=false) {
+function showModal(title,body,wide=false,rebuild=null) {
   const modal=$('#modal');
-  $('#modal-content').innerHTML=`<div class="modal-header"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close-modal" aria-label="Chiudi finestra">${icon('close')}</button></div>${body}`;
+  modalSource={title,body,wide,rebuild};
+  $('#modal-content').innerHTML=html(`<div class="modal-header"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close-modal" aria-label="Chiudi finestra">${icon('close')}</button></div>${body}`);
   modal.classList.toggle('wide',wide);if(!modal.open)modal.showModal();
 }
-function closeModal() {$('#modal').close();}
+function closeModal() {modalSource=null;$('#modal').close();}
 
 function showHelp() {
-  showModal('La spesa, in tre piccoli passi.',`<div class="help-steps"><div><span>1</span><div><h3>Dicci dove cercare</h3><p>Inserisci la tua zona e un raggio massimo. Le distanze sono in linea d’aria.</p></div></div><div><span>2</span><div><h3>Scegli i tuoi prodotti</h3><p>Sfoglia le categorie, cerca una marca e aggiungi le quantità. Confrontiamo sempre lo stesso prodotto e formato.</p></div></div><div><span>3</span><div><h3>Trova il totale più basso</h3><p>Prima trovi le liste complete, in ordine di prezzo. Poi i subtotali, con ogni prodotto mancante o non verificato segnalato.</p></div></div></div><div class="modal-note">${icon('info')}<p>La demo usa negozi e prezzi fittizi. Nella ricerca reale puoi comporre il carrello con prodotti di riferimento. Dove manca il prezzo verificato usiamo un prezzo simulato, uguale per tutti i negozi. Le stime non confermano la disponibilità. I totali non includono viaggio o consegna.</p></div><button class="button primary full" data-action="close-modal">Tutto chiaro ${icon('check')}</button>`);
+  showModal('La spesa, in tre piccoli passi.',`<div class="help-steps"><div><span>1</span><div><h3>Dicci dove cercare</h3><p>Inserisci la tua zona e un raggio massimo. Le distanze sono in linea d’aria.</p></div></div><div><span>2</span><div><h3>Scegli i tuoi prodotti</h3><p>Sfoglia le categorie, cerca una marca e aggiungi le quantità. Confrontiamo sempre lo stesso prodotto e formato.</p></div></div><div><span>3</span><div><h3>Trova il totale più basso</h3><p>Prima trovi le liste complete, in ordine di prezzo. Poi i subtotali, con ogni prodotto mancante o non verificato segnalato.</p></div></div></div><div class="modal-note">${icon('info')}<p>La demo usa negozi e prezzi fittizi. Nella ricerca reale puoi comporre il carrello con prodotti di riferimento. Dove manca il prezzo verificato usiamo un prezzo simulato, uguale per tutti i negozi. Le stime non confermano la disponibilità. I totali non includono viaggio o consegna.</p></div><button class="button primary full" data-action="close-modal">Tutto chiaro ${icon('check')}</button>`,false,showHelp);
 }
 function storeDirectoryRows() {
-  return stores().map(s=>`<div class="nearby-store"><span class="store-logo">${esc(s.initial || s.name[0])}</span><div><strong>${esc(s.name)}</strong><span>${esc(s.address)}</span>${s.discoverySource==='verified_directory'?'<small class="local-store-tag">Elenco locale · verifica 17/10/2026</small>':''}<small>${s.catalogStatus==='connected'?'Prezzi collegati al confronto':s.catalogStatus==='error'?'Catalogo temporaneamente non disponibile':'Prezzi non verificati · useremo prezzi simulati'}</small>${state.mode==='live'?`<div class="store-link-actions">${s.officialUrl?`<a href="${esc(safeLink(s.officialUrl))}" target="_blank" rel="noopener noreferrer">${esc(s.officialLinkLabel || 'Sito ufficiale')} ${icon('external')}</a>`:''}${s.onlineUrl?`<a href="${esc(safeLink(s.onlineUrl))}" target="_blank" rel="noopener noreferrer">Spesa online ${icon('external')}</a>`:''}<a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}" target="_blank" rel="noopener noreferrer">Mappa ${icon('external')}</a></div>${s.linkScope==='chain'?'<span class="source-scope-note">Il link è dell’insegna: sul sito seleziona il negozio corretto.</span>':''}`:''}</div><b>${distance(s.distanceKm)}</b></div>`).join('');
+  return stores().map(s=>`<div class="nearby-store"><span class="store-logo">${esc(s.initial || s.name[0])}</span><div><strong data-no-translate>${esc(s.name)}</strong><span>${esc(s.address)}</span>${s.discoverySource==='verified_directory'?'<small class="local-store-tag">Elenco locale · verifica 17/10/2026</small>':''}<small>${s.catalogStatus==='connected'?'Prezzi collegati al confronto':s.catalogStatus==='error'?'Catalogo temporaneamente non disponibile':'Prezzi non verificati · useremo prezzi simulati'}</small>${state.mode==='live'?`<div class="store-link-actions">${s.officialUrl?`<a href="${esc(safeLink(s.officialUrl))}" target="_blank" rel="noopener noreferrer">${esc(s.officialLinkLabel || 'Sito ufficiale')} ${icon('external')}</a>`:''}${s.onlineUrl?`<a href="${esc(safeLink(s.onlineUrl))}" target="_blank" rel="noopener noreferrer">Spesa online ${icon('external')}</a>`:''}<a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}" target="_blank" rel="noopener noreferrer">Mappa ${icon('external')}</a></div>${s.linkScope==='chain'?'<span class="source-scope-note">Il link è dell’insegna: sul sito seleziona il negozio corretto.</span>':''}`:''}</div><b>${distance(s.distanceKm)}</b></div>`).join('');
 }
 function retailerSourceNotes() {
   const sources=state.data?.retailerSources || [];
@@ -374,21 +428,21 @@ function liveDirectoryPage() {
 }
 
 function showStores() {
-  if(state.storeSearchPending)return showModal('Cerco i supermercati nella tua zona',`<p class="modal-description">La ricerca continua mentre scegli i prodotti. Il numero dei negozi sarà mostrato appena disponibile.</p><button class="button primary full" data-action="close-modal">Continua a comporre la spesa ${icon('arrow')}</button>`);
+  if(state.storeSearchPending)return showModal('Cerco i supermercati nella tua zona',`<p class="modal-description">La ricerca continua mentre scegli i prodotti. Il numero dei negozi sarà mostrato appena disponibile.</p><button class="button primary full" data-action="close-modal">Continua a comporre la spesa ${icon('arrow')}</button>`,false,showStores);
   const discovery=state.data?.storeDiscovery,unavailable=state.mode==='live' && discovery?.status==='unavailable',localOnly=discovery?.status==='local_directory';
   const title=unavailable?'Ricerca negozi da riprovare':`I negozi nella tua zona <span class="muted">(${stores().length})</span>`;
   const description=state.mode==='demo'?'Questi negozi sono fittizi.':localOnly?'Elenco locale parziale di punti vendita, verificato il 17/10/2026. La mappa non risponde.':'Risultati OpenStreetMap integrati con un elenco locale parziale. La copertura non è garantita come esaustiva.';
   const coverage=unavailable?'Numero dei negozi non verificabile.':`${stores().length} negozi ${localOnly?'nell’elenco locale':'individuati'}.`;
   const empty=unavailable?'Il servizio cartografico non ha risposto: il numero dei negozi non è verificabile. Riprova dalla pagina della ricerca.':'Nessun negozio nelle fonti disponibili per questo raggio. Puoi modificare la zona, fino a 6 km.';
-  showModal(title,`<p class="modal-description">Entro ${distance(state.radius)} in linea d’aria. ${description}</p>${state.mode==='live'?`<div class="coverage-summary ${unavailable?'coverage-error':''}">${coverage} ${stores().filter(s=>s.catalogStatus==='connected').length} cataloghi prezzi collegati.</div>`:''}<div class="nearby-list">${stores().length?storeDirectoryRows():`<p>${empty}</p>`}</div>${state.mode==='live'?retailerSourceNotes():''}`,true);
+  showModal(title,`<p class="modal-description">Entro ${distance(state.radius)} in linea d’aria. ${description}</p>${state.mode==='live'?`<div class="coverage-summary ${unavailable?'coverage-error':''}">${coverage} ${stores().filter(s=>s.catalogStatus==='connected').length} cataloghi prezzi collegati.</div>`:''}<div class="nearby-list">${stores().length?storeDirectoryRows():`<p>${empty}</p>`}</div>${state.mode==='live'?retailerSourceNotes():''}`,true,showStores);
 }
 
 function showDetail(id) {
   const result=(state.results || localComparison()).find(r=>r.store.id===id);
   if(!result)return;
   const priced=result.priceComplete ?? result.complete,simulated=result.simulatedCount || 0;
-  showModal(esc(result.store.name),`<p class="modal-description">${distance(result.store.distanceKm)} · ${esc(result.store.address)}</p><div class="detail-summary ${result.complete?'':'partial-summary'}"><span>${priced?simulated?'Totale stimato del carrello':'Totale completo':'Subtotale delle righe con prezzo'}</span><strong>${result.pricedCount?money(result.totalCents):'—'}</strong><small>${result.availableCount} prezzi verificati · ${simulated} prezzi simulati · ${result.unpricedCount ?? result.missingCount} righe senza totale</small></div>${simulated?`<div class="detail-price-split"><span>Parte verificata <b>${money(result.verifiedTotalCents)}</b></span><span>Parte simulata <b>${money(result.simulatedTotalCents)}</b></span></div>`:''}
-    <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Prodotto e fonte</th><th>Qtà</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody>${result.rows.map(row=>`<tr class="${row.status==='available'?'':'unavailable-row'}"><td><strong>${esc(row.product.name)}</strong><span>${esc(row.product.brand)} · ${esc(row.product.size)}</span><small class="row-status ${row.status==='available'?'good':'partial'}">${icon(row.status==='available'?'check':'info')} ${statusLabels[row.status]}${row.status==='insufficient'?` (max ${row.offer.quantityAvailable})`:''}</small>${row.simulated?`<small class="offer-source">${referenceAttribution(row.reference)}<br>${esc(row.reference.method || '')}</small>`:row.offer?`<small class="offer-source">${row.offer.sourceUrl?`<a href="${esc(safeLink(row.offer.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(row.offer.sourceLabel)} ${icon('external')}</a>`:esc(row.offer.sourceLabel)} · ${new Date(row.offer.observedAt).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</small>`:''}</td><td>${row.quantity}</td><td>${row.unitPriceCents!==null?money(row.unitPriceCents):'—'}${row.simulated?'<small class="simulated-price-label">Prezzo simulato</small>':''}</td><td><b>${row.lineTotalCents!==null?money(row.lineTotalCents):'—'}</b></td></tr>`).join('')}</tbody></table></div><div class="modal-note">${icon('info')}<p>${state.mode==='demo'?'Negozi, prezzi e disponibilità sono fittizi. ':''}${simulated?'I prezzi simulati non confermano assortimento e disponibilità del negozio. I riferimenti generici non sono sostituzioni automatiche dei prodotti di marca. ':''}${!priced?'Righe senza prezzo, esaurite e con quantità insufficiente sono escluse dal subtotale. ':''}Viaggio e consegna esclusi.</p></div><button class="button primary full" data-action="close-modal">Torna al confronto</button>`,true);
+  showModal(`<span data-no-translate>${esc(result.store.name)}</span>`,`<p class="modal-description">${distance(result.store.distanceKm)} · ${esc(result.store.address)}</p><div class="detail-summary ${result.complete?'':'partial-summary'}"><span>${priced?simulated?'Totale stimato del carrello':'Totale completo':'Subtotale delle righe con prezzo'}</span><strong>${result.pricedCount?money(result.totalCents):'—'}</strong><small>${result.availableCount} prezzi verificati · ${simulated} prezzi simulati · ${result.unpricedCount ?? result.missingCount} righe senza totale</small></div>${simulated?`<div class="detail-price-split"><span>Parte verificata <b>${money(result.verifiedTotalCents)}</b></span><span>Parte simulata <b>${money(result.simulatedTotalCents)}</b></span></div>`:''}
+    <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Prodotto e fonte</th><th>Qtà</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody>${result.rows.map(row=>`<tr class="${row.status==='available'?'':'unavailable-row'}"><td><strong>${esc(row.product.name)}</strong><span>${esc(row.product.brand)} · ${esc(row.product.size)}</span><small class="row-status ${row.status==='available'?'good':'partial'}">${icon(row.status==='available'?'check':'info')} ${statusLabels[row.status]}${row.status==='insufficient'?` (max ${row.offer.quantityAvailable})`:''}</small>${row.simulated?`<small class="offer-source">${referenceAttribution(row.reference)}<br>${esc(row.reference.method || '')}</small>`:row.offer?`<small class="offer-source">${row.offer.sourceUrl?`<a href="${esc(safeLink(row.offer.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(row.offer.sourceLabel)} ${icon('external')}</a>`:esc(row.offer.sourceLabel)} · ${new Date(row.offer.observedAt).toLocaleString(localeFor(state.language),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</small>`:''}</td><td>${row.quantity}</td><td>${row.unitPriceCents!==null?money(row.unitPriceCents):'—'}${row.simulated?'<small class="simulated-price-label">Prezzo simulato</small>':''}</td><td><b>${row.lineTotalCents!==null?money(row.lineTotalCents):'—'}</b></td></tr>`).join('')}</tbody></table></div><div class="modal-note">${icon('info')}<p>${state.mode==='demo'?'Negozi, prezzi e disponibilità sono fittizi. ':''}${simulated?'I prezzi simulati non confermano assortimento e disponibilità del negozio. I riferimenti generici non sono sostituzioni automatiche dei prodotti di marca. ':''}${!priced?'Righe senza prezzo, esaurite e con quantità insufficiente sono escluse dal subtotale. ':''}Viaggio e consegna esclusi.</p></div><button class="button primary full" data-action="close-modal">Torna al confronto</button>`,true,()=>showDetail(id));
 }
 function referenceAttribution(ref) {
   const label=ref.sourceProduct || ref.sourceLabel;
@@ -398,16 +452,16 @@ function referenceAttribution(ref) {
 }
 function showPriceSource(id) {
   const p=product(id),ref=p?.reference;if(!ref)return;
-  showModal('Come viene stimato questo prezzo',`<p class="modal-description">${esc(p.name)} · ${esc(p.size)}</p><div class="reference-price"><span>Prezzo simulato</span><strong>${money(ref.priceCents)}</strong></div><p class="modal-description">${esc(ref.method)} Non è un prezzo verificato del supermercato e non conferma la disponibilità.</p><p class="reference-source">${referenceAttribution(ref)}</p><p class="modal-description">Lo stesso riferimento si applica a tutti i negozi privi di prezzo verificato. Non è una media statistica di mercato.</p><button class="button primary full" data-action="close-modal">Torna ai prodotti</button>`);
+  showModal('Come viene stimato questo prezzo',`<p class="modal-description">${esc(p.name)} · ${esc(p.size)}</p><div class="reference-price"><span>Prezzo simulato</span><strong>${money(ref.priceCents)}</strong></div><p class="modal-description">${esc(ref.method)} Non è un prezzo verificato del supermercato e non conferma la disponibilità.</p><p class="reference-source">${referenceAttribution(ref)}</p><p class="modal-description">Lo stesso riferimento si applica a tutti i negozi privi di prezzo verificato. Non è una media statistica di mercato.</p><button class="button primary full" data-action="close-modal">Torna ai prodotti</button>`,false,()=>showPriceSource(id));
 }
 
 function safeLink(value) {try {const u=new URL(value);return u.protocol==='https:'?u.href:'#';}catch{return '#';}}
 function editLocation() {
-  if(state.mode==='demo') return showModal('La tua zona di esempio',`<p class="modal-description">Nella demo usiamo il centro di Cagliari e negozi fittizi. Puoi cambiare il raggio per vedere come cambia il confronto.</p><form id="demo-radius-form">${radiusControl('demo-radius')}<button class="button primary full" type="submit">Aggiorna la zona ${icon('check')}</button></form><button class="text-button modal-real-search" data-action="exit-demo">Cerca un indirizzo reale ${icon('arrow')}</button>`);
-  showModal('Cambiamo zona?',`<p class="modal-description">Aggiorneremo negozi e cataloghi. I prodotti assenti nel nuovo catalogo verranno rimossi dalla lista.</p>${locationFields(true)}`);
+  if(state.mode==='demo') return showModal('La tua zona di esempio',`<p class="modal-description">Nella demo usiamo il centro di Cagliari e negozi fittizi. Puoi cambiare il raggio per vedere come cambia il confronto.</p><form id="demo-radius-form">${radiusControl('demo-radius')}<button class="button primary full" type="submit">Aggiorna la zona ${icon('check')}</button></form><button class="text-button modal-real-search" data-action="exit-demo">Cerca un indirizzo reale ${icon('arrow')}</button>`,false,editLocation);
+  showModal('Cambiamo zona?',`<p class="modal-description">Aggiorneremo negozi e cataloghi. I prodotti assenti nel nuovo catalogo verranno rimossi dalla lista.</p>${locationFields(true)}`,false,editLocation);
 }
 function privacy() {
-  showModal('La tua lista resta tua.',`<div class="privacy-copy"><p>La mia spesa salva zona, raggio e lista nella memoria di questo browser. Non serve un account. Non usiamo strumenti di analisi o cookie di tracciamento.</p><p>La posizione GPS è richiesta solo quando premi “Usa la mia posizione”. Nella ricerca reale, il testo dell’indirizzo viene inviato al geocodificatore Photon e le coordinate al servizio Overpass di Private.coffee per cercare i negozi. Puoi consultare la <a href="https://overpass.private.coffee/#terms-of-use" target="_blank" rel="noopener noreferrer">sua informativa</a>. Il server conserva temporaneamente queste risposte in cache.</p><p>Il servizio che ospita l’app può conservare log tecnici delle richieste secondo la propria configurazione. In caso di dispositivo condiviso, puoi eliminare i dati salvati qui sotto.</p></div><button class="button secondary full" data-action="delete-data">${icon('trash')} Elimina zona e lista salvate</button>`);
+  showModal('La tua lista resta tua.',`<div class="privacy-copy"><p>La mia spesa salva zona, raggio, lista, lingua e storico dei confronti nella memoria di questo browser. Non serve un account. Non usiamo strumenti di analisi o cookie di tracciamento.</p><p>La posizione GPS è richiesta solo quando premi “Usa la mia posizione”. Nella ricerca reale, il testo dell’indirizzo viene inviato al geocodificatore Photon e le coordinate al servizio Overpass di Private.coffee per cercare i negozi. Puoi consultare la <a href="https://overpass.private.coffee/#terms-of-use" target="_blank" rel="noopener noreferrer">sua informativa</a>. Il server conserva temporaneamente queste risposte in cache.</p><p>Il servizio che ospita l’app può conservare log tecnici delle richieste secondo la propria configurazione. In caso di dispositivo condiviso, puoi eliminare i dati salvati qui sotto.</p></div><button class="button secondary full" data-action="delete-data">${icon('trash')} Elimina zona, lista e storico salvati</button>`);
 }
 function exportList() {
   const results=state.results || localComparison();
@@ -418,12 +472,13 @@ function exportList() {
     for(const row of r.rows)lines.push(`${row.quantity} × ${row.product.name} ${row.product.size}: ${row.lineTotalCents===null?'non calcolabile':money(row.lineTotalCents)} — ${statusLabels[row.status]}${row.simulated?` — riferimento ${row.reference.checkedOn}: ${row.reference.sourceUrl || row.reference.sourceLabel} (${row.reference.origin==='editorial'?'stima indicativa':'riferimento'})`:''}`);
   }
   lines.push('','I prezzi simulati non confermano assortimento e disponibilità e non sono una media di mercato. A parità di stime non è possibile indicare un negozio più conveniente. Viaggio e consegna esclusi.');
-  const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='la-mia-spesa-lista.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Lista esportata. Buona spesa!');
+  const url=URL.createObjectURL(new Blob([lines.map(t).join('\n')],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=state.language==='en'?'la-mia-spesa-list.txt':'la-mia-spesa-lista.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Lista esportata. Buona spesa!');
 }
 
 document.addEventListener('click',event=> {
   if(event.target.closest('.brand,.footer-brand')){event.preventDefault();goHome();return;}
   const button=event.target.closest('button');if(!button || button.disabled)return;
+  if(button.dataset.language)return setLanguage(button.dataset.language);
   if(button.dataset.radiusAdjust){const form=button.closest('form');const input=$('.radius-slider',form);updateRadiusControl(form,Math.max(MIN_RADIUS_KM,Math.min(MAX_RADIUS_KM,Number(input.value)+Number(button.dataset.radiusAdjust))));return;}
   if(button.dataset.start)return chooseStart(button.dataset.start,button.closest('form'));
   if(button.dataset.add)return changeQuantity(button.dataset.add,1);
@@ -432,6 +487,8 @@ document.addEventListener('click',event=> {
   if(button.dataset.category) {state.visibleLimit=24;state.category=button.dataset.category;render();$('#product-search').focus({preventScroll:true});return;}
   if(button.dataset.detail)return showDetail(button.dataset.detail);
   if(button.dataset.priceSource)return showPriceSource(button.dataset.priceSource);
+  if(button.dataset.historyEntry){state.historyEntryId=button.dataset.historyEntry;state.historyStoreId=null;state.page='history';render();announcePage();return;}
+  if(button.dataset.historyStore){state.historyStoreId=button.dataset.historyStore;render();return;}
   if(button.dataset.locationIndex!==undefined){const form=button.closest('form');return loadLocation(form._locations[Number(button.dataset.locationIndex)],Number(new FormData(form).get('radius')),$('.form-feedback',form),form._destination);}
   if(button.dataset.step) {
     if(button.dataset.step==='compare')return showComparison();
@@ -439,10 +496,12 @@ document.addEventListener('click',event=> {
     state.page=button.dataset.step;render();announcePage();return;
   }
   const actions={
-    home:goHome,'resume-list':resumeList,'sample-lists':chooseSampleList,'compose-cart':resumeList,
+    home:goHome,history:openHistory,'resume-list':resumeList,'sample-lists':chooseSampleList,'compose-cart':resumeList,
+    'clear-history':()=>showModal('Svuotare lo storico?',`<p class="modal-description">Verranno eliminati i confronti salvati su questo browser. Il carrello attuale rimane disponibile.</p><div class="modal-buttons"><button class="button secondary" data-action="close-modal">Tieni lo storico</button><button class="button primary" data-action="confirm-clear-history">Svuota storico</button></div>`),
+    'confirm-clear-history':()=>{try{localStorage.removeItem(HISTORY_KEY);state.history=[];state.historyEntryId=null;closeModal();render();toast('Storico eliminato.');}catch{toast('Non è stato possibile eliminare lo storico.');}},
     'confirm-gps':()=>{if(pendingGps)loadLocation(pendingGps.location,pendingGps.radius,$('#gps-feedback'));},
     'retry-gps':()=>geolocate(pendingGps?.radius),'gps-address':correctGpsWithAddress,
-    'more-products':()=>{state.visibleLimit+=24;$('#product-grid').innerHTML=productGrid();},
+    'more-products':()=>{state.visibleLimit+=24;$('#product-grid').innerHTML=html(productGrid());},
     'toggle-categories':()=>{state.categoriesExpanded=!state.categoriesExpanded;render();$('[data-action="toggle-categories"]')?.focus({preventScroll:true});},
     'retry-stores':()=>refreshStores(),
     demo:()=>startDemo(false),'exit-demo':exitDemo,help:showHelp,privacy,stores:showStores,'edit-location':editLocation,geolocate:()=>geolocate(),compare:showComparison,
@@ -452,15 +511,15 @@ document.addEventListener('click',event=> {
     'clear-list':()=>showModal('Svuotare la lista?',`<p class="modal-description">Rimuoveremo tutti i ${count()} articoli. Potrai aggiungerli di nuovo dal catalogo.</p><div class="modal-buttons"><button class="button secondary" data-action="close-modal">Tieni la lista</button><button class="button primary" data-action="confirm-clear">Svuota la lista</button></div>`),
     'confirm-clear':()=>{state.list=[];state.pendingList=[];state.page='catalog';closeModal();refreshListUI();toast('Lista svuotata.');},
     'close-modal':closeModal,
-    'toggle-cart':()=>{state.cartOpen=!state.cartOpen;$('#cart-area').innerHTML=cart();},
-    'delete-data':()=>{try{localStorage.removeItem(KEY);}catch{}requestId++;storeRequestId++;saved=null;state.busy=false;state.storeSearchPending=false;state.list=[];state.pendingList=[];state.location=null;state.data=null;state.mode='live';state.page='location';state.results=null;closeModal();render();toast('Zona e lista salvate eliminate.');},
+    'toggle-cart':()=>{state.cartOpen=!state.cartOpen;$('#cart-area').innerHTML=html(cart());},
+    'delete-data':()=>{try{localStorage.removeItem(KEY);localStorage.removeItem(HISTORY_KEY);}catch{}requestId++;storeRequestId++;saved=null;state.history=[];state.historyEntryId=null;state.busy=false;state.storeSearchPending=false;state.list=[];state.pendingList=[];state.location=null;state.data=null;state.mode='live';state.page='location';state.results=null;closeModal();render();toast('Zona, lista e storico salvati eliminati.');},
     export:exportList,print:()=>window.print()
   };
   actions[button.dataset.action]?.();
 });
 document.addEventListener('input',event=> {
   if(event.target.name==='address'){const form=event.target.closest('form'),selected=knownStart(event.target.value);form.querySelectorAll('[data-start]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.start===selected?.id)));$('.location-candidates',form).innerHTML='';$('.form-feedback',form).textContent='';if(state.busy){requestId++;state.busy=false;setLocationButtons(false);updateHeader();}}
-  if(event.target.id==='product-search'){state.visibleLimit=24;state.search=event.target.value;$('#product-grid').innerHTML=productGrid();}
+  if(event.target.id==='product-search'){state.visibleLimit=24;state.search=event.target.value;$('#product-grid').innerHTML=html(productGrid());}
   if(event.target.classList.contains('radius-slider')){updateRadiusControl(event.target.closest('form'),Number(event.target.value));}
 });
 document.addEventListener('change',event=>{if(event.target.id==='category-select'){state.category=event.target.value;state.visibleLimit=24;render();$('#category-select').focus({preventScroll:true});}if(event.target.id==='hide-incomplete'){state.completeOnly=event.target.checked;$('#incomplete-results').hidden=state.completeOnly;}});
@@ -473,6 +532,8 @@ $('#modal').addEventListener('close',()=>{if(pendingGps){requestId++;state.busy=
 $('#modal').addEventListener('click',event=> {if(event.target===$('#modal')){const r=$('#modal').getBoundingClientRect();if(event.clientX<r.left || event.clientX>r.right || event.clientY<r.top || event.clientY>r.bottom)closeModal();}});
 
 async function init() {
+  try{state.language=normalizeLanguage(localStorage.getItem(LANGUAGE_KEY));}catch{}
+  try{state.history=readHistory(localStorage);}catch{}
   hydrateIcons();
   if(saved?.version===1 && saved.mode==='demo') {
     state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.radius=normalizeRadius(saved.radius);state.list=migrateDemoList(saved.list);state.page=saved.page==='location'?'location':'catalog';

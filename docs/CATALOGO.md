@@ -1,6 +1,6 @@
 # Catalogo condiviso
 
-Versione 1.6.0: 384 prodotti, 24 categorie, 16 scelte per categoria. Stessa selezione nel carrello e nel simulatore. Le voci sono generiche e non confermano assortimento o disponibilità dei supermercati. Prezzi e provenienza: PREZZI-SIMULATI.md.
+Versione 1.7.0: 384 prodotti, 24 categorie, 16 scelte per categoria. Stessa selezione nel carrello e nel simulatore. Le voci sono generiche e non confermano assortimento o disponibilità dei supermercati. Prezzi e provenienza: PREZZI-SIMULATI.md.
 
 ## Pasta e riso
 

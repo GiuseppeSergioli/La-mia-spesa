@@ -1,3 +1,4 @@
+import {translateText} from './i18n.mjs';
 const escape = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function icon(name, cls='') {
   const paths={
@@ -6,9 +7,9 @@ export function icon(name, cls='') {
   return `<svg class="icon ${cls}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.grid}</svg>`;
 }
 
-export function productArt(p) {
+export function productArt(p,language='it') {
   const color=/^#[\da-fA-F]{6}$/.test(p.color || '') ? p.color : '#6b8b6c';
-  const label=escape((p.label || p.name).slice(0,18)),brand=escape(p.brand),size=escape(p.size),art=p.art || 'pasta';
+  const label=escape(translateText(p.label || p.name,language).slice(0,18)),brand=escape(translateText(p.brand,language)),size=escape(translateText(p.size,language)),art=p.art || 'pasta';
   let shape='';
   const caption=`<text x="90" y="82" font-size="9" fill="#fff" font-family="Georgia,serif" text-anchor="middle">${brand}</text><text x="90" y="112" font-size="8.5" font-weight="bold" fill="#fff" font-family="Arial,sans-serif" text-anchor="middle">${label}</text><text x="90" y="143" font-size="7" fill="#fff" font-family="Arial,sans-serif" text-anchor="middle">${size}</text>`;
   if (art==='pasta' || art==='coffee') shape=`<path d="M54 33h72l5 127H49Z" fill="${color}"/><path d="M54 33h72v9H54Z" fill="#fff" opacity=".18"/><path d="M54 33h9l-3 127H49Z" fill="#000" opacity=".06"/>${caption}<rect x="68" y="119" width="44" height="13" rx="2" fill="#e9c57f" opacity=".8"/>`;
@@ -21,6 +22,7 @@ export function productArt(p) {
   else if (art==='greens') shape='<path d="M46 42h90l-6 118H51Z" fill="#d5e0b5" opacity=".65"/><g fill="#76a364"><ellipse cx="76" cy="101" rx="23" ry="34" transform="rotate(-24 76 101)"/><ellipse cx="111" cy="106" rx="23" ry="32" transform="rotate(25 111 106)"/><ellipse cx="91" cy="110" rx="17" ry="35" fill="#9fba79"/></g><path d="M46 42h90v18H46Z" fill="#6e9456"/><path d="M48 128h84v24H48Z" fill="#fbf8e9"/><text x="90" y="144" text-anchor="middle" font-size="9" font-family="Arial" fill="#537b41">INSALATA MISTA</text>';
   else if (art==='water') shape=`<g fill="#d0e5e9" stroke="#9fc6d2">${[51,77,103].map(x=>`<path d="M${x} 61h20v18l4 9v67H${x-4}V88l4-9V61Z"/><path d="M${x} 101h20v25h-20Z" fill="${color}"/><path d="M${x} 58h20v9h-20Z" fill="#7595ab"/>`).join('')}</g>`;
   else shape=`<rect x="39" y="67" width="102" height="83" rx="9" fill="#faf9f3" stroke="#dfdbd1"/><path d="M39 98h102v33H39Z" fill="${color}"/><text x="90" y="117" text-anchor="middle" font-size="10" font-family="Arial" fill="#fff">${label}</text><ellipse cx="65" cy="66" rx="25" ry="11" fill="#faf9f3" stroke="#dfdbd1"/><ellipse cx="115" cy="66" rx="25" ry="11" fill="#faf9f3" stroke="#dfdbd1"/>`;
+  if(language==='en')shape=shape.replace('INSALATA MISTA','MIXED SALAD');
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 190"><ellipse cx="90" cy="166" rx="47" ry="7" fill="#274736" opacity=".07"/>${shape}</svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }

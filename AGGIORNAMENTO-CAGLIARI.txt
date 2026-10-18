@@ -1,29 +1,22 @@
-LA MIA SPESA — AGGIORNAMENTO 1.6.0
+LA MIA SPESA — AGGIORNAMENTO 1.7.0
 
-COSA DEVE APPARIRE NELLA HOME
-Un grande pulsante verde Componi la tua spesa, con simbolo del carrello.
-Sotto, un piccolo comando Cerca supermercati, indicato come facoltativo e informativo.
-Componi la tua spesa apre subito i prodotti: non occorre prima cercare o scegliere un supermercato.
-La ricerca dei negozi continua mentre compili il carrello. Una risposta lenta o un errore della mappa non chiude la pagina prodotti.
+STORICO
+Sotto al carrello compare Storico delle spese. Ogni confronto concluso viene salvato automaticamente con data, prodotti, quantità, costi e market. Apri una voce e scegli il supermercato per vedere il dettaglio congelato di quel confronto. I prezzi simulati e i dati demo restano riconoscibili.
+Lo storico inizia dai confronti fatti con questa versione e resta su questo browser. Nessuna ricostruzione inventata di spese passate. Fino a 50 confronti recenti, secondo lo spazio disponibile.
 
-VERIFICA DI AVER AGGIORNATO LA VERSIONE GIUSTA
-In fondo alla home deve comparire v1.6.0.
-Nel server, /api/status deve restituire version 1.6.0.
-La demo autonoma dist/index.html mostra la home aggiornata e permette di comporre la spesa senza Internet.
+DUE LINGUE
+In alto a destra trovi 🇮🇹 IT e 🇬🇧 EN, nella home e nelle altre pagine.
+La prima apertura è in italiano; la preferenza viene ricordata. Sono tradotti anche i 384 prodotti, le 24 categorie, le finestre interne, lo storico e la demo. Prezzi, quantità, prodotti scelti e link alle fonti si mantengono.
 
-AGGIORNARE GITHUB E RENDER
-1. Estrai La-mia-spesa-1.6.0.zip.
-2. Nella cartella estratta trovi direttamente package.json, package-lock.json, public, server, dist e gli altri file.
-3. Apri GiuseppeSergioli/La-mia-spesa su GitHub, nella pagina principale del repository.
-4. Add file > Upload files: carica i file e le cartelle estratti, mantenendo le sottocartelle. package.json deve stare alla radice; public e server devono sostituire le cartelle esistenti.
-5. Conferma Commit changes. Se compare un errore, riapri package.json dal repository e verifica se la versione è arrivata; il messaggio esatto serve per capire l’eventuale blocco.
-6. Su Render, nel servizio esistente: Manual Deploy > Deploy latest commit.
-7. Riapri l’app e controlla il pulsante Componi la tua spesa e v1.6.0 in fondo. Se necessario, sul Mac aggiorna con Cmd+Shift+R.
+PUBBLICAZIONE
+1. Estrai La-mia-spesa-1.7.0.zip.
+2. Apri GiuseppeSergioli/La-mia-spesa su GitHub, nella pagina principale.
+3. Add file > Upload files: carica i file e le cartelle estratti nella radice. package.json deve restare alla radice; conserva le sottocartelle public, server e dist.
+4. Conferma Commit changes.
+5. Sul servizio Render esistente: Manual Deploy > Deploy latest commit.
+6. Riapri l’app e verifica v1.7.0 nel piè di pagina e le due bandiere. Se necessario, sul Mac aggiorna con Cmd+Shift+R.
 
-La URL resta quella già usata. Questa chat non ha eseguito il deploy.
-
-SONO INCLUSI ANCHE
-Quattro zone rapide distinte, Via Roma predefinita quando lasci vuoto, raggio massimo di 6 km, 12 categorie subito visibili espandibili a 24, 384 prodotti con 16 scelte per categoria e catalogo uniforme nel simulatore. Le liste salvate vengono conservate. Non è stato aggiunto un feed prezzi locale: i prezzi simulati restano indicati come tali.
+Il pacchetto comprende progetto completo e demo autonoma in dist/index.html. La URL resta quella già usata. Questa chat non ha eseguito il deploy.
 
 VERIFICA
-107 test automatici superati. Dieci controlli eseguono le funzioni e gli eventi dell’app con DOM simulato: apertura immediata, ricerca lenta o fallita, riprova, quantità cambiate durante l’attesa, cambio zona, ritorno alla home e demo offline. Demo autonoma compilata. Controllo visuale in un browser non eseguito qui. Vedi VALIDAZIONE.md.
+122 test automatici superati, compilazione dei moduli e della demo autonoma riuscita. Controllo visuale in un browser non eseguito qui. Dettagli in VALIDAZIONE.md.
