@@ -1,22 +1,29 @@
-LA MIA SPESA — AGGIORNAMENTO 1.7.0
+LA MIA SPESA — AGGIORNAMENTO 1.8.0
+
+SPESA ONLINE
+Nel confronto, i market con collegamento online mostrano Acquista online (shop del punto vendita) oppure Verifica spesa online (sito della catena, copertura da controllare).
+La finestra contiene il collegamento allo shop e una lista scaricabile con prodotti, formati e quantità. Il carrello va composto sul sito del supermercato: la lista non viene trasferita automaticamente. Ordine, pagamento, prezzi, disponibilità e costi di servizio si confermano lì.
+È verificato lo shop IPERPAN Cagliari Viale La Plaia per il ritiro. Compare se individuato nelle fonti geografiche e nel raggio scelto; non sono state aggiunte coordinate ipotetiche.
+Nessun listino prezzi Pan/CosìComodo è collegato. Per un confronto reale servono listini aggiornati di almeno due market per gli stessi prodotti. I prezzi simulati rimangono marcati come tali.
+La demo permette di esplorare il nuovo percorso senza aprire shop reali. Tutti i testi sono anche in inglese. Dettagli: docs/COSICOMODO.md.
 
 STORICO
 Sotto al carrello compare Storico delle spese. Ogni confronto concluso viene salvato automaticamente con data, prodotti, quantità, costi e market. Apri una voce e scegli il supermercato per vedere il dettaglio congelato di quel confronto. I prezzi simulati e i dati demo restano riconoscibili.
-Lo storico inizia dai confronti fatti con questa versione e resta su questo browser. Nessuna ricostruzione inventata di spese passate. Fino a 50 confronti recenti, secondo lo spazio disponibile.
+Lo storico conserva i confronti registrati dalla versione 1.7.0 su questo browser. Nessuna ricostruzione inventata di spese passate. Fino a 50 confronti recenti, secondo lo spazio disponibile.
 
 DUE LINGUE
 In alto a destra trovi 🇮🇹 IT e 🇬🇧 EN, nella home e nelle altre pagine.
 La prima apertura è in italiano; la preferenza viene ricordata. Sono tradotti anche i 384 prodotti, le 24 categorie, le finestre interne, lo storico e la demo. Prezzi, quantità, prodotti scelti e link alle fonti si mantengono.
 
 PUBBLICAZIONE
-1. Estrai La-mia-spesa-1.7.0.zip.
+1. Estrai La-mia-spesa-1.8.0.zip.
 2. Apri GiuseppeSergioli/La-mia-spesa su GitHub, nella pagina principale.
 3. Add file > Upload files: carica i file e le cartelle estratti nella radice. package.json deve restare alla radice; conserva le sottocartelle public, server e dist.
 4. Conferma Commit changes.
 5. Sul servizio Render esistente: Manual Deploy > Deploy latest commit.
-6. Riapri l’app e verifica v1.7.0 nel piè di pagina e le due bandiere. Se necessario, sul Mac aggiorna con Cmd+Shift+R.
+6. Riapri l’app e verifica v1.8.0 nel piè di pagina e le due bandiere. Se necessario, sul Mac aggiorna con Cmd+Shift+R.
 
 Il pacchetto comprende progetto completo e demo autonoma in dist/index.html. La URL resta quella già usata. Questa chat non ha eseguito il deploy.
 
 VERIFICA
-122 test automatici superati, compilazione dei moduli e della demo autonoma riuscita. Controllo visuale in un browser non eseguito qui. Dettagli in VALIDAZIONE.md.
+128 test automatici superati, compilazione dei moduli e della demo autonoma riuscita. Controllo visuale in un browser non eseguito qui. Dettagli in VALIDAZIONE.md.

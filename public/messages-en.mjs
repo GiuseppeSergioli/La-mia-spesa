@@ -475,3 +475,30 @@ Negozio fittizio · zona nord|Fictional store · north area
 Negozio fittizio · zona ovest|Fictional store · west area
 Negozio fittizio · zona sud|Fictional store · south area
 `.trim().split('\n').map(line=>line.split('|'))));
+
+Object.assign(EN_MESSAGES,Object.fromEntries(`
+Prova anche il passaggio alla spesa online|Try the handoff to online shopping too
+Vedi come funziona|See how it works
+Questo punto vendita ha uno shop online|This store has an online shop
+Verifica sul sito della catena il negozio e la copertura|Check the chain’s website for your store and service area
+Acquista online|Shop online
+Verifica spesa online|Check online shopping
+LA MIA SPESA — LISTA PER LA SPESA ONLINE|LA MIA SPESA — ONLINE SHOPPING LIST
+PRODOTTI DA CERCARE|PRODUCTS TO LOOK FOR
+Lista promemoria: non è un ordine. Prezzi e disponibilità da confermare sul sito del negozio.|A reminder list, not an order. Confirm prices and availability on the store’s website.
+Lista scaricata. Usala per cercare i prodotti sul sito del negozio.|List downloaded. Use it to find products on the store’s website.
+Questa è una prova del passaggio allo shop: il negozio è fittizio e non viene aperto alcun sito di acquisto.|This is a preview of the shop handoff: the store is fictional and no shopping website is opened.
+Apri lo shop di questo punto vendita e usa la tua lista per cercare i prodotti.|Open this store’s online shop and use your list to find products.
+Apri il sito della catena e seleziona il negozio e il servizio disponibili per il tuo indirizzo.|Open the chain’s website and select the store and service available for your address.
+Ritiro in questo punto vendita · verifica gli orari sul sito|Collection at this store · check time slots on its website
+Spesa online · demo|Online shopping · demo
+La tua spesa online|Your online shopping
+Il carrello va composto sul sito del supermercato: questa lista non viene trasferita automaticamente. Lì confermerai prezzi, offerte, disponibilità ed eventuali costi di servizio.|Build your basket on the supermarket’s website: this list is not transferred automatically. Confirm prices, offers, availability and any service fees there.
+Il confronto contiene prezzi simulati. Il totale dello shop potrebbe essere diverso.|This comparison includes simulated prices. The online shop’s total may differ.
+Nei negozi reali con uno shop collegato puoi aprire il sito ufficiale e scaricare la lista promemoria. Ordine e pagamento si completano sul sito del supermercato.|For real stores with a linked online shop, you can open the official website and download a reminder list. Complete your order and payment on the supermarket’s website.
+Apri lo shop del negozio|Open the store’s shop
+Verifica negozio e copertura|Check store and service area
+Scarica la lista|Download your list
+La lista da portare con te|Your list to take with you
+Spesa online su CosìComodo. Verificato lo shop di IPERPAN Cagliari La Plaia per il ritiro. Prezzi online e scaffale possono differire. Importazione dei prezzi non attiva.|Shop online with CosìComodo. IPERPAN Cagliari La Plaia’s collection shop has been verified. Online and shelf prices may differ. Price imports are not active.
+`.trim().split('\n').map(line=>line.split('|'))));

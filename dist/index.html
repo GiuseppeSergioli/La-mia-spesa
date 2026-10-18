@@ -68,6 +68,10 @@
 @media(max-width:700px){.header{padding:13px 20px 12px;min-height:102px;gap:12px 10px}.header-tools{gap:8px}.header-tools .header-help{display:none}.language-picker>button{min-width:42px;min-height:38px;padding:5px}.language-picker>button>span:first-child{font-size:19px}.language-picker>button>span:last-child{font-size:9px}.header>.steps{gap:12px}.header .step{font-size:10px}.cart-open{overflow-y:auto}.cart-items{max-height:max(90px,calc(82dvh - 410px))}.cart-history{padding:13px 15px 16px}.cart-history .button{min-height:44px;font-size:13px}.history-card{gap:11px;padding:16px 12px;flex-wrap:wrap}.history-icon{width:34px;height:34px}.history-summary>strong{font-size:13px}.history-summary>span{font-size:10px}.history-summary>small{font-size:9px}.history-amount{margin-left:45px;flex:1;max-width:none;text-align:left}.history-amount>strong{font-size:24px}.history-amount>small{font-size:9px}.history-card>.icon{margin-left:auto}.history-market-picker{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.history-market{padding:12px}.history-market strong{font-size:11px}.history-market>span{font-size:18px}.history-detail{padding:17px 12px}.history-store-heading{align-items:flex-start;gap:10px}.history-store-heading h2{font-size:16px}.history-store-heading p{font-size:10px}.history-store-heading>strong{font-size:24px}.history-note{font-size:10px}.history-empty h2{font-size:24px}.history-detail .detail-table{min-width:410px}}
 @media(max-width:360px){.header{padding-left:15px;padding-right:15px}.header>.brand{font-size:18px}.language-picker>button{min-width:39px}.header>.steps{gap:9px}}
 @media print{.header-tools,.cart-history{display:none!important}.history-card,.history-detail{break-inside:avoid}.history-market-picker{display:none}}
+
+.store-shopping{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 20px;border-top:1px solid var(--line);background:#f7f9f1;border-radius:0 0 12px 12px}.store-shopping>span{font-size:11px;color:var(--muted)}.online-shop-button{min-height:40px;padding:9px 13px;gap:8px;flex-shrink:0}.online-demo-entry{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:16px 20px;margin:0 0 28px;border:1px solid var(--line);border-radius:10px;background:var(--white)}.online-demo-entry>span{display:flex;align-items:center;gap:9px;font-size:12px}.online-demo-entry .icon{width:17px;height:17px}.online-shop-intro{display:flex;align-items:flex-start;gap:15px;margin-bottom:20px}.online-shop-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;background:#edf2e6;border-radius:12px;color:var(--green)}.online-shop-icon>.icon{width:26px;height:26px}.online-shop-intro h3{font-size:17px;margin:0 0 6px}.online-shop-intro p,.online-shop-explanation{font-size:12px;color:var(--muted);line-height:1.7}.online-service{display:block;color:var(--green);font-size:11px;margin-top:8px}.online-shop-actions{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 25px}.online-shop-actions>.button{flex:1 1 175px}.online-list-title{font-size:14px}.online-shopping-list{list-style:none;padding:0;margin:10px 0 22px;max-height:310px;overflow:auto;border:1px solid var(--line);border-radius:10px}.online-shopping-list>li{display:flex;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line)}.online-shopping-list>li:last-child{border-bottom:0}.online-shopping-list>li>b{font-size:12px;min-width:30px;color:var(--green)}.online-shopping-list>li>div{min-width:0;overflow-wrap:anywhere}.online-shopping-list strong{display:block;font-size:12px;font-weight:550}.online-shopping-list span{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+@media(max-width:640px){.store-shopping{flex-direction:column;align-items:stretch;gap:9px;padding:13px 15px}.store-shopping>span{font-size:10px}.online-demo-entry{align-items:flex-start;flex-direction:column;gap:9px;padding:15px}.online-shop-intro{gap:12px}.online-shop-intro h3{font-size:15px}.online-shop-actions{gap:8px}.online-shop-actions>.button{flex-basis:100%}}
+@media print{.store-shopping,.online-demo-entry,.online-shop-actions{display:none!important}}
 </style>
   
 </head>
@@ -84,13 +88,13 @@
   </header>
   <div id="mode-banner" class="mode-banner" hidden></div>
   <main id="main" tabindex="-1"></main>
-  <footer class="footer"><a class="footer-brand" href="./">La mia spesa</a><span><span data-i18n="Una lista. Una scelta più semplice.">Una lista. Una scelta più semplice.</span> <small id="app-version" class="app-version">v1.7.0</small></span><div><button data-action="history" data-i18n="Storico delle spese">Storico delle spese</button><button data-action="help" data-i18n="Come funziona">Come funziona</button><button data-action="privacy" data-i18n="Privacy e dati">Privacy e dati</button></div></footer>
+  <footer class="footer"><a class="footer-brand" href="./">La mia spesa</a><span><span data-i18n="Una lista. Una scelta più semplice.">Una lista. Una scelta più semplice.</span> <small id="app-version" class="app-version">v1.8.0</small></span><div><button data-action="history" data-i18n="Storico delle spese">Storico delle spese</button><button data-action="help" data-i18n="Come funziona">Come funziona</button><button data-action="privacy" data-i18n="Privacy e dati">Privacy e dati</button></div></footer>
   <dialog id="modal" aria-labelledby="modal-title"><div id="modal-content"></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <noscript><p>Per usare La mia spesa attiva JavaScript nel browser.</p></noscript>
 <script>window.SPESINA_STATIC=true;
 const Version=(()=>{
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.8.0';
 
 return {APP_VERSION};
 })();
@@ -1599,6 +1603,33 @@ Negozio fittizio · zona ovest|Fictional store · west area
 Negozio fittizio · zona sud|Fictional store · south area
 `.trim().split('\n').map(line=>line.split('|'))));
 
+Object.assign(EN_MESSAGES,Object.fromEntries(`
+Prova anche il passaggio alla spesa online|Try the handoff to online shopping too
+Vedi come funziona|See how it works
+Questo punto vendita ha uno shop online|This store has an online shop
+Verifica sul sito della catena il negozio e la copertura|Check the chain’s website for your store and service area
+Acquista online|Shop online
+Verifica spesa online|Check online shopping
+LA MIA SPESA — LISTA PER LA SPESA ONLINE|LA MIA SPESA — ONLINE SHOPPING LIST
+PRODOTTI DA CERCARE|PRODUCTS TO LOOK FOR
+Lista promemoria: non è un ordine. Prezzi e disponibilità da confermare sul sito del negozio.|A reminder list, not an order. Confirm prices and availability on the store’s website.
+Lista scaricata. Usala per cercare i prodotti sul sito del negozio.|List downloaded. Use it to find products on the store’s website.
+Questa è una prova del passaggio allo shop: il negozio è fittizio e non viene aperto alcun sito di acquisto.|This is a preview of the shop handoff: the store is fictional and no shopping website is opened.
+Apri lo shop di questo punto vendita e usa la tua lista per cercare i prodotti.|Open this store’s online shop and use your list to find products.
+Apri il sito della catena e seleziona il negozio e il servizio disponibili per il tuo indirizzo.|Open the chain’s website and select the store and service available for your address.
+Ritiro in questo punto vendita · verifica gli orari sul sito|Collection at this store · check time slots on its website
+Spesa online · demo|Online shopping · demo
+La tua spesa online|Your online shopping
+Il carrello va composto sul sito del supermercato: questa lista non viene trasferita automaticamente. Lì confermerai prezzi, offerte, disponibilità ed eventuali costi di servizio.|Build your basket on the supermarket’s website: this list is not transferred automatically. Confirm prices, offers, availability and any service fees there.
+Il confronto contiene prezzi simulati. Il totale dello shop potrebbe essere diverso.|This comparison includes simulated prices. The online shop’s total may differ.
+Nei negozi reali con uno shop collegato puoi aprire il sito ufficiale e scaricare la lista promemoria. Ordine e pagamento si completano sul sito del supermercato.|For real stores with a linked online shop, you can open the official website and download a reminder list. Complete your order and payment on the supermarket’s website.
+Apri lo shop del negozio|Open the store’s shop
+Verifica negozio e copertura|Check store and service area
+Scarica la lista|Download your list
+La lista da portare con te|Your list to take with you
+Spesa online su CosìComodo. Verificato lo shop di IPERPAN Cagliari La Plaia per il ritiro. Prezzi online e scaffale possono differire. Importazione dei prezzi non attiva.|Shop online with CosìComodo. IPERPAN Cagliari La Plaia’s collection shop has been verified. Online and shelf prices may differ. Price imports are not active.
+`.trim().split('\n').map(line=>line.split('|'))));
+
 return {EN_MESSAGES};
 })();
 const I18n=(()=>{
@@ -2140,6 +2171,7 @@ function comparePage() {
   return `<section class="page-intro compare-intro"><div><button class="text-button back-button" data-action="catalog">${icon('back')} Modifica la lista</button><div class="eyebrow">IL CONTO DEL TUO CARRELLO</div><h1>La stessa spesa.<br class="mobile-only"> <em>Tutti i totali.</em></h1><p>${count()} confezioni, ${state.list.length} prodotti distinti. Prezzi e disponibilità sono indicati nel dettaglio.</p></div><div class="compare-actions"><button class="button secondary" data-action="export">${icon('download')} Esporta lista</button><button class="icon-button bordered" data-action="print" aria-label="Stampa confronto">${icon('print')}</button></div></section>${locationStrip()}
     ${hasEstimates?`<div class="estimate-notice">${icon('info')}<div><strong>Il confronto include prezzi simulati</strong><p>Dove manca un prezzo verificato si usa lo stesso riferimento per lo stesso prodotto. Non confermano l’assortimento o la disponibilità. Fonte e data sono nel dettaglio di ogni riga.</p></div></div>`:''}
     ${best?`<div class="winner ${hasEstimates?'estimated-winner':''}"><div class="winner-info"><span class="winner-label">${icon(tie?'info':'spark')} ${tie?'PARITÀ DI TOTALE':hasEstimates?'TOTALE STIMATO PIÙ BASSO':complete.length>1?'IL TOTALE COMPLETO PIÙ BASSO':'SPESA COMPLETA DISPONIBILE'}</span><h2>${tie?hasEstimates?'Stesso totale stimato':'Stesso totale':`<span data-no-translate>${esc(best.store.name)}</span>`}</h2><p>${icon(hasEstimates?'info':'check')} ${tie?`${ties.length} negozi a pari totale`:`${best.pricedCount ?? best.availableCount} prodotti con prezzo · ${distance(best.store.distanceKm)}`}</p><div class="winner-note">${esc(note)}</div></div><div class="winner-price"><span>${hasEstimates?'Totale indicativo del carrello':'Totale della tua spesa'}</span><strong>${money(best.totalCents)}</strong><button class="button winner-button" data-detail="${esc(best.store.id)}">Vedi il dettaglio ${icon('arrow')}</button></div><span class="winner-decoration" aria-hidden="true">${icon('bag')}</span></div>`:`<div class="no-winner">${icon('info')}<div><h2>Nessun totale copre tutto il carrello.</h2><p>Trovi qui i subtotali e i prodotti mancanti. Un subtotale non è il costo della lista completa.</p></div></div>`}
+    ${state.mode==='demo' && results.length?`<div class="online-demo-entry"><span>${icon('bag')} Prova anche il passaggio alla spesa online</span><button class="text-button" data-shop="${esc(results[0]?.store.id || '')}">Vedi come funziona ${icon('arrow')}</button></div>`:''}
     <div class="results-heading"><h2>Il confronto, negozio per negozio</h2><span>${complete.length} totali calcolabili su ${results.length} negozi</span></div>
     <div class="comparison-legend">${icon('info')} Totali dal meno al più costoso; a parità di totale, ordine per distanza. I subtotali incompleti sono separati.</div>
     <div class="comparison-results">${complete.length?`<div class="complete-results">${complete.map(r=>storeResult(r,1+complete.filter(x=>x.totalCents<r.totalCents).length,best,tie)).join('')}</div>`:''}
@@ -2150,7 +2182,48 @@ function comparePage() {
 function storeResult(r,rank,best,tie=false) {
   const priced=r.priceComplete ?? r.complete,isBest=priced && best && r.totalCents===best.totalCents,delta=priced && best?r.totalCents-best.totalCents:null;
   const simulated=r.simulatedCount || 0,covered=r.pricedCount ?? r.availableCount,hasSome=covered>0;
-  return `<article class="store-result ${isBest?'is-best':''} ${priced?'':'is-incomplete'}"><div class="store-result-main"><span class="store-rank">${rank ?? '—'}</span><span class="store-logo" style="--store-color:${/^#[\da-f]{6}$/i.test(r.store.color || '')?r.store.color:'#48745e'}">${esc(r.store.initial || r.store.name[0])}</span><div class="store-identification"><h3><span data-no-translate>${esc(r.store.name)}</span> ${isBest?`<span class="best-badge ${simulated?'estimate-badge':''}">${icon(simulated?'info':'check')} ${tie?'Parità':simulated?'Stima':'Completa'}</span>`:''}</h3><p>${icon('pin')}${distance(r.store.distanceKm)} · ${esc(r.store.address)}</p></div><div class="store-coverage ${priced && !simulated?'good':'partial'}">${icon(simulated || !priced?'info':'check')}<span>${covered}/${r.rows.length} prodotti con prezzo<span>${simulated?`${r.availableCount} verificati · ${simulated} simulati`:r.complete?'Tutta la tua lista verificata':`${r.unpricedCount ?? r.missingCount} senza totale`}</span></span></div><div class="store-total"><span>${priced?simulated?'Totale stimato':'Totale completo':hasSome?'Subtotale parziale':'Totale non calcolabile'}</span><strong>${priced || hasSome?money(r.totalCents):'—'}</strong>${delta>0?`<small>+ ${money(delta)} dal più basso${simulated?' stimato':''}</small>`:''}</div><button class="detail-button" data-detail="${esc(r.store.id)}" aria-label="Dettaglio spesa ${esc(r.store.name)}">${icon('arrow')}</button></div>${!priced?`<div class="missing-preview">${r.rows.filter(row=>row.lineTotalCents===null).map(row=>`<span>${esc(row.product.name)}: ${statusLabels[row.status].toLocaleLowerCase('it')}</span>`).join('')}</div>`:''}${simulated?`<div class="simulation-preview">${simulated} ${simulated===1?'prezzo simulato':'prezzi simulati'} · disponibilità da verificare. Importo simulato: ${money(r.simulatedTotalCents)}.</div>`:''}</article>`;
+  return `<article class="store-result ${isBest?'is-best':''} ${priced?'':'is-incomplete'}"><div class="store-result-main"><span class="store-rank">${rank ?? '—'}</span><span class="store-logo" style="--store-color:${/^#[\da-f]{6}$/i.test(r.store.color || '')?r.store.color:'#48745e'}">${esc(r.store.initial || r.store.name[0])}</span><div class="store-identification"><h3><span data-no-translate>${esc(r.store.name)}</span> ${isBest?`<span class="best-badge ${simulated?'estimate-badge':''}">${icon(simulated?'info':'check')} ${tie?'Parità':simulated?'Stima':'Completa'}</span>`:''}</h3><p>${icon('pin')}${distance(r.store.distanceKm)} · ${esc(r.store.address)}</p></div><div class="store-coverage ${priced && !simulated?'good':'partial'}">${icon(simulated || !priced?'info':'check')}<span>${covered}/${r.rows.length} prodotti con prezzo<span>${simulated?`${r.availableCount} verificati · ${simulated} simulati`:r.complete?'Tutta la tua lista verificata':`${r.unpricedCount ?? r.missingCount} senza totale`}</span></span></div><div class="store-total"><span>${priced?simulated?'Totale stimato':'Totale completo':hasSome?'Subtotale parziale':'Totale non calcolabile'}</span><strong>${priced || hasSome?money(r.totalCents):'—'}</strong>${delta>0?`<small>+ ${money(delta)} dal più basso${simulated?' stimato':''}</small>`:''}</div><button class="detail-button" data-detail="${esc(r.store.id)}" aria-label="Dettaglio spesa ${esc(r.store.name)}">${icon('arrow')}</button></div>${!priced?`<div class="missing-preview">${r.rows.filter(row=>row.lineTotalCents===null).map(row=>`<span>${esc(row.product.name)}: ${statusLabels[row.status].toLocaleLowerCase('it')}</span>`).join('')}</div>`:''}${simulated?`<div class="simulation-preview">${simulated} ${simulated===1?'prezzo simulato':'prezzi simulati'} · disponibilità da verificare. Importo simulato: ${money(r.simulatedTotalCents)}.</div>`:''}${onlineShopUrl(r.store)?`<div class="store-shopping"><span>${r.store.linkScope==='store'?'Questo punto vendita ha uno shop online':'Verifica sul sito della catena il negozio e la copertura'}</span>${onlineShoppingButton(r.store)}</div>`:''}</article>`;
+}
+
+function onlineShopUrl(store) {
+  if(state.mode==='demo' || store?.demo)return null;
+  try {
+    const url=new URL(store?.onlineUrl);
+    if(url.protocol!=='https:' || url.username || url.password || url.port && url.port!=='443')return null;
+    return url.href;
+  } catch{return null;}
+}
+function onlineShoppingButton(store) {
+  if(!onlineShopUrl(store))return '';
+  return `<button class="button secondary online-shop-button" data-shop="${esc(store.id)}">${icon('bag')} ${store.linkScope==='store'?'Acquista online':'Verifica spesa online'} ${icon('external')}</button>`;
+}
+function shoppingResult(id) {
+  return (state.results || localComparison()).find(result=>result.store.id===id);
+}
+function onlineListText(result) {
+  const lines=[t('LA MIA SPESA — LISTA PER LA SPESA ONLINE'),result.store.name,formatDate(new Date().toISOString(),state.language),'',t('PRODOTTI DA CERCARE')];
+  for(const row of result.rows) {
+    const p=row.product;
+    lines.push(`${row.quantity} × ${t(p.brand)} ${t(p.name)} — ${t(p.size)}${p.gtin?` · EAN ${p.gtin}`:''}`);
+  }
+  const url=onlineShopUrl(result.store);
+  if(url)lines.push('',url);
+  lines.push('',t(state.mode==='demo'?'DEMO — negozi, prezzi e disponibilità fittizi':'Lista promemoria: non è un ordine. Prezzi e disponibilità da confermare sul sito del negozio.'));
+  return lines.join('\n');
+}
+function downloadOnlineList(id) {
+  const result=shoppingResult(id);if(!result || state.mode!=='demo' && !onlineShopUrl(result.store))return;
+  downloadText(onlineListText(result),state.language==='en'?'la-mia-spesa-online-list.txt':'la-mia-spesa-lista-online.txt');
+  toast('Lista scaricata. Usala per cercare i prodotti sul sito del negozio.');
+}
+function showOnlineShopping(id) {
+  const result=shoppingResult(id);if(!result)return;
+  const demo=state.mode==='demo',url=onlineShopUrl(result.store);
+  if(!demo && !url)return;
+  const exact=result.store.linkScope==='store';
+  const intro=demo?'Questa è una prova del passaggio allo shop: il negozio è fittizio e non viene aperto alcun sito di acquisto.':exact?'Apri lo shop di questo punto vendita e usa la tua lista per cercare i prodotti.':'Apri il sito della catena e seleziona il negozio e il servizio disponibili per il tuo indirizzo.';
+  const service=result.store.onlineService==='pickup'?'<span class="online-service">Ritiro in questo punto vendita · verifica gli orari sul sito</span>':'';
+  showModal(demo?'Spesa online · demo':'La tua spesa online',`<div class="online-shop-intro"><span class="online-shop-icon">${icon('bag')}</span><div><h3 data-no-translate>${esc(result.store.name)}</h3><p>${esc(intro)}</p>${service}</div></div>${!demo?`<p class="online-shop-explanation">Il carrello va composto sul sito del supermercato: questa lista non viene trasferita automaticamente. Lì confermerai prezzi, offerte, disponibilità ed eventuali costi di servizio.</p>${result.simulatedCount?'<div class="data-notice">'+icon('info')+'<p>Il confronto contiene prezzi simulati. Il totale dello shop potrebbe essere diverso.</p></div>':''}`:'<p class="online-shop-explanation">Nei negozi reali con uno shop collegato puoi aprire il sito ufficiale e scaricare la lista promemoria. Ordine e pagamento si completano sul sito del supermercato.</p>'}<div class="online-shop-actions">${url?`<a class="button primary" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${exact?'Apri lo shop del negozio':'Verifica negozio e copertura'} ${icon('external')}</a>`:''}<button class="button ${url?'secondary':'primary'}" data-online-list="${esc(result.store.id)}">${icon('download')} Scarica la lista</button></div><h3 class="online-list-title">La lista da portare con te</h3><ul class="online-shopping-list">${result.rows.map(row=>`<li><b>${row.quantity} ×</b><div><strong>${esc(row.product.name)}</strong><span>${esc(row.product.brand)} · ${esc(row.product.size)}${row.product.gtin?` · EAN ${esc(row.product.gtin)}`:''}</span></div></li>`).join('')}</ul><button class="text-button" data-action="close-modal">${icon('back')} Torna al confronto</button>`,false,()=>showOnlineShopping(id));
 }
 
 function historyDate(value) {
@@ -2390,7 +2463,7 @@ function showDetail(id) {
   if(!result)return;
   const priced=result.priceComplete ?? result.complete,simulated=result.simulatedCount || 0;
   showModal(`<span data-no-translate>${esc(result.store.name)}</span>`,`<p class="modal-description">${distance(result.store.distanceKm)} · ${esc(result.store.address)}</p><div class="detail-summary ${result.complete?'':'partial-summary'}"><span>${priced?simulated?'Totale stimato del carrello':'Totale completo':'Subtotale delle righe con prezzo'}</span><strong>${result.pricedCount?money(result.totalCents):'—'}</strong><small>${result.availableCount} prezzi verificati · ${simulated} prezzi simulati · ${result.unpricedCount ?? result.missingCount} righe senza totale</small></div>${simulated?`<div class="detail-price-split"><span>Parte verificata <b>${money(result.verifiedTotalCents)}</b></span><span>Parte simulata <b>${money(result.simulatedTotalCents)}</b></span></div>`:''}
-    <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Prodotto e fonte</th><th>Qtà</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody>${result.rows.map(row=>`<tr class="${row.status==='available'?'':'unavailable-row'}"><td><strong>${esc(row.product.name)}</strong><span>${esc(row.product.brand)} · ${esc(row.product.size)}</span><small class="row-status ${row.status==='available'?'good':'partial'}">${icon(row.status==='available'?'check':'info')} ${statusLabels[row.status]}${row.status==='insufficient'?` (max ${row.offer.quantityAvailable})`:''}</small>${row.simulated?`<small class="offer-source">${referenceAttribution(row.reference)}<br>${esc(row.reference.method || '')}</small>`:row.offer?`<small class="offer-source">${row.offer.sourceUrl?`<a href="${esc(safeLink(row.offer.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(row.offer.sourceLabel)} ${icon('external')}</a>`:esc(row.offer.sourceLabel)} · ${new Date(row.offer.observedAt).toLocaleString(localeFor(state.language),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</small>`:''}</td><td>${row.quantity}</td><td>${row.unitPriceCents!==null?money(row.unitPriceCents):'—'}${row.simulated?'<small class="simulated-price-label">Prezzo simulato</small>':''}</td><td><b>${row.lineTotalCents!==null?money(row.lineTotalCents):'—'}</b></td></tr>`).join('')}</tbody></table></div><div class="modal-note">${icon('info')}<p>${state.mode==='demo'?'Negozi, prezzi e disponibilità sono fittizi. ':''}${simulated?'I prezzi simulati non confermano assortimento e disponibilità del negozio. I riferimenti generici non sono sostituzioni automatiche dei prodotti di marca. ':''}${!priced?'Righe senza prezzo, esaurite e con quantità insufficiente sono escluse dal subtotale. ':''}Viaggio e consegna esclusi.</p></div><button class="button primary full" data-action="close-modal">Torna al confronto</button>`,true,()=>showDetail(id));
+    <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Prodotto e fonte</th><th>Qtà</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody>${result.rows.map(row=>`<tr class="${row.status==='available'?'':'unavailable-row'}"><td><strong>${esc(row.product.name)}</strong><span>${esc(row.product.brand)} · ${esc(row.product.size)}</span><small class="row-status ${row.status==='available'?'good':'partial'}">${icon(row.status==='available'?'check':'info')} ${statusLabels[row.status]}${row.status==='insufficient'?` (max ${row.offer.quantityAvailable})`:''}</small>${row.simulated?`<small class="offer-source">${referenceAttribution(row.reference)}<br>${esc(row.reference.method || '')}</small>`:row.offer?`<small class="offer-source">${row.offer.sourceUrl?`<a href="${esc(safeLink(row.offer.sourceUrl))}" target="_blank" rel="noopener noreferrer">${esc(row.offer.sourceLabel)} ${icon('external')}</a>`:esc(row.offer.sourceLabel)} · ${new Date(row.offer.observedAt).toLocaleString(localeFor(state.language),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</small>`:''}</td><td>${row.quantity}</td><td>${row.unitPriceCents!==null?money(row.unitPriceCents):'—'}${row.simulated?'<small class="simulated-price-label">Prezzo simulato</small>':''}</td><td><b>${row.lineTotalCents!==null?money(row.lineTotalCents):'—'}</b></td></tr>`).join('')}</tbody></table></div><div class="modal-note">${icon('info')}<p>${state.mode==='demo'?'Negozi, prezzi e disponibilità sono fittizi. ':''}${simulated?'I prezzi simulati non confermano assortimento e disponibilità del negozio. I riferimenti generici non sono sostituzioni automatiche dei prodotti di marca. ':''}${!priced?'Righe senza prezzo, esaurite e con quantità insufficiente sono escluse dal subtotale. ':''}Viaggio e consegna esclusi.</p></div>${onlineShoppingButton(result.store)}<button class="button primary full" data-action="close-modal">Torna al confronto</button>`,true,()=>showDetail(id));
 }
 function referenceAttribution(ref) {
   const label=ref.sourceProduct || ref.sourceLabel;
@@ -2420,7 +2493,12 @@ function exportList() {
     for(const row of r.rows)lines.push(`${row.quantity} × ${row.product.name} ${row.product.size}: ${row.lineTotalCents===null?'non calcolabile':money(row.lineTotalCents)} — ${statusLabels[row.status]}${row.simulated?` — riferimento ${row.reference.checkedOn}: ${row.reference.sourceUrl || row.reference.sourceLabel} (${row.reference.origin==='editorial'?'stima indicativa':'riferimento'})`:''}`);
   }
   lines.push('','I prezzi simulati non confermano assortimento e disponibilità e non sono una media di mercato. A parità di stime non è possibile indicare un negozio più conveniente. Viaggio e consegna esclusi.');
-  const url=URL.createObjectURL(new Blob([lines.map(t).join('\n')],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=state.language==='en'?'la-mia-spesa-list.txt':'la-mia-spesa-lista.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Lista esportata. Buona spesa!');
+  downloadText(lines.map(t).join('\n'),state.language==='en'?'la-mia-spesa-list.txt':'la-mia-spesa-lista.txt');toast('Lista esportata. Buona spesa!');
+}
+
+function downloadText(content,filename) {
+  const url=URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');
+  a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 document.addEventListener('click',event=> {
@@ -2434,6 +2512,8 @@ document.addEventListener('click',event=> {
   if(button.dataset.sampleList){const list=sampleLists.find(l=>l.id===button.dataset.sampleList);if(list){state.list=structuredClone(list.items);closeModal();refreshListUI();toast(`${list.name}: lista demo caricata.`);}return;}
   if(button.dataset.category) {state.visibleLimit=24;state.category=button.dataset.category;render();$('#product-search').focus({preventScroll:true});return;}
   if(button.dataset.detail)return showDetail(button.dataset.detail);
+  if(button.dataset.shop)return showOnlineShopping(button.dataset.shop);
+  if(button.dataset.onlineList)return downloadOnlineList(button.dataset.onlineList);
   if(button.dataset.priceSource)return showPriceSource(button.dataset.priceSource);
   if(button.dataset.historyEntry){state.historyEntryId=button.dataset.historyEntry;state.historyStoreId=null;state.page='history';render();announcePage();return;}
   if(button.dataset.historyStore){state.historyStoreId=button.dataset.historyStore;render();return;}

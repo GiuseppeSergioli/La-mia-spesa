@@ -17,7 +17,12 @@ test('a retailer website link never creates prices or claims a connected catalog
 test('only the Pan store in La Plaia gets the exact verified storefront',()=>{
   const exact=enrichStore({name:'IperPan',address:'Viale La Plaia 19 Cagliari'});
   assert.equal(exact.onlineUrl,'https://www.cosicomodo.it/pan/cagliari-plaia');assert.equal(exact.linkScope,'store');
+  assert.equal(exact.onlineService,'pickup');assert.equal(exact.sourceCheckedOn,'2026-10-18');
   assert.notEqual(enrichStore({name:'SuperPan',address:'Viale Fiume Quartu'}).onlineUrl,exact.onlineUrl);
+  assert.notEqual(enrichStore({name:'SuperPan',address:'Viale La Plaia, altro comune'}).onlineUrl,exact.onlineUrl);
+  assert.notEqual(enrichStore({name:'SuperPan',address:'Via della Plaia, Cagliari'}).onlineUrl,exact.onlineUrl);
+  assert.equal(enrichStore({name:'IperPan',address:'Viale La Plaia 19',lat:39.2238,lon:9.1217}).onlineUrl,exact.onlineUrl);
+  assert.notEqual(enrichStore({name:'IperPan',address:'Viale La Plaia 19',lat:40.7,lon:8.6}).onlineUrl,exact.onlineUrl);
 });
 test('demo stores never inherit official source links',()=>{const store={name:'Conad',demo:true};assert.deepEqual(enrichStore(store),store);});
 test('source coverage lists only recognized retailers actually found, once each',()=>{
