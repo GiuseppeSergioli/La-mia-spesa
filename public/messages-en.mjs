@@ -502,3 +502,14 @@ Scarica la lista|Download your list
 La lista da portare con te|Your list to take with you
 Spesa online su CosìComodo. Verificato lo shop di IPERPAN Cagliari La Plaia per il ritiro. Prezzi online e scaffale possono differire. Importazione dei prezzi non attiva.|Shop online with CosìComodo. IPERPAN Cagliari La Plaia’s collection shop has been verified. Online and shelf prices may differ. Price imports are not active.
 `.trim().split('\n').map(line=>line.split('|'))));
+
+Object.assign(EN_MESSAGES,Object.fromEntries(`
+Eliminare questa spesa?|Delete this saved shop?
+Verrà eliminata solo questa spesa salvata. Le altre spese e il carrello attuale rimangono disponibili.|Only this saved shop will be deleted. Your other saved shops and current basket will remain available.
+Annulla|Cancel
+Elimina spesa|Delete saved shop
+Elimina questa spesa|Delete this saved shop
+Elimina spesa del|Delete shop saved on
+Spesa eliminata dallo storico.|Saved shop deleted from history.
+Non è stato possibile eliminare questa spesa. Riprova.|This saved shop could not be deleted. Please try again.
+`.trim().split('\n').map(line=>line.split('|'))));

@@ -45,3 +45,51 @@ test('history appears below the comparison action and language changes do not al
   h.run("openHistory();state.historyEntryId=state.history[0].id;render();setLanguage('en')");assert.match(h.main(),/Unit price/);assert.match(h.main(),/Saved comparison|Demo/);
   assert.equal(h.storage.get(HISTORY_KEY),saved);h.run("setLanguage('it')");assert.equal(h.storage.get(HISTORY_KEY),saved);
 });
+
+test('home and comparison expose a history shortcut with the updated saved-entry count',async()=>{
+  const h=harness();
+  assert.match(h.main(),/home-history[^]*data-action="history"[^]*history-count">0</);
+  h.run('startDemo(true)');await h.run('showComparison()');
+  assert.match(h.main(),/compare-actions[^]*data-action="history"[^]*history-count">1</);
+  h.run("goHome();setLanguage('en')");
+  assert.match(h.main(),/home-history[^]*Shopping history[^]*history-count">1</);
+  h.handlers.click({target:{closest(selector){return selector==='button'?{disabled:false,dataset:{action:'history'}}:null;}}});
+  assert.equal(h.run('state.page'),'history');
+});
+
+test('deleting one saved shop preserves other entries and the current basket after reload',async()=>{
+  const h=harness();h.run('startDemo(true)');await h.run('showComparison()');
+  h.run("state.history.push({...structuredClone(state.history[0]),id:'older-shop',savedAt:'2026-10-17T04:30:00Z'});writeHistory(localStorage,state.history);openHistory()");
+  const currentId=h.run('state.history[0].id'),other=h.run('JSON.stringify(state.history[1])'),basket=h.run('JSON.stringify(state.list)');
+  assert.match(h.main(),/data-delete-history="older-shop"/);
+  h.run('state.historyEntryId=state.history[0].id;state.historyStoreId=state.history[0].stores[0].id;render()');
+  assert.match(h.main(),/Elimina questa spesa/);
+  h.handlers.click({target:{closest(selector){return selector==='button'?{disabled:false,dataset:{deleteHistory:currentId}}:null;}}});
+  assert.equal(h.run('state.history.length'),2);
+  h.handlers.click({target:{closest(selector){return selector==='button'?{disabled:false,dataset:{confirmDeleteHistory:currentId}}:null;}}});
+  assert.equal(h.run('state.history.length'),1);assert.equal(h.run('JSON.stringify(state.history[0])'),other);
+  assert.equal(h.run('state.historyEntryId'),null);assert.equal(h.run('state.historyStoreId'),null);
+  assert.equal(h.run('JSON.stringify(state.list)'),basket);
+  const reloaded=harness({savedStorage:h.storage});assert.equal(reloaded.run('state.history.length'),1);assert.equal(reloaded.run('state.history[0].id'),'older-shop');
+});
+
+test('single-delete confirmation can be cancelled and translated; deleting the last entry shows an empty history',async()=>{
+  const h=harness();h.run('startDemo(true)');await h.run('showComparison()');
+  const saved=h.storage.get(HISTORY_KEY);
+  h.run('openHistory();showDeleteHistory(state.history[0].id);closeModal()');assert.equal(h.storage.get(HISTORY_KEY),saved);
+  h.run("showDeleteHistory(state.history[0].id);setLanguage('en')");
+  const body=h.document.querySelector('#modal-content').innerHTML;
+  assert.match(body,/Delete this saved shop/);assert.match(body,/Cancel/);assert.doesNotMatch(body,/Elimina|Verrà|Annulla/);
+  h.run('deleteHistoryEntry(state.history[0].id)');
+  assert.equal(h.run('state.history.length'),0);assert.match(h.main(),/Your previous shopping will appear here/);
+  assert.doesNotMatch(h.main(),/data-history-entry=/);
+  assert.deepEqual(JSON.parse(h.storage.get(HISTORY_KEY)),[]);
+});
+
+test('failed or stale single-delete requests never discard the saved history',async()=>{
+  const h=harness();h.run('startDemo(true)');await h.run('showComparison()');
+  const saved=h.storage.get(HISTORY_KEY),state=h.run('JSON.stringify(state.history)');
+  h.run("deleteHistoryEntry('missing-entry')");assert.equal(h.storage.get(HISTORY_KEY),saved);
+  h.run("localStorage.setItem=()=>{throw new Error('blocked')};showDeleteHistory(state.history[0].id);deleteHistoryEntry(state.history[0].id)");
+  assert.equal(h.run('JSON.stringify(state.history)'),state);assert.equal(h.storage.get(HISTORY_KEY),saved);assert.equal(h.run("$('#modal').open"),true);
+});

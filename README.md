@@ -2,7 +2,9 @@
 
 Un’app in italiano e inglese per comporre una lista per categorie e confrontare quanto costa acquistare **gli stessi prodotti, nelle stesse quantità e nello stesso formato**, presso i supermercati vicini.
 
-**Versione 1.8.0 — passaggio alla spesa online:** nel confronto trovi **Acquista online** per negozi con shop preciso, come IPERPAN Cagliari La Plaia, oppure **Verifica spesa online** per i collegamenti generici delle catene. La finestra permette di aprire lo shop e scaricare una lista promemoria con quantità, nomi e formati. Il carrello deve essere composto sul sito del supermercato: non viene trasferito automaticamente. La demo mostra il percorso senza aprire shop reali. Le nuove funzioni sono in italiano e inglese.
+**Versione 1.9.0 — storico sempre accessibile:** il pulsante **Storico delle spese**, con il numero delle voci salvate, è presente anche nella home e nel confronto. Ogni voce ha un cestino dedicato; si può eliminarla anche dal dettaglio. Una conferma mostra la data e cancella soltanto quella spesa, conservando gli altri confronti e il carrello attuale. Rimane disponibile **Svuota storico**. Le novità sono presenti nella demo e in entrambe le lingue.
+
+**Spesa online:** nel confronto trovi **Acquista online** per negozi con shop preciso, come IPERPAN Cagliari La Plaia, oppure **Verifica spesa online** per i collegamenti generici delle catene. La finestra permette di aprire lo shop e scaricare una lista promemoria con quantità, nomi e formati. Il carrello deve essere composto sul sito del supermercato: non viene trasferito automaticamente. La demo mostra il percorso senza aprire shop reali. Le funzioni sono in italiano e inglese.
 
 **L’importazione automatica dei prezzi CosìComodo non è attiva.** È stato verificato il servizio Pan e lo shop La Plaia per il ritiro, ma non un accesso aggiornabile affidabile al listino. Nessun prezzo datato trovato nei risultati del motore di ricerca è stato inserito come prezzo corrente. Per dettagli, fonti ufficiali e requisiti dell’accesso al catalogo vedi [docs/COSICOMODO.md](docs/COSICOMODO.md).
 
@@ -14,7 +16,7 @@ I prezzi senza listino locale sono indicati come **Prezzo simulato**. Le 30 voci
 
 **Nessun feed prezzi locale è collegato.** La ricerca dei negozi e l’elenco parziale di 9 punti reali Eurospin/Lidl/Carrefour restano disponibili. Dove tutti i prezzi sono simulati si usa lo stesso riferimento per lo stesso prodotto nei diversi negozi e il risultato è una parità. Raggio 0,5–6 km, GPS con conferma e ritorno alla home restano presenti. Vedi `docs/CATALOGO.md` e `docs/PREZZI-SIMULATI.md`.
 
-Il sito esistente deve ancora essere aggiornato con questi file su GitHub e Render; questa chat non ha distribuito la versione 1.8.0.
+Il sito esistente deve ancora essere aggiornato con questi file su GitHub e Render; questa chat non ha distribuito la versione 1.9.0.
 
 ## Avvio
 
@@ -186,14 +188,14 @@ Il pulsante Componi la tua spesa è l’unico pulsante verde del form. Cerca sup
 
 Il browser importa il catalogo condiviso e apre la pagina prodotti immediatamente per le zone rapide, il campo vuoto o un indirizzo già confermato. Un indirizzo nuovo richiede la scelta del risultato geografico. La ricerca negozi ha un identificativo separato dalle altre operazioni: risposte vecchie non sovrascrivono una zona nuova, la demo o i dati eliminati. Quantità e nuovi prodotti scelti durante la ricerca si conservano. Eventuali articoli di feed salvati e ancora non riconosciuti restano in attesa fino alla risposta, senza essere eliminati all’apertura del catalogo. Finché la ricerca non termina, il confronto è disabilitato. Un errore della ricerca non riporta alla home e consente un tentativo successivo.
 
-La demo autonoma apre la home e il pulsante Componi la tua spesa funziona senza richieste di rete. In fondo alla pagina compare v1.8.0; la stessa versione è restituita da /api/status per il server. I riferimenti agli asset nella pagina includono la versione per rinnovare le risorse dopo l’aggiornamento.
+La demo autonoma apre la home e il pulsante Componi la tua spesa funziona senza richieste di rete. In fondo alla pagina compare v1.9.0; la stessa versione è restituita da /api/status per il server. I riferimenti agli asset nella pagina includono la versione per rinnovare le risorse dopo l’aggiornamento.
 
 Il nuovo ZIP ha package.json, public, server e dist direttamente alla radice. Dopo averlo estratto, carica quei file e cartelle nella radice del repository esistente. Non serve creare un’altra cartella spesina nel repository.
 
 
 ## Storico e italiano/inglese
 
-Le spiegazioni di funzionamento, conservazione e traduzione sono in `docs/STORICO-E-LINGUE.md`. Lo storico parte dai confronti eseguiti dopo questo aggiornamento: le vecchie versioni non conservavano questi dati. Registra confronti, senza attestare un acquisto. Sono mantenuti fino a 50 confronti recenti entro il budget di spazio del browser. Lo storico e la preferenza della lingua restano nel browser del dispositivo, senza account o invii al server.
+Le spiegazioni di funzionamento, conservazione e traduzione sono in `docs/STORICO-E-LINGUE.md`. Lo storico conserva i confronti registrati dalla versione 1.7.0 in questo browser: le versioni precedenti non conservavano questi dati. Registra confronti, senza attestare un acquisto. Sono mantenuti fino a 50 confronti recenti entro il budget di spazio del browser. Lo storico e la preferenza della lingua restano nel browser del dispositivo, senza account o invii al server.
 
 `public/catalog-en.mjs` contiene traduzioni esplicite di tutte le descrizioni e categorie. `public/messages-en.mjs` raccoglie messaggi e contenuti dell’interfaccia. `public/i18n.mjs` localizza testo, accessibilità, numeri e date, conservando gli identificativi, gli indirizzi dei link e i valori digitati. La ricerca riconosce nomi di prodotti in entrambe le lingue. Il testo delle illustrazioni prodotto segue la lingua scelta. Nomi propri di insegne e indirizzi mantengono il loro significato originale.
 

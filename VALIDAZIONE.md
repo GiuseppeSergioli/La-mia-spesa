@@ -1,12 +1,12 @@
 # Stato di verifica
 
-18 ottobre 2026 · Versione 1.8.0.
+18 ottobre 2026 · Versione 1.9.0.
 
 - `npm run check`: superato sui moduli principali, compreso il catalogo condiviso.
-- `npm test`: **128 test superati**. Comprende calcoli, disponibilità, API, feed, mappa, GPS e catalogo.
+- `npm test`: **132 test superati**. Comprende calcoli, disponibilità, API, feed, mappa, GPS e catalogo.
 - **Spesa online verificata con 6 nuovi test sul DOM simulato:** il confronto apre lo shop preciso Pan La Plaia o una verifica di copertura per link di catena, senza creare prezzi verificati; URL non HTTPS o con credenziali vengono esclusi; il cambio lingua conserva URL e quantità; la lista contiene nomi, formati, quantità ed EAN senza esportare prezzi simulati; la demo non apre shop reali. L’associazione Pan richiede la via e Cagliari o coordinate già rilevate nell’area quando manca la città in OSM. Nessun test esegue ordini.
 - **CosìComodo:** verificati i collegamenti ufficiali e le condizioni di cataloghi/servizi. Importazione automatica del listino e trasferimento del carrello non attivati né verificati. I prezzi datati presenti nei risultati di ricerca non sono stati importati. Dettagli in docs/COSICOMODO.md.
-- **Storico verificato con 7 test:** copie indipendenti con data, prodotti, quantità, costi e market; conservazione di indisponibilità e subtotali; salvataggio e rilettura; dati incompatibili ignorati; duplicati immediati accorpati; limiti e scrittura bloccata; salvataggio automatico, riapertura dell’app e cambio lingua senza modificare il passato.
+- **Storico verificato con 11 test:** copie indipendenti con data, prodotti, quantità, costi e market; conservazione di indisponibilità e subtotali; salvataggio e rilettura; dati incompatibili ignorati; duplicati immediati accorpati; limiti e scrittura bloccata; salvataggio automatico, riapertura dell’app e cambio lingua senza modificare il passato. Pulsanti con conteggio nella home e nel confronto; cancellazione singola dall’elenco e dal dettaglio, conservazione delle altre voci e del carrello dopo la riapertura, annullamento, conferma in inglese, eliminazione dell’ultima voce ed errore di scrittura.
 - **Italiano/inglese verificato con 8 test:** traduzioni esplicite per tutti i 384 prodotti e le 24 categorie; lingua italiana iniziale, preferenza ricordata; bandiere e nomi accessibili, ricerca bilingue, numeri e illustrazioni, home/catalogo/confronto/modali/storico e demo. Gli identificativi, i valori digitati e gli URL restano intatti; i testi sono escapati senza introdurre markup.
 - **Partenza verificata:** un campo vuoto o di soli spazi usa Via Roma; le quattro zone sono distinte e centrali. Indirizzi personalizzati non riconosciuti non diventano un punto predefinito. I risultati del geocodificatore con identica etichetta si deduplicano, mantenendo numeri civici diversi.
 - **Riserva centrale verificata:** il Carrefour di via Manno, con coordinate pubblicate dal retailer, è nel raggio minimo di 500 metri dalla partenza Via Roma.

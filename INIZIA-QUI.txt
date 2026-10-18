@@ -1,6 +1,8 @@
-LA MIA SPESA — VERSIONE 1.8.0
+LA MIA SPESA — VERSIONE 1.9.0
 
 NOVITÀ
+- Storico delle spese anche nella home e nella pagina del confronto, con il conteggio delle voci salvate.
+- Cestino per la singola spesa, nell’elenco e nel dettaglio: la conferma elimina soltanto quella voce. Resta disponibile Svuota storico.
 - Nel confronto: Acquista online per shop del negozio, Verifica spesa online per i collegamenti di catena.
 - Apri lo shop e scarica la lista con quantità, marca, prodotto e formato. Il carrello si compone sul sito del supermercato e non viene trasferito automaticamente.
 - La demo mostra il percorso senza aprire shop reali. Tutto disponibile in IT/EN.
@@ -9,16 +11,16 @@ NOVITÀ
 - Apri una voce dello storico e scegli il market per vedere le righe e il totale di quella data.
 - Bandiere 🇮🇹 IT / 🇬🇧 EN in alto a destra su tutte le pagine. Italiano iniziale; lingua scelta ricordata.
 - Catalogo, interfaccia, dettagli, storico, aiuto e demo anche in inglese.
-- Lo storico resta in questo browser e inizia con i prossimi confronti. Registra confronti, non acquisti confermati.
+- Lo storico conserva le voci già salvate in questo browser. Registra confronti, non acquisti confermati.
 
 AGGIORNARE IL SITO
-Estrai La-mia-spesa-1.8.0.zip.
+Estrai La-mia-spesa-1.9.0.zip.
 I file package.json, package-lock.json e le cartelle public, server, dist sono direttamente nella cartella estratta.
 Apri GiuseppeSergioli/La-mia-spesa su GitHub > Add file > Upload files.
 Carica i file e le cartelle estratti nella radice del repository, mantenendo le sottocartelle.
 Conferma Commit changes.
 Su Render: Manual Deploy > Deploy latest commit.
-Riapri l’app: in fondo deve comparire v1.8.0.
+Riapri l’app: in fondo deve comparire v1.9.0.
 
 DEMO
 Apri dist/index.html. Anche offline puoi cambiare lingua, comporre una lista, confrontare e rivedere lo storico dei confronti demo.
