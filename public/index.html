@@ -2,18 +2,24 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#214f3f">
   <meta name="description" content="La tua lista, i supermercati vicini, un confronto chiaro. Scopri dove conviene fare tutta la spesa.">
   <title>La mia spesa — La tua spesa, al prezzo giusto.</title>
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
-  <link rel="stylesheet" href="./styles.css?v=1.9.0">
-  <script type="module" src="./app.mjs?v=1.9.0"></script>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="La mia spesa">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="./assets/favicon.png">
+  <link rel="stylesheet" href="./styles.css?v=1.10.0">
+  <script type="module" src="./app.mjs?v=1.10.0"></script>
 </head>
 <body>
   <a class="skip-link" href="#main" data-i18n="Vai al contenuto">Vai al contenuto</a>
   <header class="header">
-    <a class="brand" href="./" aria-label="La mia spesa, pagina iniziale" data-i18n-label="La mia spesa, pagina iniziale"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M7 11h18l2 17H5L7 11Z"/><path d="M11 12V8a5 5 0 0 1 10 0v4"/><path d="m11 20 3 3 7-7"/></svg></span>La mia spesa</a>
+    <a class="brand" href="./" aria-label="La mia spesa, pagina iniziale" data-i18n-label="La mia spesa, pagina iniziale"><span class="brand-mark" aria-hidden="true"><img src="./assets/logo.png" alt="" width="40" height="40"></span>La mia spesa</a>
     <nav class="steps" aria-label="Passaggi della spesa" data-i18n-label="Passaggi della spesa">
       <button data-step="location" class="step active"><span class="step-number">1</span><span data-i18n="La tua zona">La tua zona</span></button><span class="step-line" aria-hidden="true"></span>
       <button data-step="catalog" class="step" disabled><span class="step-number">2</span><span data-i18n="La tua lista">La tua lista</span></button><span class="step-line" aria-hidden="true"></span>
@@ -22,8 +28,10 @@
     <div class="header-tools"><button class="header-help" data-action="help"><span data-icon="help"></span><span data-i18n="Come funziona">Come funziona</span></button><div class="language-picker" role="group" aria-label="Lingua"><button type="button" data-language="it" lang="it" aria-label="Italiano" aria-pressed="true" class="selected"><span aria-hidden="true">🇮🇹</span><span>IT</span></button><button type="button" data-language="en" lang="en" aria-label="English" aria-pressed="false"><span aria-hidden="true">🇬🇧</span><span>EN</span></button></div></div>
   </header>
   <div id="mode-banner" class="mode-banner" hidden></div>
+  <div id="connection-status" class="connection-status" role="status" hidden></div>
+  <div id="app-update" class="app-update" role="status" hidden></div>
   <main id="main" tabindex="-1"></main>
-  <footer class="footer"><a class="footer-brand" href="./">La mia spesa</a><span><span data-i18n="Una lista. Una scelta più semplice.">Una lista. Una scelta più semplice.</span> <small id="app-version" class="app-version">v1.9.0</small></span><div><button data-action="history" data-i18n="Storico delle spese">Storico delle spese</button><button data-action="help" data-i18n="Come funziona">Come funziona</button><button data-action="privacy" data-i18n="Privacy e dati">Privacy e dati</button></div></footer>
+  <footer class="footer"><a class="footer-brand" href="./">La mia spesa</a><span><span data-i18n="Una lista. Una scelta più semplice.">Una lista. Una scelta più semplice.</span> <small id="app-version" class="app-version">v1.10.0</small></span><div><button data-action="history" data-i18n="Storico delle spese">Storico delle spese</button><button data-action="help" data-i18n="Come funziona">Come funziona</button><button data-action="privacy" data-i18n="Privacy e dati">Privacy e dati</button></div></footer>
   <dialog id="modal" aria-labelledby="modal-title"><div id="modal-content"></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <noscript><p>Per usare La mia spesa attiva JavaScript nel browser.</p></noscript>

@@ -12,5 +12,8 @@ test('standalone demo compiles as one classic script with no external assets',as
   assert.equal(/<script[^>]+src=/.test(html),false);
   assert.equal(/<link[^>]+stylesheet/.test(html),false);
   assert.equal(/@import/.test(html),false);
+  assert.equal(/<link[^>]+rel="manifest"/.test(html),false);
+  assert.equal(html.includes('./assets/'),false);
+  assert.match(html,/data:image\/png;base64,/);
   assert.ok(Buffer.byteLength(html)<512*1024);
 });

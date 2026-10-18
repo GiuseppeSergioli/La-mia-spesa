@@ -9,7 +9,7 @@ import {APP_VERSION} from '../public/version.mjs';
 const ROOT=fileURLToPath(new URL('../public/',import.meta.url));
 const configPath=process.env.FEEDS_CONFIG || fileURLToPath(new URL('../config/feeds.json',import.meta.url));
 const feedConfig=await loadFeedConfig(configPath);
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json'};
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json; charset=utf-8'};
 const limits=new Map();
 let active=0;
 
@@ -41,7 +41,7 @@ export function createApp() {
     res.setHeader('Referrer-Policy','no-referrer');
     res.setHeader('X-Frame-Options','DENY');
     res.setHeader('Permissions-Policy','geolocation=(self), camera=(), microphone=()');
-    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
     req.setTimeout(35_000);
     let acquired=false;
     try {

@@ -513,3 +513,42 @@ Elimina spesa del|Delete shop saved on
 Spesa eliminata dallo storico.|Saved shop deleted from history.
 Non è stato possibile eliminare questa spesa. Riprova.|This saved shop could not be deleted. Please try again.
 `.trim().split('\n').map(line=>line.split('|'))));
+
+Object.assign(EN_MESSAGES,Object.fromEntries(`
+Scarica l’app|Get the app
+Sempre a portata di mano|Always close at hand
+Logo La mia spesa: borsa verde con una foglia|La mia spesa logo: a green shopping bag with a leaf
+Sei offline. Puoi comporre la lista e consultare lo storico. Ricerca dei negozi e prezzi aggiornati richiedono Internet.|You are offline. You can build your list and browse saved history. Store searches and current prices need an internet connection.
+È disponibile un aggiornamento dell’app.|An app update is available.
+Aggiornamento…|Updating…
+Aggiorna|Update
+Installa dal sito pubblicato|Install from the published website
+La tua app è pronta|Your app is ready
+La mia spesa sul tuo telefono|La mia spesa on your phone
+Questa anteprima è una demo. Per installare l’app completa, apri il sito pubblico dal telefono.|This preview is a demo. To install the full app, open its public website on your phone.
+Aggiungi La mia spesa alla schermata Home: ritrovi le stesse funzioni e lo stesso logo del sito.|Add La mia spesa to your Home screen, with the same features and logo as the website.
+La tua spesa, sempre con te.|Your shopping, always with you.
+Installa adesso|Install now
+Lista, lingua e storico sono salvati localmente nel browser o nell’app. Non si sincronizzano automaticamente fra dispositivi o browser diversi.|Your list, language and history are saved locally in your browser or app. They do not automatically sync across devices or different browsers.
+Dopo la prima apertura online, puoi preparare la lista e rivedere lo storico anche senza connessione. Per i servizi dei supermercati serve Internet.|After the first online visit, you can prepare your list and browse saved history offline. Supermarket services need an internet connection.
+La preparazione per l’uso offline non è riuscita. Il sito resta utilizzabile con Internet.|Offline setup failed. You can still use the website with an internet connection.
+Riprova la preparazione|Retry setup
+Installazione richiesta. Segui la conferma del browser.|Installation requested. Follow the browser’s confirmation.
+Usa il menu del browser per installare l’app.|Use the browser’s menu to install the app.
+Apri il link pubblico HTTPS di La mia spesa nel browser del telefono.|Open La mia spesa’s public HTTPS link in your phone’s browser.
+Tocca “Scarica l’app” nella home del sito.|Tap “Get the app” on the website’s home page.
+Apri il sito con un indirizzo HTTPS.|Open the website using an HTTPS address.
+Tocca di nuovo “Scarica l’app”.|Tap “Get the app” again.
+L’app è già aperta in modalità installata.|The app is already open in installed mode.
+Apri questa pagina nel browser del telefono, usando il menu dell’app da cui provieni.|Open this page in your phone’s browser, using the menu of the app you came from.
+Apri questa pagina in Safari.|Open this page in Safari.
+Tocca Condividi; se serve, apri prima il menu della pagina.|Tap Share; open the page menu first if needed.
+Scegli “Aggiungi alla schermata Home”.|Choose “Add to Home Screen”.
+Se presente, attiva “Apri come app web”, poi tocca Aggiungi.|If shown, turn on “Open as Web App”, then tap Add.
+Apri questa pagina in Chrome o nel browser che usi abitualmente.|Open this page in Chrome or your usual browser.
+Apri il menu ⋮, scegli “Installa e crea scorciatoia” e poi “Installa”.|Open the ⋮ menu, choose “Install and create shortcut”, then “Install”.
+Se il menu usa un altro nome, cerca “Aggiungi a schermata Home” o “Installa app”.|If the menu uses a different name, look for “Add to Home screen” or “Install app”.
+Conferma Installa o Aggiungi: troverai il logo nella schermata Home.|Confirm Install or Add: the logo will appear on your Home screen.
+Apri il menu del browser e cerca “Installa La mia spesa” o “Installa questa pagina come app”.|Open the browser’s menu and look for “Install La mia spesa” or “Install this page as an app”.
+Se questa opzione non compare, puoi continuare a usare tutte le funzioni dal sito.|If this option is unavailable, you can still use all features on the website.
+`.trim().split('\n').map(line=>line.split('|'))));

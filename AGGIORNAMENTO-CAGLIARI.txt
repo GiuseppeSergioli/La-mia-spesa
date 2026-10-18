@@ -1,4 +1,13 @@
-LA MIA SPESA — AGGIORNAMENTO 1.9.0
+LA MIA SPESA — AGGIORNAMENTO 1.10.0
+
+LOGO E APP SUL TELEFONO
+Nuovo logo visibile nella home, nell’intestazione e nelle icone del telefono.
+Dopo il deploy, apri dal telefono la URL HTTPS del sito e premi Scarica l’app in basso a destra nella home.
+Android: conferma l’installazione proposta dal browser. Se la conferma non compare, la guida indica il menu da usare.
+iPhone/iPad: apri in Safari > Condividi > Aggiungi alla schermata Home > Apri come app web (se presente) > Aggiungi.
+Si tratta di una web app installabile, con le stesse funzioni del sito e una finestra autonoma dove supportata. Non serve creare un altro servizio Render.
+Interfaccia, lista e storico locale sono disponibili offline dopo una prima preparazione online riuscita. Negozi, nuovi prezzi, confronto dal server e acquisti online richiedono Internet. Gli aggiornamenti conservano i dati locali. Browser/app diversi possono avere archivi separati: non c’è sincronizzazione automatica.
+La demo autonoma mostra logo e guida, ma per installare l’app completa serve il sito pubblicato. Dettagli, fonti ufficiali e limiti del collaudo: docs/LOGO-E-APP.md.
 
 SPESA ONLINE
 Nel confronto, i market con collegamento online mostrano Acquista online (shop del punto vendita) oppure Verifica spesa online (sito della catena, copertura da controllare).
@@ -17,14 +26,14 @@ In alto a destra trovi 🇮🇹 IT e 🇬🇧 EN, nella home e nelle altre pagin
 La prima apertura è in italiano; la preferenza viene ricordata. Sono tradotti anche i 384 prodotti, le 24 categorie, le finestre interne, lo storico e la demo. Prezzi, quantità, prodotti scelti e link alle fonti si mantengono.
 
 PUBBLICAZIONE
-1. Estrai La-mia-spesa-1.9.0.zip.
+1. Estrai La-mia-spesa-1.10.0.zip.
 2. Apri GiuseppeSergioli/La-mia-spesa su GitHub, nella pagina principale.
 3. Add file > Upload files: carica i file e le cartelle estratti nella radice. package.json deve restare alla radice; conserva le sottocartelle public, server e dist.
 4. Conferma Commit changes.
 5. Sul servizio Render esistente: Manual Deploy > Deploy latest commit.
-6. Riapri l’app e verifica v1.9.0 nel piè di pagina e le due bandiere. Se necessario, sul Mac aggiorna con Cmd+Shift+R.
+6. Riapri l’app e verifica v1.10.0 nel piè di pagina, il nuovo logo e il pulsante Scarica l’app nella home. Se necessario, sul Mac aggiorna con Cmd+Shift+R.
 
 Il pacchetto comprende progetto completo e demo autonoma in dist/index.html. La URL resta quella già usata. Questa chat non ha eseguito il deploy.
 
 VERIFICA
-132 test automatici superati, compilazione dei moduli e della demo autonoma riuscita. Controllo visuale in un browser non eseguito qui. Dettagli in VALIDAZIONE.md.
+146 test automatici superati, compilazione dei moduli e della demo autonoma riuscita. Controllo visuale in un browser non eseguito qui. Dettagli in VALIDAZIONE.md.

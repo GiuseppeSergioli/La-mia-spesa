@@ -6,6 +6,7 @@ import { catalogProducts, catalogCategories, REFERENCE_CHECKED_ON } from './cata
 import { APP_VERSION } from './version.mjs';
 import { HISTORY_KEY, readHistory, createHistoryEntry, appendHistory, writeHistory } from './history.mjs';
 import { LANGUAGE_KEY, normalizeLanguage, localeFor, translateText, localizeMarkup, formatMoney, formatDistance, formatDate, productMatches } from './i18n.mjs';
+import { createInstallController, installationSteps } from './install.mjs';
 
 const $ = (selector,root=document) => root.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -26,6 +27,8 @@ const quantity = id => state.list.find(i=>i.productId===id)?.quantity || 0;
 const statusLabels={available:'Disponibile',estimated:'Prezzo simulato · disponibilità non verificata',out_of_stock:'Esaurito',unknown:'Disponibilità non verificata',stale:'Prezzo non aggiornato',insufficient:'Quantità insufficiente'};
 const priceInfo=(p,qty=1)=>priceForProduct(p,stores(),qty,Date.now(),state.mode==='live');
 const localComparison=()=>compareBasket(state.list,products(),stores(),Date.now(),{allowEstimates:state.mode==='live'});
+const LOGO_SRC='./assets/logo.png';
+const appInstall=createInstallController({window,navigator,location,version:APP_VERSION,isPreview:!!window.SPESINA_STATIC,onChange:()=>syncInstallUi(),onReload:()=>{persist();window.location.reload();}});
 
 function persist() {
   try {localStorage.setItem(KEY,JSON.stringify({version:1,mode:state.mode,page:state.page,location:state.location,radius:state.radius,list:[...state.list,...state.pendingList]}));} catch {}
@@ -82,6 +85,7 @@ function render() {
   updateHeader();
   const content=state.page==='location' ? locationPage():state.page==='stores'?liveDirectoryPage():state.page==='compare' ? comparePage():state.page==='history'?historyPage():catalogPage();
   $('#main').innerHTML=html((state.page!=='location'?`<div class="page-toolbar"><button class="button secondary home-button" data-action="home">${icon('back')} Torna alla home</button><span>La tua lista resta salvata</span></div>`:'')+content);
+  syncInstallUi();
   const version=$('#app-version');if(version)version.textContent=`v${APP_VERSION}`;
   hydrateIcons($('#main'));
   document.title=t(state.page==='history'?'Storico delle spese — La mia spesa':state.page==='compare' ? 'Il tuo confronto — La mia spesa':state.page==='catalog' ? 'La tua lista — La mia spesa':'La mia spesa — La tua spesa, al prezzo giusto.');
@@ -118,15 +122,43 @@ function locationFields(modal=false) {
 function historyShortcut(full=false) {
   return `<button class="button secondary history-shortcut ${full?'full':''}" data-action="history">${icon('clock')}<span>Storico delle spese</span><b class="history-count">${state.history.length}</b></button>`;
 }
+function homeInstallControl() {
+  return `<div id="home-install" class="home-install"><button class="install-app-button" data-action="install-app"><img src="${LOGO_SRC}" alt="" width="38" height="38"><span><strong>Scarica l’app</strong><small>Sempre a portata di mano</small></span>${icon('download')}</button></div>`;
+}
+function syncInstallUi() {
+  const info=appInstall.snapshot();
+  document.documentElement.classList?.toggle('home-install-visible',state.page==='location' && !info.installed);
+  const editing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+  const install=$('#home-install');if(install)install.hidden=state.page!=='location' || info.installed || editing;
+  const network=$('#connection-status');
+  if(network){network.hidden=info.online;network.innerHTML=html(`${icon('info')}<span>Sei offline. Puoi comporre la lista e consultare lo storico. Ricerca dei negozi e prezzi aggiornati richiedono Internet.</span>`);}
+  const update=$('#app-update');
+  if(update){update.hidden=!info.updateAvailable;update.innerHTML=html(`<span>${icon('refresh')} È disponibile un aggiornamento dell’app.</span><button data-action="update-app" ${info.updating?'disabled':''}>${info.updating?'Aggiornamento…':'Aggiorna'}</button>`);}
+  if($('#modal').open && modalSource?.rebuild===showInstallGuide)showInstallGuide();
+}
+function showInstallGuide() {
+  const info=appInstall.snapshot();
+  const title=info.preview?'Installa dal sito pubblicato':info.installed?'La tua app è pronta':'La mia spesa sul tuo telefono';
+  const intro=info.preview?'Questa anteprima è una demo. Per installare l’app completa, apri il sito pubblico dal telefono.':'Aggiungi La mia spesa alla schermata Home: ritrovi le stesse funzioni e lo stesso logo del sito.';
+  const steps=installationSteps(info);
+  showModal(title,`<div class="install-preview"><img src="${LOGO_SRC}" width="80" height="80" alt=""><div><strong data-no-translate>La mia spesa</strong><span>La tua spesa, sempre con te.</span></div></div><p class="modal-description">${intro}</p>${info.canPrompt?'<button class="button primary full install-native" data-action="install-native">'+icon('download')+' Installa adesso</button>':''}<ol class="install-steps">${steps.map(step=>`<li>${esc(step)}</li>`).join('')}</ol>${!info.preview?`<p class="install-data-note">Lista, lingua e storico sono salvati localmente nel browser o nell’app. Non si sincronizzano automaticamente fra dispositivi o browser diversi.</p><p class="install-data-note">Dopo la prima apertura online, puoi preparare la lista e rivedere lo storico anche senza connessione. Per i servizi dei supermercati serve Internet.</p>`:''}${info.registrationError?'<div class="data-notice">'+icon('info')+'<p>La preparazione per l’uso offline non è riuscita. Il sito resta utilizzabile con Internet.</p></div><button class="text-button" data-action="retry-install">Riprova la preparazione</button>':''}<button class="button secondary full" data-action="close-modal">Chiudi</button>`,false,showInstallGuide);
+}
+async function installApp() {
+  if(!appInstall.snapshot().canPrompt)return showInstallGuide();
+  const result=await appInstall.prompt();
+  if(result==='accepted'){closeModal();toast('Installazione richiesta. Segui la conferma del browser.');}
+  else if(result==='failed'){showInstallGuide();toast('Usa il menu del browser per installare l’app.');}
+  else if(result==='unavailable')showInstallGuide();
+}
 function locationPage() {
   return `<section class="welcome"><div class="welcome-copy"><div class="eyebrow"><span class="eyebrow-line"></span>LA TUA SPESA, PIÙ LEGGERA</div>
     <h1>Stessa spesa.<br><em>Una scelta migliore.</em></h1><p class="welcome-description">Scegli cosa mettere nel carrello.<br>Scopri dove conviene comprarlo, vicino a te.</p>
-    <div class="welcome-art">${heroArt()}</div><div class="welcome-note">${icon('check')} Stessi prodotti e formati ${icon('check')} Totali trasparenti</div>
+    <div class="welcome-brand"><img src="${LOGO_SRC}" alt="Logo La mia spesa: borsa verde con una foglia" width="128" height="128"><div><strong data-no-translate>La mia spesa</strong><span>Una lista. Una scelta più semplice.</span></div></div><div class="welcome-note">${icon('check')} Stessi prodotti e formati ${icon('check')} Totali trasparenti</div>
     </div><div class="location-card"><span class="little-label">COMINCIAMO DA QUI</span><h2>La convenienza è vicina.</h2><p>Partiamo da Cagliari. Inserisci il tuo indirizzo per una ricerca precisa.</p>${locationFields()}
     <div class="demo-entry"><span>Vuoi prima dare un’occhiata?</span><button data-action="${state.mode==='demo' && state.data?'resume-list':'demo'}">${state.mode==='demo' && state.data?'Riprendi la demo':'Prova la demo'} ${icon('arrow')}</button></div>${state.data && state.mode==='live'?`<button class="button secondary full resume-button" data-action="resume-list">Torna alla tua lista ${icon('arrow')}</button>`:''}
     ${!state.live?'<p class="static-note">In questa anteprima puoi provare la demo. La ricerca reale si attiva avviando il server.</p>':''}<div class="home-history">${historyShortcut(true)}</div></div></section>
     <section class="how-strip"><div><span class="how-number">01</span><div><h3>Scegli la tua zona</h3><p>Tu decidi quanto allontanarti.</p></div></div><div><span class="how-number">02</span><div><h3>Componi la tua lista</h3><p>I prodotti che ami, per categoria.</p></div></div><div><span class="how-number">03</span><div><h3>Confronta tutta la spesa</h3><p>Un totale chiaro per ogni negozio.</p></div></div></section>
-    <div class="honesty-note">${icon('shield')} Dove manca un prezzo verificato trovi “Prezzo simulato”, con fonte e data del riferimento.</div>`;
+    <div class="honesty-note">${icon('shield')} Dove manca un prezzo verificato trovi “Prezzo simulato”, con fonte e data del riferimento.</div>${homeInstallControl()}`;
 }
 
 function locationStrip() {
@@ -563,6 +595,8 @@ document.addEventListener('click',event=> {
     state.page=button.dataset.step;render();announcePage();return;
   }
   const actions={
+    'install-app':installApp,'install-native':installApp,'retry-install':()=>appInstall.start(),
+    'update-app':()=>{persist();appInstall.activateUpdate();},
     home:goHome,history:openHistory,'resume-list':resumeList,'sample-lists':chooseSampleList,'compose-cart':resumeList,
     'clear-history':()=>showModal('Svuotare lo storico?',`<p class="modal-description">Verranno eliminati i confronti salvati su questo browser. Il carrello attuale rimane disponibile.</p><div class="modal-buttons"><button class="button secondary" data-action="close-modal">Tieni lo storico</button><button class="button primary" data-action="confirm-clear-history">Svuota storico</button></div>`),
     'confirm-clear-history':()=>{try{localStorage.removeItem(HISTORY_KEY);state.history=[];state.historyEntryId=null;closeModal();render();toast('Storico eliminato.');}catch{toast('Non è stato possibile eliminare lo storico.');}},
@@ -580,7 +614,7 @@ document.addEventListener('click',event=> {
     'close-modal':closeModal,
     'toggle-cart':()=>{state.cartOpen=!state.cartOpen;$('#cart-area').innerHTML=html(cart());},
     'delete-data':()=>{try{localStorage.removeItem(KEY);localStorage.removeItem(HISTORY_KEY);}catch{}requestId++;storeRequestId++;saved=null;state.history=[];state.historyEntryId=null;state.busy=false;state.storeSearchPending=false;state.list=[];state.pendingList=[];state.location=null;state.data=null;state.mode='live';state.page='location';state.results=null;closeModal();render();toast('Zona, lista e storico salvati eliminati.');},
-    export:exportList,print:()=>window.print()
+    export:exportList,print:()=>{if(typeof window.print==='function')window.print();else exportList();}
   };
   actions[button.dataset.action]?.();
 });
@@ -589,6 +623,8 @@ document.addEventListener('input',event=> {
   if(event.target.id==='product-search'){state.visibleLimit=24;state.search=event.target.value;$('#product-grid').innerHTML=html(productGrid());}
   if(event.target.classList.contains('radius-slider')){updateRadiusControl(event.target.closest('form'),Number(event.target.value));}
 });
+document.addEventListener('focusin',syncInstallUi);
+document.addEventListener('focusout',()=>Promise.resolve().then(syncInstallUi));
 document.addEventListener('change',event=>{if(event.target.id==='category-select'){state.category=event.target.value;state.visibleLimit=24;render();$('#category-select').focus({preventScroll:true});}if(event.target.id==='hide-incomplete'){state.completeOnly=event.target.checked;$('#incomplete-results').hidden=state.completeOnly;}});
 document.addEventListener('submit',event=> {
   if(['location-form','location-modal-form'].includes(event.target.id)){event.preventDefault();findLocation(event.target,event.submitter?.value==='stores'?'stores':'catalog');}
@@ -609,6 +645,7 @@ async function init() {
   }
   if(window.SPESINA_STATIC && state.mode!=='demo'){state.mode='demo';state.data=createDemoData();state.location={...demoLocation};state.list=[];state.page='location';}
   render();
+  void appInstall.start();
   if(saved?.mode==='demo' && saved.list?.some(item=>String(item?.productId).startsWith('demo-'))) {persist();toast('La tua lista demo è stata aggiornata al catalogo condiviso, con le quantità salvate.');}
   if(!window.SPESINA_STATIC && location.protocol!=='file:') {
     try {const status=await api('status');state.live=status.live===true;} catch {state.live=false;}

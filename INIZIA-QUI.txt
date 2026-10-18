@@ -1,6 +1,10 @@
-LA MIA SPESA — VERSIONE 1.9.0
+LA MIA SPESA — VERSIONE 1.10.0
 
 NOVITÀ
+- Nuovo logo nella home e nelle icone del browser e del telefono.
+- Scarica l’app in basso a destra nella home: installazione o istruzioni adatte al dispositivo. Su iPhone: Safari > Condividi > Aggiungi alla schermata Home > Apri come app web (se presente) > Aggiungi.
+- La versione installabile usa lo stesso sito. La prima apertura online prepara interfaccia, lista e storico per l’uso senza connessione; ricerca dei negozi e prezzi richiedono Internet.
+- Logo originale, icone e guida inclusi: docs/LOGO-E-APP.md. L’installazione dipende dal browser; i telefoni fisici non sono stati collaudati qui.
 - Storico delle spese anche nella home e nella pagina del confronto, con il conteggio delle voci salvate.
 - Cestino per la singola spesa, nell’elenco e nel dettaglio: la conferma elimina soltanto quella voce. Resta disponibile Svuota storico.
 - Nel confronto: Acquista online per shop del negozio, Verifica spesa online per i collegamenti di catena.
@@ -14,13 +18,13 @@ NOVITÀ
 - Lo storico conserva le voci già salvate in questo browser. Registra confronti, non acquisti confermati.
 
 AGGIORNARE IL SITO
-Estrai La-mia-spesa-1.9.0.zip.
+Estrai La-mia-spesa-1.10.0.zip.
 I file package.json, package-lock.json e le cartelle public, server, dist sono direttamente nella cartella estratta.
 Apri GiuseppeSergioli/La-mia-spesa su GitHub > Add file > Upload files.
 Carica i file e le cartelle estratti nella radice del repository, mantenendo le sottocartelle.
 Conferma Commit changes.
 Su Render: Manual Deploy > Deploy latest commit.
-Riapri l’app: in fondo deve comparire v1.9.0.
+Riapri l’app: in fondo deve comparire v1.10.0.
 
 DEMO
 Apri dist/index.html. Anche offline puoi cambiare lingua, comporre una lista, confrontare e rivedere lo storico dei confronti demo.

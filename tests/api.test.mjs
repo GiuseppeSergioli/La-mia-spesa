@@ -12,6 +12,11 @@ after(async()=>{await new Promise(r=>server.close(r));globalThis.fetch=originalF
 test('health and live capability are explicit',async()=>{const res=await fetch(`${base}/api/health`);assert.equal(res.status,200);assert.equal((await res.json()).ok,true);const s=await (await fetch(`${base}/api/status`)).json();assert.equal(s.live,true);assert.equal(typeof s.configuredStores,'number');assert.equal(s.version,APP_VERSION);});
 test('root page serves Italian application with security headers',async()=>{const res=await fetch(base);assert.match(res.headers.get('content-type'),/text\/html/);assert.match(res.headers.get('content-security-policy'),/script-src 'self'/);assert.equal(res.headers.get('x-content-type-options'),'nosniff');assert.match(await res.text(),/<html lang="it">/);});
 test('ES modules use JavaScript content type',async()=>{const res=await fetch(`${base}/core.mjs`);assert.match(res.headers.get('content-type'),/javascript/);});
+test('install manifest, worker and logo icons are served with correct content types and cache policy',async()=>{
+  const manifest=await fetch(`${base}/manifest.webmanifest`);assert.match(manifest.headers.get('content-type'),/application\/manifest\+json/);assert.equal((await manifest.json()).name,'La mia spesa');
+  const worker=await fetch(`${base}/sw.js?v=${APP_VERSION}`);assert.match(worker.headers.get('content-type'),/javascript/);assert.equal(worker.headers.get('cache-control'),'no-cache');assert.match(await worker.text(),new RegExp(APP_VERSION.replaceAll('.','\\.')));
+  const icon=await fetch(`${base}/assets/icon-192.png`);assert.equal(icon.headers.get('content-type'),'image/png');assert.equal(icon.status,200);
+});
 test('invalid radius and coordinates fail before external calls',async()=>{for(const path of ['/api/catalog?lat=45&lon=9&radius=999','/api/catalog?lat=nan&lon=9&radius=5','/api/catalog?lat=&lon=&radius=5','/api/catalog?lat=45&lon=9&radius=0']){const r=await fetch(base+path);assert.equal(r.status,400,path);}});
 test('short geocoding input is rejected without an external request',async()=>{const r=await fetch(`${base}/api/geocode?q=a`);assert.equal(r.status,400);});
 test('server sources and config cannot be read as static files',async()=>{for(const path of ['/server/index.mjs','/config/feeds.example.json','/%2e%2e%2fpackage.json'])assert.equal((await fetch(base+path)).status,404);});

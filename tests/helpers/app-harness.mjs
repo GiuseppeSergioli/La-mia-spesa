@@ -8,6 +8,7 @@ import * as Catalog from '../../public/catalog.mjs';
 import * as Version from '../../public/version.mjs';
 import * as I18n from '../../public/i18n.mjs';
 import * as History from '../../public/history.mjs';
+import * as Install from '../../public/install.mjs';
 import {shoppingCatalog} from '../../server/shopping.mjs';
 
 // Execute the actual app and event handlers with DOM stubs. These checks verify
@@ -22,7 +23,7 @@ const fixture=(location=Location.DEFAULT_START)=>{
 function harness({staticDemo=false,respond=async()=>Response.json(fixture()),savedStorage=null}={}) {
   const nodes=new Map(),handlers={},requests=[],storage=savedStorage || new Map();
   const document={documentElement:{lang:'it',setAttribute(name,value){this[name]=value;}},querySelector(selector){if(!nodes.has(selector))nodes.set(selector,element());return nodes.get(selector);},getElementById(id){return this.querySelector(`#${id}`);},querySelectorAll(){return [];},addEventListener(name,fn){handlers[name]=fn;},title:''};
-  const context=createContext({...Core,...Demo,...Art,...Location,...Catalog,...Version,...I18n,...History,document,window:{SPESINA_STATIC:staticDemo,scrollTo(){},isSecureContext:true},navigator:{},localStorage:{getItem(key){return storage.get(key) || null;},setItem(key,value){storage.set(key,value);},removeItem(key){storage.delete(key);}},location:{protocol:'file:'},fetch:(url,options)=>{requests.push(String(url));return respond(url,options);},FormData:class{constructor(form){this.form=form;}get(name){return name==='address'?this.form.address.value:this.form.radius;}},URL,URLSearchParams,AbortController,setTimeout(){return 0;},clearTimeout(){},structuredClone,console});
+  const context=createContext({...Core,...Demo,...Art,...Location,...Catalog,...Version,...I18n,...History,...Install,document,window:{SPESINA_STATIC:staticDemo,scrollTo(){},isSecureContext:true},navigator:{},localStorage:{getItem(key){return storage.get(key) || null;},setItem(key,value){storage.set(key,value);},removeItem(key){storage.delete(key);}},location:{protocol:'file:'},fetch:(url,options)=>{requests.push(String(url));return respond(url,options);},FormData:class{constructor(form){this.form=form;}get(name){return name==='address'?this.form.address.value:this.form.radius;}},URL,URLSearchParams,AbortController,setTimeout(){return 0;},clearTimeout(){},structuredClone,console});
   runInContext(source,context);
   const run=code=>runInContext(code,context);
   const form=(address='')=>{

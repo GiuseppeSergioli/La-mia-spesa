@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 const read = path => readFile(new URL(`../${path}`,import.meta.url),'utf8');
 const modules=[
   ['Version','public/version.mjs','APP_VERSION'],
+  ['Install','public/install.mjs','installEnvironment, installationSteps, createInstallController'],
   ['Core','public/core.mjs','MAX_QUANTITY, MAX_PRICE_CENTS, MIN_RADIUS_KM, MAX_RADIUS_KM, RADIUS_STEP_KM, DEFAULT_RADIUS_KM, DEFAULT_LOCATION, validRadius, normalizeRadius, haversine, validCoordinates, nearbyStores, normalizeList, offerStatus, referencePrice, priceForProduct, compareBasket, comparisonSummary, savingsBetweenComplete, money, distance, lowestPrice'],
   ['Catalog','public/catalog.mjs','REFERENCE_CHECKED_ON, CATALOG_CATEGORY_COUNT, CATALOG_PRODUCTS_PER_CATEGORY, CATALOG_PRODUCT_COUNT, catalogCategories, catalogProducts, catalogCounts'],
   ['CatalogEnglish','public/catalog-en.mjs','EN_CATALOG, EN_CATEGORIES'],
@@ -22,9 +23,11 @@ for(const [name,file,exports] of modules) {
 let app=await read('public/app.mjs');
 app=bindImports(app);
 script+=`(()=>{\n${app}\n})();`;
-const css=await read('public/styles.css'),favicon=await read('public/icon.svg');
+const css=await read('public/styles.css');
+const dataImage=async path=>'data:image/png;base64,'+(await readFile(new URL(`../${path}`,import.meta.url))).toString('base64');
 let html=await read('public/index.html');
-html=html.replace(/<link rel="stylesheet" href="\.\/styles\.css(?:\?[^"]*)?">/,`<style>${css}</style>`).replace(/<script type="module" src="\.\/app\.mjs(?:\?[^"]*)?"><\/script>/,'').replace('href="./icon.svg"',`href="data:image/svg+xml,${encodeURIComponent(favicon)}"`).replace('</body>',`<script>${script.replace(/<\/script/gi,'<\\/script')}</script></body>`);
+html=html.replace(/<link rel="stylesheet" href="\.\/styles\.css(?:\?[^"]*)?">/,`<style>${css}</style>`).replace(/<script type="module" src="\.\/app\.mjs(?:\?[^"]*)?"><\/script>/,'').replace(/<link rel="manifest"[^>]*>/,'').replace('</body>',`<script>${script.replace(/<\/script/gi,'<\\/script')}</script></body>`);
+for(const filename of ['logo.png','favicon.png','apple-touch-icon.png'])html=html.replaceAll(`./assets/${filename}`,await dataImage(`public/assets/${filename}`));
 await mkdir(new URL('../dist/',import.meta.url),{recursive:true});
 await writeFile(new URL('../dist/index.html',import.meta.url),html);
 console.log('Demo autonoma generata in dist/index.html');
